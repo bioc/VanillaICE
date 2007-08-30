@@ -479,6 +479,12 @@ setMethod("show", "HmmSnpSet", function(object){
   cat("callsIce: ", callsIce(object), "\n")  
 })
 
+setMethod("ice2VanillaICE", "HmmSnpSet",
+          function(object){
+            attr(class(object), "package") <- "VanillaICE"
+            object
+          })
+
 
 
 

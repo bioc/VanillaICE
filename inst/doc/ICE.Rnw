@@ -1,6 +1,6 @@
-% \VignetteIndexEntry{ICE Vignette}
+% \VignetteIndexEntry{VanillaICE Vignette}
 % \VignetteKeywords{copy number, genotype, SNP}
-%\VignettePackage{ICE}
+%\VignettePackage{VanillaICE}
 \documentclass{article}
 \usepackage{amsmath}
 \usepackage{graphicx}
@@ -23,7 +23,7 @@
 \newcommand{\real}{\mbox{$\mathbb R$}}      % real numbers
 \newcommand{\bnu}{\mbox{\boldmath $\nu$}}
 
-\newcommand{\ice}{\Rpackage{ICE}}
+\newcommand{\ice}{\Rpackage{VanillaICE}}
 
 \textwidth=6.2in
 \textheight=8.5in
@@ -32,9 +32,9 @@
 \headheight=-.3in
 
 \begin{document}
-\title{ICE: Hidden Markov Models for the Assessment of Chromosomal
+\title{\ice{}: Hidden Markov Models for the Assessment of Chromosomal
   Alterations using High-throughput SNP Arrays}
-\author{Robert Scharpf, Giovanni Parmigiani, Jonathan Pevsner, and Ingo Ruczinski}
+\author{Robert Scharpf and Ingo Ruczinski}
 \maketitle
 
 <<setup, echo=FALSE, results=hide>>=
@@ -68,13 +68,13 @@ data.
 \section{Simple Usage}
 
 <<packages, results=hide>>=
-library(ICE)
+library(VanillaICE)
 data(chromosome1)
 class(chromosome1)
 annotation(chromosome1)
 @ 
 
-See the documentation pages in the R package \Rpackage{ICE} for more
+See the documentation pages in the R package \ice{} for more
 information about the \Robject{chromosome1} example dataset.  The vanilla HMM
 can be fit to both arms of this simulated chromosome as follows:
 

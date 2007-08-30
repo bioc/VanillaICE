@@ -16,6 +16,8 @@
 \alias{getLohProbability,HmmSnpSet-method}
 \alias{getTransitionProbability,HmmSnpSet-method}
 \alias{hmm,HmmSnpSet-method}
+\alias{ice2VanillaICE}
+\alias{ice2VanillaICE,HmmSnpSet-method}
 \alias{initialize,HmmSnpSet-method}
 \alias{locationCopyNumber,HmmSnpSet-method}
 \alias{locationCopyNumber<-,HmmSnpSet-method}
@@ -108,6 +110,9 @@ Class \code{\link[Biobase]{Versioned-class}}, by class "HmmSnpCallSet", distance
     \item{getLohProbability}{\code{signature(object = "HmmSnpSet")}: ... }
     \item{getTransitionProbability}{\code{signature(object = "HmmSnpSet")}: ... }
     \item{hmm}{\code{signature(object = "HmmSnpSet")}: ... }
+    \item{ice2VanillaICE}{\code{signature(.Object = "HmmSnpSet")}:
+	 Resets the package attribute from ICE (DEPRECATED package name)
+	 to VanillaICE}
     \item{initialize}{\code{signature(.Object = "HmmSnpSet")}: ... }
     \item{locationCopyNumber}{\code{signature(object = "HmmSnpSet")}: ... }
     \item{locationCopyNumber<-}{\code{signature(object = "HmmSnpSet")}: ... }

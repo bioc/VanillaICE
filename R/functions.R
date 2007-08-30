@@ -1,8 +1,10 @@
 .breaks <- function(object){
-  ##  object <- object[!is.na(predictions(object)), ]
   if(sum(is.na(predictions(object))) > 0){
     warning("NA values in predictions")
   }
+
+  object <- object[!is.na(predictions(object)), ]
+  
   if(length(unique(chromosome(object))) > 1) stop("should only be one chromosome in the call to this function")
   object <- object[order(position(object)), ]
   

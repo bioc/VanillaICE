@@ -24,6 +24,7 @@ exportMethods(
               getTransitionProbability,
               hmm,
               hmmBySample,
+              ice2VanillaICE,
               initialize,
               initialStateProbability, "initialStateProbability<-",
               isMissing,

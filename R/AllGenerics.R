@@ -20,6 +20,7 @@ setGeneric("getInitialStateProbability", function(object) standardGeneric("getIn
 setGeneric("getTransitionProbability", function(object) standardGeneric("getTransitionProbability"))
 setGeneric("hmm", function(object, ...) standardGeneric("hmm"))
 setGeneric("hmmBySample", function(object, ...) standardGeneric("hmmBySample"))
+setGeneric("ice2VanillaICE", function(object) standardGeneric("ice2VanillaICE"))
 setGeneric("isMissing", function(object, ...) standardGeneric("isMissing"))
 setGeneric("initialStateProbability", function(object) standardGeneric("initialStateProbability"))
 setGeneric("initialStateProbability<-", function(object, value) standardGeneric("initialStateProbability<-"))

@@ -1,8 +1,6 @@
 setMethod("breakpoints", "hSet",
           function(object, by="MB", decreasing=TRUE, reorder=TRUE,
                    removeNormal=TRUE, verbose=FALSE, ...){
-
-            
             tmp <- list()
             for(i in 1:ncol(object)){
               tmp[[i]] <- .breaks(object[, i])
