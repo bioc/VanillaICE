@@ -1,0 +1,291 @@
+% \VignetteIndexEntry{ICE Vignette}
+% \VignetteKeywords{copy number, genotype, SNP}
+%\VignettePackage{ICE}
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\newcommand{\scscst}{\scriptscriptstyle}
+\newcommand{\scst}{\scriptstyle}
+\newcommand{\Rpackage}[1]{\textit{#1}}
+\newcommand{\Rfunction}[1]{\texttt{#1}}
+\newcommand{\Robject}[1]{\texttt{#1}}
+\newcommand{\cne}{\widehat{\text{CN}}}
+\newcommand{\gte}{\widehat{\text{GT}}}
+\newcommand{\gtehom}{\widehat{\text{HOM}}}
+\newcommand{\gtehet}{\widehat{\text{HET}}}
+\newcommand{\pgte}{\text{S}_{\widehat{\text{\tiny GT}}}}
+\newcommand{\pcne}{\text{S}_{\widehat{\text{\tiny CN}}}}
+\newcommand{\pgtehom}{\text{S}_{\widehat{\text{\tiny HOM}}}}
+\newcommand{\pgtehet}{\text{S}_{\widehat{\text{\tiny HET}}}}
+\newcommand{\thom}{\text{HOM}}
+\newcommand{\thet}{\text{HET}}
+\newcommand{\bDelta}{\mbox{\boldmath $\Delta$}}
+\newcommand{\real}{\mbox{$\mathbb R$}}      % real numbers
+\newcommand{\bnu}{\mbox{\boldmath $\nu$}}
+
+\newcommand{\ice}{\Rpackage{ICE}}
+
+\textwidth=6.2in
+\textheight=8.5in
+\oddsidemargin=.1in
+\evensidemargin=.1in
+\headheight=-.3in
+
+\begin{document}
+\title{ICE: Hidden Markov Models for the Assessment of Chromosomal
+  Alterations using High-throughput SNP Arrays}
+\author{Robert Scharpf, Giovanni Parmigiani, Jonathan Pevsner, and Ingo Ruczinski}
+\maketitle
+
+<<setup, echo=FALSE, results=hide>>=
+options(width=69)
+@ 
+
+\section{Introduction}
+
+Chromosomal DNA is characterized by variation between individuals at
+the level of entire chromosomes (e.g. aneuploidy in which the
+chromosome copy number is altered), segmental changes (including
+insertions, deletions, inversions, and translocations), and changes to
+small genomic regions (including single nucleotide polymorphisms). A
+variety of alterations that occur in chromosomal DNA, many of which
+can be detected using high density single nucleotide polymorphism
+(SNP) microarrays, are linked to normal variation as well as disease
+and therefore of particular interest. These include changes in copy
+number (deletions and duplications) and genotype (e.g. the occurrence
+of regions of homozygosity).  Hidden Markov models (HMM) are
+particularly useful for detecting such abnormalities, modeling the
+spatial dependence between neighboring SNPs.  Here, we extend previous
+approaches that utilize HMM frameworks for inference in high
+throughput SNP arrays by integrating copy number, genotype calls, and
+the corresponding measures of uncertainty when available.  Using
+simulated and real data, we demonstrate how confidence scores control
+smoothing in a probabilistic framework.  The goal of this vignette is
+to provide a simple interface for fitting HMMs and plotting functions
+to help visualize the predicted states alongside the experimental
+data.  
+
+\section{Simple Usage}
+
+<<packages, results=hide>>=
+library(ICE)
+data(chromosome1)
+class(chromosome1)
+annotation(chromosome1)
+@ 
+
+See the documentation pages in the R package \Rpackage{ICE} for more
+information about the \Robject{chromosome1} example dataset.  The vanilla HMM
+can be fit to both arms of this simulated chromosome as follows:
+
+<<fitVanilla>>=
+copyNumberIce(chromosome1) <- FALSE
+callsIce(chromosome1) <- FALSE
+fit1 <- hmm(chromosome1) 
+@ 
+
+The predicted states are plotted beneath the observed data by
+
+<<vanilla, fig=TRUE, include=TRUE>>=
+plotSnp(fit1)
+@ 
+
+%\begin{figure}[h]
+%\includegraphics[width=\textwidth]{ICE-vanilla}
+%\caption{The predicted states from the vanilla HMM plotted in color
+%  beneath the observed data for a simulated chromosome 1. }
+%\end{figure}
+
+See \cite{Scharpf2007a} for a more complete description of the
+simulated dataset and the features detected by this HMM.
+
+
+
+\section{Integrating Confidence Estimates (ICE)}  %Describe how ICE works.  What is needed to fit an HMM with ICE
+
+In this section, we illustrate how one may fit an HMM that
+incorporates confidence esimates of the SNP-level summaries for
+genotype calls and copy number.
+
+
+\subsection{Confidence scores for genotype calls}
+
+We suggest using the \Rfunction{CRLMM} algorithm \cite{Carvalho2007}
+for genotype calls.  \Rfunction{CRLMM} (in the R package
+\Rpackage{oligo}) provides confidence scores ($\pgte$) of the genotype
+estimates ($\gte$).  From 269 HapMap samples assayed on the Affymetrix
+50k Xba and Hind chips, we have a gold standard of the true genotype
+defined by the consensus of the HapMap centers.  We use kernal based
+density estimates to obtain
+
+{\scriptsize
+\begin{eqnarray}
+\label{ingo2}
+f\left\{\ \pgtehom\ |\ \gtehom,\thom\ \right\},\
+f\left\{\ \pgtehom\ |\ \gtehom,\thet\ \right\},\
+f\left\{\ \pgtehet\ |\ \gtehet,\thom\ \right\},\ \mbox{~ and~}
+f\left\{\ \pgtehet\ |\ \gtehet,\thet\ \right\}
+\end{eqnarray}
+}
+
+\noindent separately for the Xba and Hind 50k chips. The first term in
+(\ref{ingo2}), for example, denotes the density of the scores when the
+genotype is correctly called homozygous ($\gtehom$) and the true
+genotype is homozygous ($\thom$). See \cite{Scharpf2007a} for a more
+complete description of the methods. The data needed to estimate these
+densities is stored in the experiment data package
+\Rpackage{callsConfidence}.  \Rpackage{callsConfidence} is available
+from the author's website.
+%\texttt{http://biostat.jhsph.edu/~rscharpf/software/index.html}.
+
+\subsection{Confidence scores for copy number estimates}
+
+To illustrate how standard errors of the copy number estimate could be
+integrated in the HMM, the R object \Robject{chromosome1} contains
+standard errors simulated from a shifted Gamma: $\mbox{Gamma}(1, 2) +
+0.3$, where 1 is the shape parameter and 2 is the rate parameter.  To
+ascertain the effect of qualitatively high confidence scores on the
+ICE HMM, we scaled a robust estimate of the copy number standard
+deviation by $\frac{1}{2}$. Similarly, to simulate less precise $\cne$
+we scaled $\epsilon$ by 2.  For more detailed information about how
+the data in the \Robject{chromosome1} was generated, see the
+documentation for this object in the R package \ice.
+
+\subsection{Fitting the ICE HMM}
+
+The results from fitting the ICE HMM to the \Robject{chromosome1} data
+have been stored in the assay data element \Robject{predictions} of
+\Robject{chromosome1}.  To see a table of the predicted underlying
+states (excluding normal segments) sorted by size (MB):
+
+<<predictions>>=
+breakpoints(chromosome1)
+@ 
+
+To reproduce these results, one must install the Experiment Data
+package \Rpackage{callsConfidence} and run the command:
+
+<<setIce, eval=FALSE>>=
+library(callsConfidence)
+copyNumberIce(chromosome1) <- TRUE
+callsIce(chromosome1) <- TRUE
+chromosome1 <- hmm(chromosome1) 
+@ 
+
+%#layout(matrix(c(1, 4, 2, 3))
+%#par(las=1, mar=c(0.5, 4, 1, 1), oma=c(4, 1, 2, 1))
+%#layout(matrix(1:2, 2, 1), heights=c(1, 0.1))
+%#sep <- log2(1) - log2(ytop)
+%#h <- log2(ytop) - log2(ybottom)
+%#ytop2 <- 2^(log2(ybottom)-sep)
+%#ybottom2 <- 2^(log2(ytop2) - h)
+%x <- breakpoints(fit1, by="start", decreasing=FALSE)
+%x <- x[, "start"]
+
+
+<<ice, fig=TRUE, include=TRUE>>=
+plotSnp(chromosome1)
+@ 
+ 
+
+%%A comparison of the predictions from the vanilla (top bar beneath the
+%%data) and ICE HMMs (bottom bar).  
+
+Note that the ICE HMM correctly identifies the simulated normal
+segments in features B and C. Additionally, the ICE HMM detects the
+micro-amplification in region E.
+
+
+\section{HMM for copy number alterations}
+
+The method \Robject{hmm} has a different set of underlying hidden
+states depending on whether copy number estimates, genotype calls, or
+both are available.  When only copy number estimates are available,
+the hidden states (for autosomes) are hemizygous or homozygous
+deletion (one or fewer copies), normal (two copies), and amplification
+(three or more copies).  The corresponding class is
+\Robject{HmmSnpCopyNumberSet}.  To illustrate, we convert the
+\Robject{chromosome1} example to an object of this class and fit the
+HMM.
+
+<<copyNumberHmm>>=
+chr1.cn <- as(chromosome1, "HmmSnpCopyNumberSet")
+locationCopyNumber(chr1.cn) <- c(log2(1), log2(2), log2(3))
+initialStateProbability(chr1.cn) <- c((1-0.99)/2, 0.99, (1-0.99)/2)
+scaleCopyNumber(chr1.cn) <- NULL
+stateNames(chr1.cn) <- c("deletion", "normal", "amplification")
+predictions(chr1.cn) <- matrix(NA, nrow(chr1.cn), ncol(chr1.cn))
+chr1.cn <- hmm(chr1.cn, verbose=TRUE)
+breakpoints(chr1.cn)
+@ 
+
+<<copyNumberFigure, fig=TRUE, include=TRUE>>=
+plotSnp(chr1.cn)
+@ 
+
+<<echo=FALSE>>=
+rm(chr1.cn)
+@ 
+
+\section{HMM for loss of heterozygosity}
+
+When only genotype calls are available, the hidden states are loss and
+retention (ret) of heterozygosity.  We define \textit{loss} to be a
+sequence of homozygous SNPs longer than what we would expect to
+observe by chance. Note that many long stretches of homozygosity may
+occur as a result of a population sharing a common underlying
+haplotype structure; loss predictions from an HMM fit to an indvidual
+do not necessarily reflect the 'loss' of an allele in that individual.
+For illustration, we convert the \Robject{chromosome1} example to an
+object of class \Robject{HmmSnpCallSet} and refit the HMM.
+
+<<chr1Calls>>=
+chr1.calls <- as(chromosome1, "HmmSnpCallSet")
+stateNames(chr1.calls) <- c("loss", "ret")
+pCHOM(chr1.calls) <- c(0.999, 0.7)
+initialStateProbability(chr1.calls) <- c(1-0.99, 0.99)
+predictions(chr1.calls) <- matrix(NA, nrow(chr1.calls), ncol(chr1.calls))
+chr1.calls <- hmm(chr1.calls)
+breakpoints(chr1.calls)
+@ 
+
+<<callsFigure, fig=TRUE, include=TRUE>>=
+plotSnp(chr1.calls)
+@ 
+
+\section{Classes for HMMs}
+
+More documentation about the classes can be found in the documentation
+for the R package \ice. Note that the minimal SNP-level
+annotation required for the HMMs described here are physical position
+of the SNP (stored as an integer) and the chromosome (stored as a
+character string).  The motivation for requiring that this information
+be stored in the \Robject{featureData} is primarily for convenience
+when subsetting instances of these classes, but may be relaxed in
+future releases.  See, for instance, the \Robject{featureData} in the
+\Robject{chromosome1} object:
+
+<<varlabels>>=
+fvarLabels(chromosome1)
+@ 
+
+In addition to the class \Robject{HmmSnpSet} that contains SNP-level
+summaries of genotype and copy number, we define classes for
+genotype-only (\Robject{HmmSnpCallSet}) and copy number-only datasets
+(\Robject{HmmSnpCopyNumberSet}).  The parameters of the model,
+including the latent states, transition probabilities, and emission
+probabilities, are dependent on the class of data. See
+\cite{Scharpf2007a} additional details.
+
+\section{Session Information}
+
+The version number of R and packages loaded for generating the
+vignette were:
+
+<<echo=FALSE, results=tex>>=
+toLatex(sessionInfo())
+@ 
+\bibliography{ice}{}
+\bibliographystyle{plain}
+
+\end{document}

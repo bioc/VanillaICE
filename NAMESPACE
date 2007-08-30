@@ -1,0 +1,56 @@
+import(SNPchip, Biobase, oligoClasses)
+
+##classes for HMMs
+exportClasses("hSet", "HmmSnpSet", "HmmSnpCallSet", "HmmSnpCopyNumberSet")
+exportMethods(
+              "[",
+              "[<-",
+              bind,
+              breakpoints,
+              byArm,
+              calculateEmissionProbability,
+              callsIce,
+              "callsIce<-",
+              copyNumberIce,
+              "copyNumberIce<-",
+              coerce,
+              chromosomeArm, "chromosomeArm<-",
+              distance, "distance<-",
+              emissionProbability, "emissionProbability<-",
+              getCopyNumberLocation,
+              getCopyNumberScale,
+              getInitialStateProbability,
+              getLohProbability,
+              getTransitionProbability,
+              hmm,
+              hmmBySample,
+              initialize,
+              initialStateProbability, "initialStateProbability<-",
+              isMissing,
+              likelihood, "likelihood<-",
+              locationCopyNumber, "locationCopyNumber<-",
+              numberStates, ##"numberStates<-",
+              pCHOM, "pCHOM<-",
+              predictions, "predictions<-",
+              scaleCopyNumber, "scaleCopyNumber<-",
+              stateNames, "stateNames<-",
+              show,
+              transitionProbability, "transitionProbability<-",
+              viterbi)
+
+export(callEmission,
+       hapmapProbabilities,
+       getHapmapProbabilities,
+       getCallEmission)
+
+
+###########################################################################
+##classes for graphical parameters
+###########################################################################
+exportClasses("ParHSet", "ParHmmSnpSet", "ParHmmSnpCallSet", "ParHmmSnpCopyNumberSet")
+###########################################################################
+##methods and functions for graphical parameters
+###########################################################################
+exportMethods(getPar, plotSnp)
+export(plotPredictions)
+
