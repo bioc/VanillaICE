@@ -1,10 +1,12 @@
 .breaks <- function(object){
   if(sum(is.na(predictions(object))) > 0){
-    warning("NA values in predictions")
+    Nmissing <- sum(is.na(predictions(object)))
+    print(paste(Nmissing, " out of ", nrow(object), " predictions are missing", sep=""))
+
   }
 
-  object <- object[!is.na(predictions(object)), ]
-  
+  ##simply removing missing values might mess up the boundaries for the predictions.
+  ##object <- object[!is.na(predictions(object)), ]
   if(length(unique(chromosome(object))) > 1) stop("should only be one chromosome in the call to this function")
   object <- object[order(position(object)), ]
   
@@ -13,7 +15,9 @@
   
   if(length(unique(pred)) == 1) return(NULL)
   d <- diff(pred)
-  index <- c(1, (2:N)[d != 0])
+
+  warning("Missing values are ignored in breaks")  
+  index <- c(1, (2:N)[d != 0 & !is.na(d)])
   index <- cbind(index[-length(index)], index[2:length(index)])
   index[, 2] <- index[, 2] - 1
   lastBreak <- index[nrow(index), 2]
@@ -28,6 +32,7 @@
   colnames(physical.positions)[3] <- "MB"
 
   predictedState <- function(x, object)  {
+    if(any(is.na(x))) browser()
     pred <- predictions(object)[(x[1]:x[2])]
     pred <- pred[!is.na(pred)]
     pred <- unique(pred)
@@ -44,7 +49,7 @@
   breaks <- data.frame(physical.positions)
   breaks$hiddenState <- states
   breaks$chromosome <- rep(unique(chromosome(object)), nrow(breaks))
-  breaks$id <- rep(sampleNames(object), nrow(breaks))
+  breaks$sampleId <- rep(sampleNames(object), nrow(breaks))
 
   ##################################################
   ##Find positions of adjacent SNPs
@@ -61,9 +66,10 @@
   }
   adjacent <- t(apply(breaks, 1, adjacentSnps, object))
   colnames(adjacent) <- c("previous_SNP", "next_SNP")
-  breaks <- cbind(breaks, adjacent)  
-  
-  colnames <- c("id", "chromosome", "previous_SNP", "start", "last", "next_SNP", "MB", "hiddenState")
+  breaks <- cbind(breaks, adjacent)
+
+  ##Add columns for the name of the first SNP and the name of the last SNP 
+  colnames <- c("sampleId", "chromosome", "previous_SNP", "start", "last", "next_SNP", "MB", "hiddenState")
   breaks <- breaks[, colnames]
   colnames(breaks) <- colnames
   breaks

@@ -50,7 +50,7 @@ setMethod("initialize", "HmmSnpSet",
           })
 
 setValidity("HmmSnpSet", function(object) {
-  assayDataValidMembers(assayData(object), c("calls", "callsConfidence", "copyNumber", "cnConfidence"))
+  assayDataValidMembers(assayData(object), c("calls", "callsConfidence", "copyNumber", "cnConfidence", "predictions"))
 })
 
 ##Copied from Biobase/R/methods-eSet.R
@@ -178,7 +178,7 @@ setMethod("breakpoints", "HmmSnpSet",
              xBreaks <- tmp[notNormal, ]
              numberSnps <- function(breaks, object){
                I <- position(object) >= as.numeric(breaks["start"]) & position(object) <= as.numeric(breaks["last"])
-               j <- match(breaks["id"], sampleNames(object))
+               j <- match(breaks["sampleId"], sampleNames(object))
                nSnps <- sum(I)
                pHet <- sum(calls(object)[I, j] == 2, na.rm=TRUE)
                pNA <- sum(is.na(calls(object)[I, j]))
@@ -395,21 +395,21 @@ setMethod("hmm", "HmmSnpSet",
               object <- objList[[1]] ##else, return a list
             } else {
               object <- .unsplitHmm(objList, featureData(object),
-                               copyNumber=do.call("rbind", lapply(objList, copyNumber)),
-                               cnConfidence=do.call("rbind", lapply(objList, cnConfidence)),
-                               calls=do.call("rbind", lapply(objList, calls)),
-                               callsConfidence=do.call("rbind", lapply(objList, calls)),                       
-                               predictions=do.call("rbind", lapply(objList, predictions)),
-                               phenoData=phenoData(objList[[1]]),
-                               annotation=annotation(objList[[1]]),
-                               experimentData=experimentData(objList[[1]]),
-                               initialStateProbability=initialStateProbability(objList[[1]]),
-                               stateNames=stateNames(objList[[1]]),
-                               copyNumberIce=copyNumberIce(objList[[1]]),
-                               locationCopyNumber=locationCopyNumber(objList[[1]]),
-                               distance=distance(objList[[1]]),
-                               pCHOM=pCHOM(objList[[1]]),
-                               callsIce=callsIce(objList[[1]]))
+                                    copyNumber=do.call("rbind", lapply(objList, copyNumber)),
+                                    cnConfidence=do.call("rbind", lapply(objList, cnConfidence)),
+                                    calls=do.call("rbind", lapply(objList, calls)),
+                                    callsConfidence=do.call("rbind", lapply(objList, calls)),                       
+                                    predictions=do.call("rbind", lapply(objList, predictions)),
+                                    phenoData=phenoData(objList[[1]]),
+                                    annotation=annotation(objList[[1]]),
+                                    experimentData=experimentData(objList[[1]]),
+                                    initialStateProbability=initialStateProbability(objList[[1]]),
+                                    stateNames=stateNames(objList[[1]]),
+                                    copyNumberIce=copyNumberIce(objList[[1]]),
+                                    locationCopyNumber=locationCopyNumber(objList[[1]]),
+                                    distance=distance(objList[[1]]),
+                                    pCHOM=pCHOM(objList[[1]]),
+                                    callsIce=callsIce(objList[[1]]))
             }
             object
           })
