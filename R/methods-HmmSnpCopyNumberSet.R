@@ -41,6 +41,10 @@ setMethod("initialize", "HmmSnpCopyNumberSet",
             .Object
           })
 
+setValidity("HmmSnpCopyNumberSet", function(object){
+  assayDataValidMembers(assayData(object), c("copyNumber", "cnConfidence", "predictions"))
+})
+
 ##Copied from Biobase/R/methods-eSet.R
 ##methods used to subset assayData are not exported from Biobase
 setMethod("[", "HmmSnpCopyNumberSet", function(x, i, j, ..., drop = FALSE) {
@@ -139,13 +143,6 @@ setMethod("calculateEmissionProbability", "HmmSnpCopyNumberSet",
             rownames(emissionProbability(object)) <- featureNames(object)
             return(emissionProbability(object))
           })
-
-setMethod("copyNumberIce", "HmmSnpCopyNumberSet", function(object) object@copyNumberIce)
-setReplaceMethod("copyNumberIce", c("HmmSnpCopyNumberSet", "logical"),
-                 function(object, value){
-                   object@copyNumberIce <- value
-                   object
-                 })
 
 setMethod("getCopyNumberLocation", "HmmSnpCopyNumberSet",
           function(object){

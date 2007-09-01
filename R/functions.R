@@ -2,7 +2,6 @@
   if(sum(is.na(predictions(object))) > 0){
     Nmissing <- sum(is.na(predictions(object)))
     print(paste(Nmissing, " out of ", nrow(object), " predictions are missing", sep=""))
-
   }
 
   ##simply removing missing values might mess up the boundaries for the predictions.
@@ -16,7 +15,6 @@
   if(length(unique(pred)) == 1) return(NULL)
   d <- diff(pred)
 
-  warning("Missing values are ignored in breaks")  
   index <- c(1, (2:N)[d != 0 & !is.na(d)])
   index <- cbind(index[-length(index)], index[2:length(index)])
   index[, 2] <- index[, 2] - 1
@@ -32,13 +30,14 @@
   colnames(physical.positions)[3] <- "MB"
 
   predictedState <- function(x, object)  {
-    if(any(is.na(x))) browser()
+    if(any(is.na(x))){
+      stop("missing values")
+    }
     pred <- predictions(object)[(x[1]:x[2])]
     pred <- pred[!is.na(pred)]
     pred <- unique(pred)
     if(length(pred) > 1) {
-      print("predictions not unique")
-      browser()
+      stop("predictions not unique")
     }
     pred
   }
@@ -294,8 +293,7 @@ callEmission <- function(object, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1){
   predict <- predictions(object)[position(object) >= start & position(object) <= last & chromosome(object) == x["chromosome"]]
   predict <- predict[!is.na(predict)]
   if(length(unique(predict)) > 1) {
-    warning("predictions not unique")
-    browser()
+    stop("predictions not unique")
   }
   col <- col[unique(predict)]
   rect(xleft=start,
@@ -321,7 +319,7 @@ plotPredictions <- function(object, op, breaks, ...){
   for(i in chr){
     if(op$use.chromosome.size) op$xlim <- c(0, chromosomeSize(i)) else op$xlim <- range(position(object[chromosome(object) == i, ]))
     for(j in sampleNames(object)){
-      tmp <- breaks[breaks[, "chromosome"] == i & breaks[, "id"] == j, , drop=FALSE]
+      tmp <- breaks[breaks[, "chromosome"] == i & breaks[, "sampleId"] == j, , drop=FALSE]
       plot(0:1,
            type="n",
            xlim=op$xlim,
@@ -333,7 +331,8 @@ plotPredictions <- function(object, op, breaks, ...){
       if(i == op$firstChromosome){
         mtext("HMM", side=2, at=0.5, cex=op$cex.axis, las=1)
       }
-      apply(tmp, 1, .drawRect, object=object[chromosome(object) == i, match(j, sampleNames(object))], col=op$col.predict)      
+      apply(tmp, 1, .drawRect, object=object[chromosome(object) == i, match(j, sampleNames(object))], col=op$col.predict)
+      ##put a white rectangle at the centromer
       rect(xleft=centromere(i)[1],
            ybottom=0,
            xright=centromere(i)[2],

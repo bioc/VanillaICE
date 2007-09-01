@@ -1,7 +1,8 @@
 setClassUnion("NullOrNumeric", c("numeric", "NULL"))
 setClassUnion("NullOrNumericOrMatrix", c("NULL", "numeric", "matrix"))
 setClassUnion("NullOrMatrix", c("NULL", "matrix"))
-setClass("hSet", contains="oligoSnpSet",
+
+setClass("hSet", contains="SnpLevelSet",
          representation(distance="logical",
                         initialStateProbability="NullOrNumeric",
                         transitionProbability="NullOrNumericOrMatrix",
@@ -35,7 +36,8 @@ setClass("HmmSnpCopyNumberSet", contains="hSet",
 
 
 setClass("HmmSnpCallSet", contains="hSet", 
-         representation(pCHOM="numeric",  #vector with length = number of states
+         representation(
+                        pCHOM="numeric",  #vector with length = number of states
                         predictions="matrix",
                         callsIce="logical"),
          prototype=list(
@@ -44,7 +46,16 @@ setClass("HmmSnpCallSet", contains="hSet",
            stateNames=c("loss", "retention"),
            callsIce=FALSE))
 
-setClass("HmmSnpSet", contains=c("HmmSnpCopyNumberSet", "HmmSnpCallSet"),
+##hset extends SnpLevelSet so that it inherits all hmm methods
+##We'd also like to inherit methods for plotSnp defined in
+setClass("HmmSnpSet", contains="hSet",
+         representation(locationCopyNumber="numeric",
+                        scaleCopyNumber="NullOrNumeric",
+                        log2="logical",
+                        predictions="matrix",
+                        copyNumberIce="logical",
+                        callsIce="logical",
+                        pCHOM="numeric"),
          prototype=list(
            initialStateProbability=c((1-0.99)/3, 0.99, (1-0.99)/3, (1-0.99)/3),
            pCHOM=c(1-1e-3, 0.7, 1-1e-3, 0.7),

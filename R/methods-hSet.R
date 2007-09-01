@@ -30,11 +30,25 @@ setMethod("breakpoints", "hSet",
             tmp
           })
 
+setMethod("callsIce", "hSet", function(object) object@callsIce)
+setReplaceMethod("callsIce", c("hSet", "logical"),
+                 function(object, value){
+                   object@callsIce <- value
+                   object
+                 })
+
+setMethod("copyNumberIce", "hSet", function(object) object@copyNumberIce)
+setReplaceMethod("copyNumberIce", c("hSet", "logical"),
+                 function(object, value){
+                   object@copyNumberIce <- value
+                   object
+                 })
+
 
 setMethod("getBreaks", "hSet",
           function(object, breaks){
             if(missing(breaks)) {
-              if(length(unique(chromosome(object))) <= 1){
+              if(length(unique(chromosome(object))) == 1){
                 breaks <- breakpoints(object,
                                       removeNormal=FALSE,
                                       by="start",
@@ -49,21 +63,16 @@ setMethod("getBreaks", "hSet",
             breaks
           })
 
+setMethod("isMissing", "hSet",
+          function(object, MISSING.CODE=NA){
+            if(!is.na(MISSING.CODE)){
+              missing <- calls(object) == MISSING.CODE
+            }
+            if(is.na(MISSING.CODE)) missing <- is.na(calls(object))
+            if(any(missing)) warning(paste("Missing", sum(missing), " calls"))
+            missing
+          })
 
-##setMethod("breakpoints", "list",
-##          function(object, by="MB", decreasing=TRUE, reorder=FALSE, verbose=FALSE, excludeNormal, ...){
-##            tmp <- lapply(object, breakpoints, verbose=verbose, reorder=FALSE)
-##            tmp <- do.call("rbind", tmp)
-##            if(length(tmp) > 0){
-##              tmp <- tmp[tmp$hiddenState != stateNames(object[[1]])[2], ]
-##            }
-##            if(reorder){
-##              if(length(tmp) > 0){
-##                tmp <- tmp[order(tmp[, by], decreasing=decreasing), ]
-##              }
-##            }
-##            tmp
-##          })
 
 setMethod("chromosomeArm", "hSet", function(object) object@chromosomeArm)
 setReplaceMethod("chromosomeArm", "hSet",
@@ -154,10 +163,6 @@ setMethod("plotSnp", "hSet",
             callNextMethod(object=object, op=op, on.exit=FALSE, ...)
             plotPredictions(object, op, breaks)
           })
-
-
-
-
 
 setMethod("initialStateProbability", "hSet", function(object) object@initialStateProbability)
 setReplaceMethod("initialStateProbability", "hSet",

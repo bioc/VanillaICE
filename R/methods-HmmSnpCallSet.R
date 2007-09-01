@@ -37,6 +37,10 @@ setMethod("initialize", "HmmSnpCallSet",
             .Object
           })
 
+setValidity("HmmSnpCallSet", function(object){
+  assayDataValidMembers(assayData(object), c("calls", "callsConfidence", "predictions"))
+})
+
 ##Copied from Biobase/R/methods-eSet.R
 ##methods used to subset assayData are not exported from Biobase
 setMethod("[", "HmmSnpCallSet", function(x, i, j, ..., drop = FALSE) {
@@ -132,12 +136,7 @@ setMethod("calculateEmissionProbability", "HmmSnpCallSet",
             return(emissionProbability(object))
           })
 
-setMethod("callsIce", "HmmSnpCallSet", function(object) object@callsIce)
-setReplaceMethod("callsIce", c("HmmSnpCallSet", "logical"),
-                 function(object, value){
-                   object@callsIce <- value
-                   object
-                 })
+
 
 setMethod("getInitialStateProbability", "HmmSnpCallSet", function(object){
   if(is.null(initialStateProbability(object))){
@@ -146,15 +145,6 @@ setMethod("getInitialStateProbability", "HmmSnpCallSet", function(object){
   isp
 })
 
-setMethod("isMissing", "HmmSnpCallSet",
-          function(object, MISSING.CODE=NA){
-            if(!is.na(MISSING.CODE)){
-              missing <- calls(object) == MISSING.CODE
-            }
-            if(is.na(MISSING.CODE)) missing <- is.na(calls(object))
-            if(any(missing)) warning(paste("Missing", sum(missing), " calls"))
-            missing
-          })
 
 setMethod("getLohProbability", "HmmSnpCallSet",
           function(object){

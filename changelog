@@ -139,6 +139,12 @@
 	plotBreaks method for list()
 	remove cytoband plots from vignette
 	fixed helpfile links 
+
+0.1.9  	Changed name to VanillaICE
+
+0.1.11  Changed class definitions:
+	- hSet extends SnpLevelSet (not oligoSnpSet)
+	- HmmSnpSet extends hSet (not HmmSnpCopyNumberSet and HmmSnpCallSet)
 	
 	
  	

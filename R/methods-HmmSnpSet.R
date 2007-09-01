@@ -49,7 +49,7 @@ setMethod("initialize", "HmmSnpSet",
             .Object
           })
 
-setValidity("HmmSnpSet", function(object) {
+setValidity("HmmSnpSet", function(object){
   assayDataValidMembers(assayData(object), c("calls", "callsConfidence", "copyNumber", "cnConfidence", "predictions"))
 })
 

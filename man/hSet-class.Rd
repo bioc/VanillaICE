@@ -3,6 +3,10 @@
 \alias{hSet-class}
 \alias{breakpoints,hSet-method}
 \alias{byArm,hSet-method}
+\alias{callsIce,hSet-method}
+\alias{callsIce<-,hSet,logical-method}
+\alias{copyNumberIce,hSet-method}
+\alias{copyNumberIce<-,hSet,logical-method}
 \alias{chromosomeArm,hSet-method}
 \alias{chromosomeArm<-,hSet-method}
 \alias{distance,hSet-method}
@@ -15,6 +19,7 @@
 \alias{hmmBySample,hSet-method}
 \alias{initialStateProbability,hSet-method}
 \alias{initialStateProbability<-,hSet-method}
+\alias{isMissing,hSet-method}
 \alias{likelihood,hSet-method}
 \alias{likelihood<-,hSet-method}
 \alias{numberStates,hSet-method}
