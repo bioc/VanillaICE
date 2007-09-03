@@ -14,7 +14,10 @@
   
   if(length(unique(pred)) == 1) return(NULL)
   d <- diff(pred)
-
+  if(sum(d, na.rm=TRUE) < 1){
+    print("No breakpoints in this region")
+    return()
+  }
   index <- c(1, (2:N)[d != 0 & !is.na(d)])
   index <- cbind(index[-length(index)], index[2:length(index)])
   index[, 2] <- index[, 2] - 1
