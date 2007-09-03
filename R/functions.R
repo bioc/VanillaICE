@@ -14,7 +14,7 @@
   
   if(length(unique(pred)) == 1) return(NULL)
   d <- diff(pred)
-  if(sum(d, na.rm=TRUE) < 1){
+  if(sum(abs(d), na.rm=TRUE) < 1){
     print("No breakpoints in this region")
     return()
   }

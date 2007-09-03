@@ -1,8 +1,8 @@
 setMethod("initialize", "ParHmmSnpSet",
           function(.Object, ...){
             .Object <- callNextMethod(.Object, ...)
-            .Object$col <- c("lightblue", "red", "lightblue")
-            .Object$bg <- c("lightblue", "red", "lightblue")            
+            .Object$col <- c("lightblue", "red", "lightblue", "green3")
+            .Object$bg <- c("lightblue", "red", "lightblue", "green3")
             .Object$ylab <- "copy number"
             ##add col.predict as an argument
             require(RColorBrewer, quietly=TRUE) || stop("RColorBrewer package not available")
