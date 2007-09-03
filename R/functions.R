@@ -334,7 +334,8 @@ plotPredictions <- function(object, op, breaks, ...){
       if(i == op$firstChromosome){
         mtext("HMM", side=2, at=0.5, cex=op$cex.axis, las=1)
       }
-      apply(tmp, 1, .drawRect, object=object[chromosome(object) == i, match(j, sampleNames(object))], col=op$col.predict)
+      if(!is.null(tmp))
+        apply(tmp, 1, .drawRect, object=object[chromosome(object) == i, match(j, sampleNames(object))], col=op$col.predict)
       ##put a white rectangle at the centromer
       rect(xleft=centromere(i)[1],
            ybottom=0,
