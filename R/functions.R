@@ -1,7 +1,7 @@
 .breaks <- function(object){
   if(sum(is.na(predictions(object))) > 0){
     Nmissing <- sum(is.na(predictions(object)))
-    print(paste(Nmissing, " out of ", nrow(object), " predictions are missing", sep=""))
+    print(paste(Nmissing, " out of ", nrow(object), " predictions are NA.", sep=""))
   }
 
   ##simply removing missing values might mess up the boundaries for the predictions.
@@ -334,8 +334,11 @@ plotPredictions <- function(object, op, breaks, ...){
       if(i == op$firstChromosome){
         mtext("HMM", side=2, at=0.5, cex=op$cex.axis, las=1)
       }
-      if(!is.null(tmp))
+      if(!is.null(tmp)){
+        ##best to draw the biggest regions first and the smallest regions last.
+        tmp <- tmp[order(tmp[, "MB"], decreasing=TRUE), ]
         apply(tmp, 1, .drawRect, object=object[chromosome(object) == i, match(j, sampleNames(object))], col=op$col.predict)
+      }
       ##put a white rectangle at the centromer
       rect(xleft=centromere(i)[1],
            ybottom=0,

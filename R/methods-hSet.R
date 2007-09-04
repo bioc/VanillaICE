@@ -141,11 +141,13 @@ setMethod("getPar", "hSet", function(object, ...){
     op$mat <- mat
   }
   op$ylim <- .calculateYlim(object=object, op=op)
-##  if(op$use.chromosome.size){
-##    op$xlim <- c(0, chromosomeSize(chromosomeNames))
-##  } else {
-##    op$xlim <- range(position(object))
-##  }
+  if(length(chromosomeNames) == 1){
+    if(op$use.chromosome.size){
+      op$xlim <- c(0, chromosomeSize(chromosomeNames))
+    } else {
+      op$xlim <- range(position(object))
+    }
+  }
  if(ncol(object) == 1) op$yaxt="s"
   op
 })
