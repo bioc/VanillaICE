@@ -17,6 +17,7 @@ exportMethods(
               chromosomeArm, "chromosomeArm<-",
               distance, "distance<-",
               emissionProbability, "emissionProbability<-",
+              getBreaks,
               getCopyNumberLocation,
               getCopyNumberScale,
               getInitialStateProbability,
@@ -43,7 +44,6 @@ export(callEmission,
        hapmapProbabilities,
        getHapmapProbabilities,
        getCallEmission)
-
 
 ###########################################################################
 ##classes for graphical parameters
