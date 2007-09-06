@@ -38,6 +38,7 @@ exportMethods(
               stateNames, "stateNames<-",
               show,
               transitionProbability, "transitionProbability<-",
+              .unsplitHmm,
               viterbi)
 
 export(callEmission,

@@ -28,6 +28,8 @@
 \alias{scaleCopyNumber,HmmSnpSet-method}
 \alias{scaleCopyNumber<-,HmmSnpSet-method}
 \alias{show,HmmSnpSet-method}
+\alias{.unsplitHmm}
+\alias{.unsplitHmm,list,AnnotatedDataFrame-method}
 
 \title{HmmSnpSet}
 \description{}
