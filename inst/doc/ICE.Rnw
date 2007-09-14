@@ -88,8 +88,6 @@ Graphical parameters for plotting the results are easily obtained and
 manipulated:
 
 <<graph.par>>=
-##source("~/test/VanillaICE/R/methods-hSet.R")
-##source("~/test/VanillaICE/R/methods-ParHSet.R")
 graph.par <- getPar(fit1)
 class(graph.par)
 @ 
