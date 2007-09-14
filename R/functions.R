@@ -309,54 +309,53 @@ callEmission <- function(object, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1){
 
 plotPredictions <- function(object, op, breaks, ...){
   if(missing(breaks)) breaks <- getBreaks(object)
-  if(missing(op)){
-    op <- switch(class(object),
-                 HmmSnpSet=new("ParHmmSnpSet", ...),
-                 HmmSnpCallSet=new("ParHmmSnpCallSet", ...),
-                 HmmSnpCopyNumberSet=new("ParHmmSnpCopyNumberSet", ...))    
-    op$use.layout <- FALSE
-    def.par <- par(...)
-    on.exit(def.par)
-  }
   chr <- unique(chromosome(object))[order(as.numeric(unique(chromosome(object))))]
   for(i in chr){
-    if(op$use.chromosome.size) op$xlim <- c(0, chromosomeSize(i)) else op$xlim <- range(position(object[chromosome(object) == i, ]))
     for(j in sampleNames(object)){
       tmp <- breaks[breaks[, "chromosome"] == i & breaks[, "sampleId"] == j, , drop=FALSE]
       plot(0:1,
            type="n",
-           xlim=op$xlim,
-           ylim=c(-0.2, 1.5),
+           xlim=op$xlim[i, ],
+           ylim=op$predictions.ylim,
            yaxt="n",
            xaxt="n",
+           xaxs=op$xaxs,
            yaxs="i",
            xaxs=op$xaxs)
       if(i == op$firstChromosome){
         mtext("HMM", side=2, at=0.5, cex=op$cex.axis, las=1)
       }
       if(!is.null(tmp)){
-        ##best to draw the biggest regions first and the smallest regions last.
-        tmp <- tmp[order(tmp[, "MB"], decreasing=TRUE), ]
+        tmp1 <- tmp[order(tmp[, "start"], decreasing=FALSE), ]
+        ##draw the rectangle within the defined axis limits
+        tmp1[1, "start"] <- op$xlim[i, 1]
+        tmp1[nrow(tmp1), "last"] <- op$xlim[i, 2]
+        tmp <- tmp1[order(tmp1[, "MB"], decreasing=TRUE), ]
+        ##best to draw the biggest regions first and the smallest regions last.        
         apply(tmp, 1, .drawRect, object=object[chromosome(object) == i, match(j, sampleNames(object))], col=op$col.predict)
       }
-      ##put a white rectangle at the centromer
+      ##put a white rectangle at the centromere
       rect(xleft=centromere(i)[1],
            ybottom=0,
            xright=centromere(i)[2],
            ytop=1,
            col="white",
            border="white")
-      rect(xleft=op$xlim[1],
-           ytop=0,
-           ybottom=1,
-           xright=op$xlim[2],
+      rect(xleft=op$xlim[i, 1],
+           ytop=1,
+           ybottom=0,
+           xright=op$xlim[i, 2],
            border=op$border.prediction)
-      if(op$legend.prediction) legend(op$legend.location.prediction, fill=op$col.predict,
-                                      legend=stateNames(object),
-                                      ncol=length(stateNames(object)), bty="n",
-                                      cex=op$cex.legend)
-    }
-  }  
+      if(op$legend.prediction){
+        legend(op$legend.location.prediction,
+               fill=op$col.predict,
+               legend=stateNames(object),
+               ncol=length(stateNames(object)),
+               bty="n",
+               cex=op$cex.legend)
+      }
+    }  
+  }
 }
 
 ##For each of the breaks in xBreak, find the cytoband(s)

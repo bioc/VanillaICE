@@ -2,6 +2,8 @@
 \docType{class}
 \alias{ParHSet-class}
 \alias{initialize,ParHSet-method}
+\alias{plotSnp,ParHSet,ANY-method}
+
 \title{Class ParHSet}
 \description{Graphical parameters}
 \section{Objects from the Class}{
@@ -13,7 +15,7 @@ Objects can be created by calls of the form \code{new("ParHSet", border.predicti
   }
 }
 \section{Extends}{
-Class \code{\link[SNPchip]{ParESet-class}}, directly.
+  Class \code{\link[SNPchip]{ParESet-class}}, directly.
 }
 \section{Methods}{
   \describe{

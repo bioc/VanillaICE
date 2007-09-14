@@ -24,7 +24,16 @@ setMethod("initialize", "ParHSet",
             snpPar(.Object)$border.prediction <- border.prediction
             snpPar(.Object)$legend.prediction <- legend.prediction
             snpPar(.Object)$legend.location.prediction <- legend.location.prediction
+            snpPar(.Object)$predictions.ylim <- c(-0.2, 1.8)
             .Object
+          })
+
+setMethod("plotSnp", c("ParHSet", "ANY"), ##"hSet",
+          function(object, snpset, breaks, ...){
+            old.par <- par(no.readonly=TRUE)
+            on.exit(par(old.par))
+            callNextMethod()            
+            plotPredictions(object=snpset, op=object, breaks=breaks)
           })
 
 

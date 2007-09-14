@@ -100,7 +100,6 @@ setMethod("getPar", "hSet", function(object, ...){
                HmmSnpSet=new("ParHmmSnpSet", ...),
                HmmSnpCallSet=new("ParHmmSnpCallSet", ...),
                HmmSnpCopyNumberSet=new("ParHmmSnpCopyNumberSet", ...))
-
   object <- object[!is.na(chromosome(object)), ]
   chromosomeNames <- unique(chromosome(object))
   chromosomeNames <- chromosomeNames[order(as.numeric(chromosomeNames))]
@@ -111,7 +110,7 @@ setMethod("getPar", "hSet", function(object, ...){
   if(op$add.cytoband){
     ## plots: data, predictions, data, predictions, ... data, predictions, cytoband
     ## == S * 2 + 1
-    op$heights <- c(rep(c(1, 0.2), S), 0.2)
+    op$heights <- c(rep(c(1, 0.2), S), 0.1)
     S <- S+1
   } else op$heights <- rep(c(1, 0.2), S)
   data(chromosomeAnnotation, package="SNPchip", envir=environment())
@@ -141,30 +140,22 @@ setMethod("getPar", "hSet", function(object, ...){
     op$mat <- mat
   }
   op$ylim <- .calculateYlim(object=object, op=op)
-  if(length(chromosomeNames) == 1){
-    if(op$use.chromosome.size){
-      op$xlim <- c(0, chromosomeSize(chromosomeNames))
-    } else {
-      op$xlim <- range(position(object))
-    }
-  }
+  ##if plotting multiple chromosomes, xlim is not set
+  ##Might be better to make a matrix, with rownames as the chromosomes
+  if(op$use.chromosome.size){
+    op$xlim <- matrix(NA, nrow=length(chromosomeNames), ncol=2)    
+    op$xlim[, 1] <- rep(0, nrow(op$xlim))
+    op$xlim[, 2] <- chromosomeSize(chromosomeNames)
+    rownames(op$xlim) <- chromosomeNames    
+  } else{
+    objList <- split(object, chromosome(object))
+    objList <- objList[chromosomeNames]
+    op$xlim <- t(sapply(objList, function(object) range(position(object))))
+  }  
  if(ncol(object) == 1) op$yaxt="s"
   op
 })
 
-setMethod("plotSnp", "hSet",
-          function(object, op, breaks, ...){
-            ##check if predictions is empty (a reason to keep this separate from assayData)
-            ##define a class that extends assayData
-            ## call it analyticData?
-            old.par <- par(no.readonly=TRUE)
-            on.exit(par(old.par))
-            ##plot the data and cytoband as usual
-            ##Note: need to set on.exit to FALSE
-            if(missing(op)) op <- getPar(object, ...)
-            callNextMethod(object=object, op=op, on.exit=FALSE, ...)
-            plotPredictions(object, op, breaks)
-          })
 
 setMethod("initialStateProbability", "hSet", function(object) object@initialStateProbability)
 setReplaceMethod("initialStateProbability", "hSet",

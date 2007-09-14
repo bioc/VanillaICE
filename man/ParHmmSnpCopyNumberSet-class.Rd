@@ -2,6 +2,8 @@
 \docType{class}
 \alias{ParHmmSnpCopyNumberSet-class}
 \alias{initialize,ParHmmSnpCopyNumberSet-method}
+\alias{plotSnp,ParHmmSnpCopyNumberSet,HmmSnpCopyNumberSet-method}
+
 \title{Class ParHmmSnpCopyNumberSet}
 \description{Graphical parameters for objects of class \code{HmmSnpCopyNumberSet}}
 \section{Objects from the Class}{
@@ -25,7 +27,7 @@ Class \code{\link[SNPchip]{ParESet-class}}, by class "ParHSet", distance 2.
 \author{}
 \note{}
 \seealso{
-
+  \code{\link[SNPchip]{plotSnp}}, \code{\link{ParHSet-class}}
 }
 \examples{
 showClass("ParHmmSnpCopyNumberSet")

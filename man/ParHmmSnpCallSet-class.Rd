@@ -2,6 +2,7 @@
 \docType{class}
 \alias{ParHmmSnpCallSet-class}
 \alias{initialize,ParHmmSnpCallSet-method}
+\alias{plotSnp,ParHmmSnpCallSet,HmmSnpCallSet-method}
 
 \title{Class ParHmmSnpCallSet}
 \description{Graphical parameters for objects of class \code{HmmSnpCallSet}}
@@ -27,7 +28,8 @@ Class \code{\link[SNPchip]{ParESet-class}}, by class "ParHSet", distance 2.
 \note{}
 
 \seealso{
-  \code{\link{HmmSnpCallSet-class}}
+  \code{\link{HmmSnpCallSet-class}, \code{\link[SNPchip]{plotSnp}},
+    \code{\link{ParHSet-class}}}
 }
 \examples{
 showClass("ParHmmSnpCallSet")

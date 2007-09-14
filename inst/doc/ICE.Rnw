@@ -84,10 +84,20 @@ callsIce(chromosome1) <- FALSE
 fit1 <- hmm(chromosome1) 
 @ 
 
+Graphical parameters for plotting the results are easily obtained and
+manipulated:
+
+<<graph.par>>=
+##source("~/test/VanillaICE/R/methods-hSet.R")
+##source("~/test/VanillaICE/R/methods-ParHSet.R")
+graph.par <- getPar(fit1)
+class(graph.par)
+@ 
+
 The predicted states are plotted beneath the observed data by
 
 <<vanilla, fig=TRUE, include=TRUE>>=
-plotSnp(fit1)
+plotSnp(graph.par, fit1)
 @ 
 
 %\begin{figure}[h]
@@ -98,8 +108,6 @@ plotSnp(fit1)
 
 See \cite{Scharpf2007a} for a more complete description of the
 simulated dataset and the features detected by this HMM.
-
-
 
 \section{Integrating Confidence Estimates (ICE)}  %Describe how ICE works.  What is needed to fit an HMM with ICE
 
@@ -182,9 +190,13 @@ chromosome1 <- hmm(chromosome1)
 %x <- breakpoints(fit1, by="start", decreasing=FALSE)
 %x <- x[, "start"]
 
+<<graphparIce>>=
+graph.par <- getPar(chromosome1)
+@ 
+
 
 <<ice, fig=TRUE, include=TRUE>>=
-plotSnp(chromosome1)
+plotSnp(graph.par, chromosome1)
 @ 
  
 
@@ -217,10 +229,11 @@ stateNames(chr1.cn) <- c("deletion", "normal", "amplification")
 predictions(chr1.cn) <- matrix(NA, nrow(chr1.cn), ncol(chr1.cn))
 chr1.cn <- hmm(chr1.cn, verbose=TRUE)
 breakpoints(chr1.cn)
+graph.par <- getPar(chr1.cn)
 @ 
 
 <<copyNumberFigure, fig=TRUE, include=TRUE>>=
-plotSnp(chr1.cn)
+plotSnp(graph.par, chr1.cn)
 @ 
 
 <<echo=FALSE>>=
@@ -247,10 +260,11 @@ initialStateProbability(chr1.calls) <- c(1-0.99, 0.99)
 predictions(chr1.calls) <- matrix(NA, nrow(chr1.calls), ncol(chr1.calls))
 chr1.calls <- hmm(chr1.calls)
 breakpoints(chr1.calls)
+graph.par <- getPar(chr1.calls)
 @ 
 
 <<callsFigure, fig=TRUE, include=TRUE>>=
-plotSnp(chr1.calls)
+plotSnp(graph.par, chr1.calls)
 @ 
 
 \section{Classes for HMMs}

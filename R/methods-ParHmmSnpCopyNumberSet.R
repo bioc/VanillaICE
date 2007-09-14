@@ -7,3 +7,8 @@ setMethod("initialize", "ParHmmSnpCopyNumberSet",
             snpPar(.Object)$col.predict <- c(col.predict[1], "white", col.predict[2])            
             .Object
           })
+
+setMethod("plotSnp", c("ParHmmSnpCopyNumberSet", "HmmSnpCopyNumberSet"), ##"hSet",
+          function(object, snpset, breaks, ...){
+            callNextMethod()
+          })

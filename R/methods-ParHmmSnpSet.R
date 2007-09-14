@@ -10,3 +10,8 @@ setMethod("initialize", "ParHmmSnpSet",
             snpPar(.Object)$col.predict <- c(col.predict[1], "white", "yellow", col.predict[2])
             .Object
           })
+
+setMethod("plotSnp", c("ParHmmSnpSet", "HmmSnpSet"), ##"hSet",
+          function(object, snpset, breaks, ...){
+            callNextMethod()
+          })
