@@ -277,12 +277,7 @@ setReplaceMethod("locationCopyNumber", "HmmSnpCopyNumberSet",
                    object
                  })
 
-setMethod("predictions", "HmmSnpCopyNumberSet", function(object) object@predictions)
-setReplaceMethod("predictions", "HmmSnpCopyNumberSet",
-                 function(object, value) {
-                   object@predictions <- value
-                   object
-                 })
+
 
 setMethod("scaleCopyNumber", "HmmSnpCopyNumberSet", function(object) object@scaleCopyNumber)
 setReplaceMethod("scaleCopyNumber", "HmmSnpCopyNumberSet",

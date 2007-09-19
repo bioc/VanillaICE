@@ -24,6 +24,8 @@
 \alias{likelihood<-,hSet-method}
 \alias{numberStates,hSet-method}
 \alias{plotSnp,hSet-method}
+\alias{predictions,hSet-method}
+\alias{predictions<-,hSet,ANY-method}
 \alias{stateNames,hSet-method}
 \alias{stateNames<-,hSet-method}
 \alias{transitionProbability,hSet-method}

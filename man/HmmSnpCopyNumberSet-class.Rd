@@ -19,8 +19,6 @@
 \alias{initialize,HmmSnpCopyNumberSet-method}
 \alias{locationCopyNumber,HmmSnpCopyNumberSet-method}
 \alias{locationCopyNumber<-,HmmSnpCopyNumberSet-method}
-\alias{predictions,HmmSnpCopyNumberSet-method}
-\alias{predictions<-,HmmSnpCopyNumberSet,ANY-method}
 \alias{scaleCopyNumber,HmmSnpCopyNumberSet-method}
 \alias{scaleCopyNumber<-,HmmSnpCopyNumberSet-method}
 \alias{show,HmmSnpCopyNumberSet-method}

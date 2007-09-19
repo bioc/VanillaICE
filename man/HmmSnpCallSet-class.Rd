@@ -19,8 +19,7 @@
 \alias{isMissing,HmmSnpCallSet-method}
 \alias{pCHOM,HmmSnpCallSet-method}
 \alias{pCHOM<-,HmmSnpCallSet-method}
-\alias{predictions,HmmSnpCallSet-method}
-\alias{predictions<-,HmmSnpCallSet,ANY-method}
+
 \alias{show,HmmSnpCallSet-method}
 
 \title{Class HmmSnpCallSet}

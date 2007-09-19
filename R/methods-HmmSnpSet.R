@@ -18,7 +18,7 @@ setMethod("initialize", "HmmSnpSet",
                    scaleCopyNumber=numeric(),
                    pCHOM=c(1-1e-3, 0.7, 1-1e-3, 0.7),
                    log2=logical(),
-                   locationCopyNumber=numeric(),
+                   locationCopyNumber=c(1, 2, 2, 3),
                    stateNames=character(),
                    initialStateProbability=NULL,
                    transitionProbability=NULL,
@@ -202,7 +202,6 @@ setMethod("calculateEmissionProbability", "HmmSnpSet",
             if(ncol(object) > 1) warning("calculateEmissionProbability uses the first sample in the object")
             object <- object[, 1]
             x <- as.vector(copyNumber(object))
-
             if(object@log2) x <- log2(x)
               
             v <- as.vector(calls(object))
@@ -353,7 +352,7 @@ setMethod("hmm", "HmmSnpSet",
                    SCALE=1, ...){
             object@log2 <- log2
             if(any(chromosome(object) == "X")){
-              print("Chromosome X, XY, Y, and M dropped from object")
+              if(verbose) print("Chromosome X, XY, Y, and M dropped from object")
               object <- object[chromosome(object) != "Y" & chromosome(object) != "X" & chromosome(object) != "M" & chromosome(object) != "XY", ]
             }
 
@@ -371,7 +370,9 @@ setMethod("hmm", "HmmSnpSet",
 
             ##using all autosomes (X chromosome has already been excluded)
             scaleCopyNumber(object) <- getCopyNumberScale(object)
-            initialStateProbability(object) <- getInitialStateProbability(object)
+
+            if(is.null(initialStateProbability(object)))
+              initialStateProbability(object) <- getInitialStateProbability(object)
             
             if(length(distance(object)) == 0) distance(object) <- TRUE
             objList <- split(object, as.character(chromosome(object)))

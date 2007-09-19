@@ -173,6 +173,13 @@ setReplaceMethod("likelihood", "hSet",
 
 setMethod("numberStates", "hSet", function(object) length(stateNames(object)))
 
+setMethod("predictions", "hSet", function(object) object@predictions)
+setReplaceMethod("predictions", "hSet",
+                 function(object, value) {
+                   object@predictions <- as.matrix(value)
+                   object
+                 })
+
 setMethod("stateNames", "hSet", function(object) object@stateNames)
 setReplaceMethod("stateNames", "hSet",
                  function(object, value) {
