@@ -356,6 +356,10 @@ setMethod("hmm", "HmmSnpSet",
               object <- object[chromosome(object) != "Y" & chromosome(object) != "X" & chromosome(object) != "M" & chromosome(object) != "XY", ]
             }
 
+            if(iceCalls(object)){
+              require(callsConfidence) || stop("callsConfidence package is not available")
+            }
+
             ##assumed to be the same for all samples/chromosomes
             data(chromosomeAnnotation, package="SNPchip", envir=environment())
             chromosomeArm(object) <- arm
