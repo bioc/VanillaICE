@@ -356,7 +356,7 @@ setMethod("hmm", "HmmSnpSet",
               object <- object[chromosome(object) != "Y" & chromosome(object) != "X" & chromosome(object) != "M" & chromosome(object) != "XY", ]
             }
 
-            if(iceCalls(object)){
+            if(callsIce(object)){
               require(callsConfidence) || stop("callsConfidence package is not available")
             }
 
