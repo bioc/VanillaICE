@@ -149,13 +149,12 @@ getCallEmission <- function(object,
   ##marginal distribution of observed call probabilities for heterozygous calls  
   observedPcalledHet <- cut(as.vector(observedP[observedCalls == 2]), breaks=f21$x, labels=FALSE) #called HET, truth HOM
 
-  ##The P(phat | HOM, CHET) is approximately P(phat | LOH, CHET
+  ##The P(phat | HOM, CHET) is approximately P(phat | LOH, CHET)
   ##AND
   ## P(phat | HOM, CHOM) is approximately P(phat | LOH, CHOM)
   pTruthIsLoh <- rep(NA, nrow(object))  ##matrix(NA, nrow(observedP), ncol=S) 
   pTruthIsLoh[observedCalls == 1] <- f11$y[observedPcalledHom]
   pTruthIsLoh[observedCalls == 2] <- f21$y[observedPcalledHet]
-
 
   ##P(phat | Normal, CHET) is approx. P(phat | HET, CHET) * P(HET | CHET) + P(phat | HOM, CHET) * P(HOM|CHET)
   ##When the true state is normal, we need to estimate 4 things conditional on the call
@@ -238,19 +237,20 @@ getHapmapProbabilities <- function(object){
   ##250k platforms
   if(annotation(object) == "mapping500k"){
     nsp <- object[enzyme(object) == "Nsp", ]
-    annotation(hind) <- "pd.mapping250k.nsp"
+    annotation(nsp) <- "pd.mapping250k.nsp"
     hapmapP[[1]] <- hapmapProbabilities(nsp)
 
-    xba <- object[enzyme(object) == "Sty", ]
-    annotation(xba) <- "pd.mapping250k.sty"
-    hapmapP[[2]] <- hapmapProbabilities(xba)
+    sty <- object[enzyme(object) == "Sty", ]
+    annotation(sty) <- "pd.mapping250k.sty"
+    hapmapP[[2]] <- hapmapProbabilities(sty)
     names(hapmapP) <- c("nsp", "sty")
   }
+  
   if(annotation(object) == "pd.mapping250k.nsp")
     hapmapP[[1]] <- hapmapProbabilities(object)
+  
   if(annotation(object) == "pd.mapping250k.sty")
     hapmapP[[1]] <- hapmapProbabilities(object)
-  
   hapmapP
 }
 

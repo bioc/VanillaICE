@@ -220,7 +220,6 @@ setMethod("viterbi", "hSet",
                   AA[lower.tri(AA)] <- AA[upper.tri(AA)] <- AA[upper.tri(AA)]*SCALE
                   diag(AA) <- 1-sum(AA[1, 2:N.STATES])
                 }
-##                if((sum(rowSums(AA) - N.STATES) > 1e-3)) stop("transition probabilities must sum to 1")
               } else AA <- A                                          
               for(j in 1:N.STATES){
                 ##Equation 105b
