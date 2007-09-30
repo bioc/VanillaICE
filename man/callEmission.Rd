@@ -42,15 +42,15 @@ callEmission(object, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1)
   mapping100k (if the 50k xba and 50k hind results have been merged
   into one object)
 
-  mapping50k.xba240  (50k Xba platform)
+  pd.mapping50k.xba240  (50k Xba platform)
 
-  mapping50k.hind240 (50k Hind)
+  pd.mapping50k.hind240 (50k Hind)
 
   mapping500k  (if the two 250k chips -- Nsp and Sty -- have been merged)
 
-  mapping250k.nsp
+  pd.mapping250k.nsp
 
-  mapping250k.sty  
+  pd.mapping250k.sty  
 
 }
 

@@ -245,19 +245,16 @@ getHapmapProbabilities <- function(object){
     hapmapP[[2]] <- hapmapProbabilities(sty)
     names(hapmapP) <- c("nsp", "sty")
   }
-  
   if(annotation(object) == "pd.mapping250k.nsp")
     hapmapP[[1]] <- hapmapProbabilities(object)
-  
   if(annotation(object) == "pd.mapping250k.sty")
     hapmapP[[1]] <- hapmapProbabilities(object)
   hapmapP
 }
 
 callEmission <- function(object, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1){
-
-  if(!(annotation(object) == "mapping50k.xba240" | annotation(object) == "mapping50k.hind240" | annotation(object) == "mapping250k.nsp" | annotation(object) == "mapping250k.sty" | annotation(object) == "mapping100k" | annotation(object) == "mapping500k")){
-    stop("Confidence estimates for genotype calls are only supported for the 50k and 250k Affymetrix SNP chips.\n  The slot annotation must contain one of the following identifiers: mapping50k.xba240, mapping50k.hind240, mapping100k,  mapping250k.nsp, mapping250k.sty, or mapping500k")
+  if(!(annotation(object) == "pd.mapping50k.xba240" | annotation(object) == "pd.mapping50k.hind240" | annotation(object) == "pd.mapping250k.nsp" | annotation(object) == "pd.mapping250k.sty" | annotation(object) == "mapping100k" | annotation(object) == "mapping500k")){
+    stop("Confidence estimates for genotype calls are only supported for the 50k and 250k Affymetrix SNP chips.\n  The slot annotation must contain one of the following identifiers: pd.mapping50k.xba240, pd.mapping50k.hind240, mapping100k,  pd.mapping250k.nsp, pd.mapping250k.sty, or mapping500k")
   }
   ##hapmapP is a list.
   hapmapP <- getHapmapProbabilities(object)
@@ -280,7 +277,7 @@ callEmission <- function(object, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1){
                       P.CHOM.Normal=P.CHOM.Normal,
                       P.CHOM.LOH=P.CHOM.LOH)
   } 
-  if(annotation(object) == "mapping50k.xba240" | annotation(object) == "mapping50k.hind240" | annotation(object) == "mapping250k.nsp" | annotation(object) == "mapping250k.sty"){
+  if(annotation(object) == "pd.mapping50k.xba240" | annotation(object) == "pd.mapping50k.hind240" | annotation(object) == "pd.mapping250k.nsp" | annotation(object) == "pd.mapping250k.sty"){
     emissionP <- getCallEmission(object=object[, SAMPLE], hapmapP=hapmapP[[1]],
                                  P.CHOM.Normal=P.CHOM.Normal,
                                  P.CHOM.LOH=P.CHOM.LOH)

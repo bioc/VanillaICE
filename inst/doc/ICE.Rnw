@@ -192,9 +192,27 @@ chromosome1 <- hmm(chromosome1)
 graph.par <- getPar(chromosome1)
 @ 
 
-
 <<ice, fig=TRUE, include=TRUE>>=
 plotSnp(graph.par, chromosome1)
+@ 
+
+<<checkNsp, eval=FALSE, echo=FALSE>>=
+library(VanillaICE)
+data(chromosome1, package="VanillaICE")
+object=chromosome1
+annotation(object) <- "pd.mapping250k.nsp"
+            require(annotation(object), character.only=TRUE) || stop(paste(annotation(object), "package is not available"))
+            getPositionInfo <- function(x){
+              browser()
+              conn <- db(get(annotation(x)))
+              snps <- paste("(", paste(featureNames(x), collapse="','"), ")", sep="'")
+              sql <- paste("SELECT man_fsetid, dbsnp_rs_id, chrom, physical_pos, strand, allele_a, allele_b, fragment_length FROM featureSet WHERE man_fsetid IN",
+                           snps, "ORDER BY man_fsetid")              
+              dbGetQuery(conn, sql)
+            }
+            fD <- getPositionInfo(object)
+            rownames(fD) <- fD$man_fsetid
+            fD <- fD[, 2:8]
 @ 
  
 
