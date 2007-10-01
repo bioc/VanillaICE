@@ -178,15 +178,6 @@ callsIce(chromosome1) <- TRUE
 chromosome1 <- hmm(chromosome1) 
 @ 
 
-%#layout(matrix(c(1, 4, 2, 3))
-%#par(las=1, mar=c(0.5, 4, 1, 1), oma=c(4, 1, 2, 1))
-%#layout(matrix(1:2, 2, 1), heights=c(1, 0.1))
-%#sep <- log2(1) - log2(ytop)
-%#h <- log2(ytop) - log2(ybottom)
-%#ytop2 <- 2^(log2(ybottom)-sep)
-%#ybottom2 <- 2^(log2(ytop2) - h)
-%x <- breakpoints(fit1, by="start", decreasing=FALSE)
-%x <- x[, "start"]
 
 <<graphparIce>>=
 graph.par <- getPar(chromosome1)
@@ -195,29 +186,6 @@ graph.par <- getPar(chromosome1)
 <<ice, fig=TRUE, include=TRUE>>=
 plotSnp(graph.par, chromosome1)
 @ 
-
-<<checkNsp, eval=FALSE, echo=FALSE>>=
-library(VanillaICE)
-data(chromosome1, package="VanillaICE")
-object=chromosome1
-annotation(object) <- "pd.mapping250k.nsp"
-            require(annotation(object), character.only=TRUE) || stop(paste(annotation(object), "package is not available"))
-            getPositionInfo <- function(x){
-              browser()
-              conn <- db(get(annotation(x)))
-              snps <- paste("(", paste(featureNames(x), collapse="','"), ")", sep="'")
-              sql <- paste("SELECT man_fsetid, dbsnp_rs_id, chrom, physical_pos, strand, allele_a, allele_b, fragment_length FROM featureSet WHERE man_fsetid IN",
-                           snps, "ORDER BY man_fsetid")              
-              dbGetQuery(conn, sql)
-            }
-            fD <- getPositionInfo(object)
-            rownames(fD) <- fD$man_fsetid
-            fD <- fD[, 2:8]
-@ 
- 
-
-%%A comparison of the predictions from the vanilla (top bar beneath the
-%%data) and ICE HMMs (bottom bar).  
 
 Note that the ICE HMM correctly identifies the simulated normal
 segments in features B and C. Additionally, the ICE HMM detects the

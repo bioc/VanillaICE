@@ -116,14 +116,11 @@ setMethod("calculateEmissionProbability", "HmmSnpCallSet",
             object <- object[, 1]
             v <- as.vector(calls(object))
             v[v == 3] <- 1
-            p <- as.vector(callsConfidence(object))
             
             if(!callsIce(object)) {
               emission.call <- getLohProbability(object)
               emission.call <- t(emission.call[, v])
             } else {
-              s <- as.vector(cnConfidence(object))
-              if(any(is.na(s))) stop("NA's in confidence scores")
               pCHOM <- pCHOM(object)
               emission.call <- callEmission(object,
                                             P.CHOM.LOH=pCHOM[1],                                            
@@ -191,6 +188,10 @@ setMethod("hmm", "HmmSnpCallSet",
               print("Chromosome X, XY, and M dropped from object")
               object <- object[chromosome(object) != "X" & chromosome(object) != "M" & chromosome(object) != "XY", ]
             }
+
+            if(callsIce(object)){
+              require(callsConfidence) || stop("callsConfidence package is not available")
+            }            
 
             ##assumed to be the same for all samples/chromosomes
             data(chromosomeAnnotation, package="SNPchip", envir=environment())
