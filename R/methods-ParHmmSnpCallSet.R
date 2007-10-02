@@ -8,7 +8,7 @@ setMethod("initialize", "ParHmmSnpCallSet",
               }
             .Object$outer.ylab <- FALSE
             .Object$ylab <- "genotype call"
-            .Object$col <- c("lightblue", "red")
+            .Object$col <- c("lightblue", "red", "lightblue")
             snpPar(.Object)$col.predict <- c("yellow", "white")
             .Object
           })

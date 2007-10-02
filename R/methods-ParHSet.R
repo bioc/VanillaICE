@@ -34,6 +34,7 @@ setMethod("plotSnp", c("ParHSet", "ANY"), ##"hSet",
             on.exit(par(old.par))
             callNextMethod()            
             plotPredictions(object=snpset, op=object, breaks=breaks)
+            NULL
           })
 
 
