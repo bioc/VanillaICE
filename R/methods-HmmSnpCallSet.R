@@ -219,7 +219,7 @@ setMethod("hmm", "HmmSnpCallSet",
             if(length(objList) <= 1){
               object <- objList[[1]] ##else, return a list
             } else {
-              object <- .unsplitHmm(objList, featureData(objList),
+              object <- .unsplitHmm(objList, featureData(object),
                                   calls=do.call("rbind", lapply(objList, calls)),
                                   callsConfidence=do.call("rbind", lapply(objList, calls)),
                                   predictions=do.call("rbind", lapply(objList, predictions)),                       
