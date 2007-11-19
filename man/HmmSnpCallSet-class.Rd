@@ -23,7 +23,12 @@
 \alias{show,HmmSnpCallSet-method}
 
 \title{Class HmmSnpCallSet}
-\description{}
+
+\description{A class of objects for containing summaries of SNP-level,
+  as well as predictions from the HMM model.  In particular, the
+  HmmSnpCallSet class is an extension of SnpCallSet, requiring only
+  SNP-level summaries of genotype calls. }
+
 \section{Objects from the Class}{
   
 Objects can be created by calls of the form \code{new("HmmSnpCallSet",

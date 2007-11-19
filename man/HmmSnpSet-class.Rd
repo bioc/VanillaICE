@@ -32,7 +32,12 @@
 \alias{.unsplitHmm,list,AnnotatedDataFrame-method}
 
 \title{HmmSnpSet}
-\description{}
+
+\description{A class of objects for containing summaries of SNP-level,
+  as well as predictions from the HMM model.  In particular, the
+  HmmSnpSet class is an extension of oligoSnpSet, requiring both copy
+  number and genotype calls. }
+
 \section{Objects from the Class}{
   
 Objects can be created by calls of the form \code{new("HmmSnpSet",

@@ -33,7 +33,12 @@
 \alias{viterbi,hSet-method}
 
 \title{Virtual class for fitting HMMs to SNP chip data}
-\description{}
+
+\description{A virtual class for containing summaries of SNP-level, as
+  well as predictions from the HMM model.  In particular, the
+  HmmSnpCopyNumberSet, HmmSnpCallSet, and HmmSnpSet classes each extend
+  this class. }
+
 \section{Objects from the Class}{A virtual Class: No objects may be created from it.}
 \section{Slots}{
 	 \describe{

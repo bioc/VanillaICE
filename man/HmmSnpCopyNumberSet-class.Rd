@@ -24,7 +24,12 @@
 \alias{show,HmmSnpCopyNumberSet-method}
 
 \title{HmmSnpCopyNumberSet}
-\description{}
+
+\description{A class of objects for containing summaries of SNP-level,
+  as well as predictions from the HMM model.  In particular, the
+  HmmSnpCopyNumberSet class is an extension of SnpCallSet, requiring
+  only SNP-level summaries of copy number. }
+
 \section{Objects from the Class}{
   
 Objects can be created by calls of the form
