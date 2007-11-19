@@ -1,9 +1,10 @@
 % \VignetteIndexEntry{VanillaICE Vignette}
 % \VignetteKeywords{copy number, genotype, SNP}
-%\VignettePackage{VanillaICE}
+% \VignettePackage{VanillaICE}
 \documentclass{article}
 \usepackage{amsmath}
 \usepackage{graphicx}
+
 \newcommand{\scscst}{\scriptscriptstyle}
 \newcommand{\scst}{\scriptstyle}
 \newcommand{\Rpackage}[1]{\textit{#1}}
@@ -22,7 +23,6 @@
 \newcommand{\bDelta}{\mbox{\boldmath $\Delta$}}
 \newcommand{\real}{\mbox{$\mathbb R$}}      % real numbers
 \newcommand{\bnu}{\mbox{\boldmath $\nu$}}
-
 \newcommand{\ice}{\Rpackage{VanillaICE}}
 
 \textwidth=6.2in
@@ -63,7 +63,7 @@ simulated and real data, we demonstrate how confidence scores control
 smoothing in a probabilistic framework.  The goal of this vignette is
 to provide a simple interface for fitting HMMs and plotting functions
 to help visualize the predicted states alongside the experimental
-data.  
+data.
 
 \section{Simple Usage}
 
@@ -283,6 +283,7 @@ vignette were:
 <<echo=FALSE, results=tex>>=
 toLatex(sessionInfo())
 @ 
+
 \bibliography{ice}{}
 \bibliographystyle{plain}
 

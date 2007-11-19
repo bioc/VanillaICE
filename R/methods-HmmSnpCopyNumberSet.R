@@ -255,17 +255,17 @@ setMethod("hmm", "HmmSnpCopyNumberSet",
               object <- objList[[1]] ##else, return a list
             } else {
               object <- .unsplitHmm(objList, featureData(object), 
-                                  copyNumber=do.call("rbind", lapply(object, copyNumber)),
-                                  cnConfidence=do.call("rbind", lapply(object, cnConfidence)),
-                                  predictions=do.call("rbind", lapply(object, predictions)),
-                                  phenoData=phenoData(object[[1]]),
-                                  annotation=annotation(object[[1]]),
-                                  experimentData=experimentData(object[[1]]),
-                                  initialStateProbability=intialStateProbability(object[[1]]),
-                                  stateNames=stateNames(object[[1]]),
-                                  copyNumberIce=copyNumberIce(object[[1]]),
-                                  locationCopyNumber=locationCopyNumber(object[[1]]),
-                                  distance=distance(object[[1]]))
+                                    copyNumber=do.call("rbind", lapply(object, copyNumber)),
+                                    cnConfidence=do.call("rbind", lapply(object, cnConfidence)),
+                                    predictions=do.call("rbind", lapply(object, predictions)),
+                                    phenoData=phenoData(object[[1]]),
+                                    annotation=annotation(object[[1]]),
+                                    experimentData=experimentData(object[[1]]),
+                                    initialStateProbability=intialStateProbability(object[[1]]),
+                                    stateNames=stateNames(object[[1]]),
+                                    copyNumberIce=copyNumberIce(object[[1]]),
+                                    locationCopyNumber=locationCopyNumber(object[[1]]),
+                                    distance=distance(object[[1]]))
             }
             object
           })

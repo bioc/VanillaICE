@@ -198,7 +198,7 @@ setMethod("breakpoints", "HmmSnpSet",
 
 ##If there are more than one sample in object, it uses only the first.
 setMethod("calculateEmissionProbability", "HmmSnpSet",
-          function(object, ...){
+          function(object, verbose=FALSE, ...){
             if(ncol(object) > 1) warning("calculateEmissionProbability uses the first sample in the object")
             object <- object[, 1]
             x <- as.vector(copyNumber(object))
@@ -236,9 +236,13 @@ setMethod("calculateEmissionProbability", "HmmSnpSet",
               emission.call <- cbind(emission.call, emission.call2)
               colnames(emission.call) <- stateNames(object)
             }
-              
+
             if(!copyNumberIce(object)){
-              s <- scaleCopyNumber(object)
+##              s <- scaleCopyNumber(object)
+              if(verbose) print("Using a robust estimate of the standard error for copy number confidence scores. See getCopyNumberScale")
+              s <- diff(quantile(x, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2
+              s <- rep(s, numberStates(object))
+              names(s) <- stateNames(object)              
               emission.cn <- cbind(dnorm(x, B.cn[stateNames(object)[1]], s[1]),
                                    dnorm(x, B.cn[stateNames(object)[2]], s[2]),
                                    dnorm(x, B.cn[stateNames(object)[3]], s[3]),
@@ -286,10 +290,12 @@ setMethod("getCopyNumberLocation", "HmmSnpSet",
             mu
         })
 
-
 setMethod("getCopyNumberScale", "HmmSnpSet",
           function(object, I=1){
-            if(is.null(scaleCopyNumber(object))){
+            if(!copyNumberIce(object)){
+              ##################################################
+              ##Calculate 'robust' estimate of standard deviation
+              ##################################################              
               x <- copyNumber(object)[, I]
               x <- x[!is.na(x) & !is.nan(x)]
               if(object@log2)  x <- log2(x)
@@ -297,7 +303,12 @@ setMethod("getCopyNumberScale", "HmmSnpSet",
               s <- diff(quantile(x, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2
               s <- rep(s, numberStates(object))
               names(s) <- stateNames(object)
-            } else {s <- scaleCopyNumber(object)}
+            } else {
+              ##Use supplied estimates
+              s <- scaleCopyNumber(object)
+              browser()
+              if(is.null(s)) stop("must supply confidence estimates")
+            }
             s
           })
 
