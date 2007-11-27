@@ -303,11 +303,10 @@ setMethod("getCopyNumberScale", "HmmSnpSet",
               s <- diff(quantile(x, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2
               s <- rep(s, numberStates(object))
               names(s) <- stateNames(object)
-            } else {
-              ##Use supplied estimates
-              s <- scaleCopyNumber(object)
-              browser()
-              if(is.null(s)) stop("must supply confidence estimates")
+            }
+            else {
+              s <- NULL
+              ##Use supplied estimates in cnConfidence
             }
             s
           })

@@ -99,7 +99,8 @@ setMethod("getPar", "hSet", function(object, ...){
   op <- switch(class(object),
                HmmSnpSet=new("ParHmmSnpSet", ...),
                HmmSnpCallSet=new("ParHmmSnpCallSet", ...),
-               HmmSnpCopyNumberSet=new("ParHmmSnpCopyNumberSet", ...))
+               HmmSnpCopyNumberSet=new("ParHmmSnpCopyNumberSet", ...),
+               stop("Object must be HmmSnpSet, HmmSnpCallSet, or HmmSnpCopyNumberSet"))
   object <- object[!is.na(chromosome(object)), ]
   chromosomeNames <- unique(chromosome(object))
   chromosomeNames <- chromosomeNames[order(as.numeric(chromosomeNames))]
