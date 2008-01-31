@@ -69,7 +69,7 @@ data.
 
 <<packages, results=hide>>=
 library(VanillaICE)
-data(chromosome1)
+data(chromosome1) 
 class(chromosome1)
 annotation(chromosome1)
 @ 
@@ -79,6 +79,8 @@ information about the \Robject{chromosome1} example dataset.  The vanilla HMM
 can be fit to both arms of this simulated chromosome as follows:
 
 <<fitVanilla>>=
+require("pd.mapping50k.xba240")
+require("pd.mapping50k.hind240") 
 copyNumberIce(chromosome1) <- FALSE
 callsIce(chromosome1) <- FALSE
 fit1 <- hmm(chromosome1) 

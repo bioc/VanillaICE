@@ -218,7 +218,7 @@ getHapmapProbabilities <- function(object){
   hapmapP <- list()
   ##################################################
   ##50k platforms  
-  if(annotation(object) == "mapping100k"){
+  if(annotation(object) == "pd.mapping50k.hind240,pd.mapping50k.xba240"){
     hind <- object[enzyme(object) == "Hind", ]
     annotation(hind) <- "pd.mapping50k.hind240"
     hapmapP[[1]] <- hapmapProbabilities(hind)
@@ -235,7 +235,7 @@ getHapmapProbabilities <- function(object){
 
   ##################################################
   ##250k platforms
-  if(annotation(object) == "mapping500k"){
+  if(annotation(object) == "pd.mapping250k.nsp,pd.mapping250k.sty"){
     nsp <- object[enzyme(object) == "Nsp", ]
     annotation(nsp) <- "pd.mapping250k.nsp"
     hapmapP[[1]] <- hapmapProbabilities(nsp)
@@ -253,13 +253,13 @@ getHapmapProbabilities <- function(object){
 }
 
 callEmission <- function(object, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1){
-  if(!(annotation(object) == "pd.mapping50k.xba240" | annotation(object) == "pd.mapping50k.hind240" | annotation(object) == "pd.mapping250k.nsp" | annotation(object) == "pd.mapping250k.sty" | annotation(object) == "mapping100k" | annotation(object) == "mapping500k")){
+  if(!(annotation(object) == "pd.mapping50k.xba240" | annotation(object) == "pd.mapping50k.hind240" | annotation(object) == "pd.mapping250k.nsp" | annotation(object) == "pd.mapping250k.sty" | annotation(object) == "pd.mapping50k.hind240,pd.mapping50k.xba240" | annotation(object) == "pd.mapping250k.nsp,pd.mapping250k.sty")){
     stop("Confidence estimates for genotype calls are only supported for the 50k and 250k Affymetrix SNP chips.\n  The slot annotation must contain one of the following identifiers: pd.mapping50k.xba240, pd.mapping50k.hind240, mapping100k,  pd.mapping250k.nsp, pd.mapping250k.sty, or mapping500k")
   }
   ##hapmapP is a list.
   hapmapP <- getHapmapProbabilities(object)
   emissionP <- matrix(NA, nr=nrow(object), nc=2)
-  if(annotation(object) == "mapping100k"){
+  if(annotation(object) == "pd.mapping50k.hind240,pd.mapping50k.xba240"){
     if(!any("enzyme" %in% fvarLabels(object))) stop("enzyme (Xba or Hind) must be stored in featureData")
     emissionP[enzyme(object) == "Xba", ] <- getCallEmission(object=object[enzyme(object) == "Xba", SAMPLE], hapmapP=hapmapP$xba,
                       P.CHOM.Normal=P.CHOM.Normal,
@@ -268,7 +268,7 @@ callEmission <- function(object, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1){
                       P.CHOM.Normal=P.CHOM.Normal,
                       P.CHOM.LOH=P.CHOM.LOH)
   }
-  if(annotation(object) == "mapping500k"){
+  if(annotation(object) == "pd.mapping250k.nsp,pd.mapping250k.sty"){
     if(!any("enzyme" %in% fvarLabels(object))) stop("enzyme (Nsp or Sty) must be stored in featureData")    
     emissionP[enzyme(object) == "Nsp", ] <- getCallEmission(object=object[enzyme(object) == "Nsp", SAMPLE], hapmapP=hapmapP$nsp,
                       P.CHOM.Normal=P.CHOM.Normal,

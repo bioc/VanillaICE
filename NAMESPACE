@@ -11,6 +11,8 @@ exportMethods(
               calculateEmissionProbability,
               callsIce,
               "callsIce<-",
+              chromosome,
+              position,
               copyNumberIce,
               "copyNumberIce<-",
               coerce,
