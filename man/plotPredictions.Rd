@@ -1,31 +1,27 @@
 \name{plotPredictions}
 \alias{plotPredictions}
-\title{Plots the predicted states versus physical position}
+\title{Plots the predictions from the HMM}
 \description{
-Plots the predicted states versus physical position
+Plots the predictions from the HMM.  This function is usually not called directly.
 }
 \usage{
-plotPredictions(object, op, breaks, ...)
+plotPredictions(predictions, op, breakpoints, position, chromosome, states, ...)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{object}{an object derived from class \code{hSet}}
-  \item{op}{parameter to par and layout}
-  \item{breaks}{locations of breakpoints predicted from the HMM}
-  \item{\dots}{additional arguments to the initialization methods of the
-  classes extending \code{ParHSet}}
-}
-\details{
+  \item{predictions}{vector of predictions}
+  \item{op}{an instance of a class for graphical parameters}
+  \item{breakpoints}{matrix of breakpoints}
+  \item{position}{vector of physical positions}
+  \item{chromosome}{ vector of chromosomes}
+  \item{states}{the hidden states}
+  \item{\dots}{ not implemented}
 }
 \value{
-  
+  Nothing
 }
-\references{}
-\author{}
-\note{ 
-}
-\seealso{ }
+\author{R. Scharpf}
 \examples{
+##See the VanillaICE vignette
 }
 \keyword{aplot}
 

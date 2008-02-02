@@ -1,35 +1,36 @@
 \name{ParHmmSnpSet-class}
 \docType{class}
 \alias{ParHmmSnpSet-class}
-\alias{initialize,ParHmmSnpSet-method}
-\alias{plotSnp,ParHmmSnpSet,HmmSnpSet-method}
-\title{Graphical parameters }
-\description{Graphical parameters for plotting object of class \code{HmmSnpSet}}
+\alias{initialize,ParHmmSnpSet-method} 
+\alias{plotSnp,ParHmmSnpSet,SnpLevelSet-method}
+\title{Graphical parameters for plotting}
+\description{Graphical parameters for plotting when the data object is
+  an object of class \code{oligoSnpSet}}
 \section{Objects from the Class}{
 Objects can be created by calls of the form \code{new("ParHmmSnpSet", ...)}.
-
 }
 \section{Slots}{
-  \describe{
-    \item{\code{snpPar}:}{Object of class \code{"list"}}
+	 \describe{
+    \item{\code{snpPar}:}{Object of class \code{"list"}. A list of
+      graphical parameters }
   }
 }
 \section{Extends}{
-Class \code{\link{ParHSet-class}}, directly.
-Class \code{\link[SNPchip]{ParESet-class}}, by class "ParHSet", distance 2.
+Class \code{"\linkS4class{ParHSet}"}, directly.
+Class \code{"\linkS4class{ParESet}"}, by class "ParHSet", distance 2.
 }
 \section{Methods}{
   \describe{
-    \item{initialize}{\code{signature(.Object = "ParHmmSnpSet")}: ... }
+    \item{initialize}{\code{signature(.Object = "ParHmmSnpSet")}}
+    \item{plotSnp}{\code{signature(object = "ParHmmSnpSet", snpset =
+	"SnpLevelSet")} See also \code{\link[SNPchip]{plotSnp}}}
   }
 }
-\references{}
-\author{}
-\note{}
+\author{R. Scharpf}
 
 \seealso{
-  \code{\link[SNPchip]{plotSnp}}, \code{\link[SNPchip]{ParESet-class}},
-  \code{\link{ParHSet-class}}
+  \code{\link[SNPchip]{plotSnp}}, 
+  \code{\link[oligoClasses]{oligoSnpSet-class}}, \code{\link[graphics]{par}}
 }
 \examples{
 showClass("ParHmmSnpSet")

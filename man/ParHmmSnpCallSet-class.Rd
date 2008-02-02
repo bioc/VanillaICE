@@ -1,38 +1,34 @@
 \name{ParHmmSnpCallSet-class}
 \docType{class}
 \alias{ParHmmSnpCallSet-class}
-\alias{initialize,ParHmmSnpCallSet-method}
-\alias{plotSnp,ParHmmSnpCallSet,HmmSnpCallSet-method}
-
-\title{Class ParHmmSnpCallSet}
-\description{Graphical parameters for objects of class \code{HmmSnpCallSet}}
+\alias{initialize,ParHmmSnpCallSet-method} 
+\title{Graphical parameters for plotting}
+\description{Graphical parameters for plotting \code{SnpCallSet} and the
+corresponding predicted states from the hidden Markov model}
 \section{Objects from the Class}{
-Objects can be created by calls of the form \code{new("ParHmmSnpCallSet", ...)}.
+Objects can be created by calls of the form \code{new("ParHmmSnpCallSet", border.prediction, legend.prediction, legend.location.prediction, ...)}.
 }
 \section{Slots}{
-  \describe{
-    \item{\code{snpPar}:}{Object of class \code{"list"}}
+	 \describe{
+    \item{\code{snpPar}:}{Object of class \code{"list"}. List of
+      graphical parameters.  See \code{par}}
   }
 }
 \section{Extends}{
-Class \code{\link{ParHSet-class}}, directly.
-Class \code{\link[SNPchip]{ParESet-class}}, by class "ParHSet", distance 2.
+Class \code{"\linkS4class{ParHSet}"}, directly.
+Class \code{"\linkS4class{ParESet}"}, by class "ParHSet", distance 2.
 }
 \section{Methods}{
   \describe{
-    \item{initialize}{\code{signature(.Object = "ParHmmSnpCallSet")}}
-  }
+    \item{initialize}{\code{signature(.Object = "ParHmmSnpSet")}}
+    }
 }
-\references{}
-\author{}
-\note{}
-
+\author{R. Scharpf}
 \seealso{
-  \code{\link{HmmSnpCallSet-class}, \code{\link[SNPchip]{plotSnp}},
-    \code{\link{ParHSet-class}}}
+  \code{\link[SNPchip]{plotSnp}}
+  \code{\link[oligoClasses]{SnpCallSet-class}}, \code{\link[graphics]{par}}
 }
 \examples{
 showClass("ParHmmSnpCallSet")
-snpPar(new("ParHmmSnpCallSet"))
 }
 \keyword{classes}

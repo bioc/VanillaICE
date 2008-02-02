@@ -1,25 +1,22 @@
 Package: VanillaICE
-Version: 1.1.4
-Date: 2006-12-08
+Version: 1.1.5
 Title: Methods for fitting Hidden Markov Models to SNP chip data
 Author: Robert Scharpf <rscharpf@jhsph.edu> and  Ingo Ruczinski <ingo@jhsph.edu>
 Maintainer: Robert Scharpf <rscharpf@jhsph.edu> 
-Depends: R (>= 2.6.0), SNPchip (>= 1.3.8), oligoClasses (>= 1.1.11)
-Suggests: RColorBrewer
+Depends: R (>= 2.6.0), SNPchip (>= 1.3.8), oligoClasses (>= 1.1.10)
+Suggests: RColorBrewer, genefilter
 URL: http://www.biostat.jhsph.edu/~rscharpf/software/index.html
 Description:  Hidden Markov Models for characterizing chromosomal alterations in high throughput SNP arrays
-License: LGPL version 2 or newer 
+License: LGPL-2
 LazyLoad: yes	     
 Collate:  AllGenerics.R 
 	  AllClasses.R
-	  methods-hSet.R
-	  methods-HmmSnpSet.R
-	  methods-HmmSnpCallSet.R
-	  methods-HmmSnpCopyNumberSet.R
-	  methods-ParHSet.R
-	  methods-ParHmmSnpSet.R
-	  methods-ParHmmSnpCopyNumberSet.R
-	  methods-ParHmmSnpCallSet.R
-	  methods-list.R
+	  methods-HmmOptions.R	  
+	  methods-HmmParameter.R	  
+	  methods-SnpLevelSet.R
+	  methods-HmmPredict.R	  
+	  initialize-methods.R
+	  plotSnp-methods.R
+	  emission-methods.R
 	  functions.R
 biocViews: Statistics, DNACopyNumber, SNPsAndGeneticVariability, Visualization

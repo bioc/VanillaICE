@@ -10,6 +10,8 @@
 \newcommand{\Rpackage}[1]{\textit{#1}}
 \newcommand{\Rfunction}[1]{\texttt{#1}}
 \newcommand{\Robject}[1]{\texttt{#1}}
+\newcommand{\R}{\textsf{R}}
+
 \newcommand{\cne}{\widehat{\text{CN}}}
 \newcommand{\gte}{\widehat{\text{GT}}}
 \newcommand{\gtehom}{\widehat{\text{HOM}}}
@@ -66,57 +68,125 @@ to help visualize the predicted states alongside the experimental
 data.
 
 \section{Simple Usage}
+\label{sec:simpleUsage}
+
+\subsection{Vanilla HMM }
 
 <<packages, results=hide>>=
 library(VanillaICE)
-data(chromosome1) 
-class(chromosome1)
+@ 
+
+Before fitting the HMM, the data must be organized into one of the
+following classes for high-throughput SNP data:
+
+\begin{itemize}
+\item \Robject{SnpCallSet} (genotype calls)
+\item \Robject{SnpCopyNumberSet} (copy number estimates)
+\item \Robject{oligoSnpSet} (genotype and copy number estimates)
+\end{itemize}
+
+When pre-processing Affymetrix SNP chips with the \R{} package
+\Rpackage{oligo}, an object of one of the above classes is created and
+can be used directly with the HMMs described in this vignette.  These
+classes can also be created from Illumina data as described in the
+IlluminaHowTo vignette.  The simulated data provided with this package is
+an instance of class \Robject{oligoSnpSet}
+
+<<data>>=
+data(chromosome1)
 annotation(chromosome1)
+chromosome1
+@ 
+
+Before deciding whether to fit a HMM, plot the data:
+
+<<plotSnp,fig=TRUE,width=8, height=5>>=
+gp <- getPar(chromosome1)
+plotSnp(object=gp, snpset=chromosome1) 
+@ 
+
+The HMM assumes that the copy number estimates, conditional on the
+hidden state, are approximately Gaussian.  A log transformation is
+often helpful:
+
+<<logTransform>>=
+copyNumber(chromosome1) <- log2(copyNumber(chromosome1))
 @ 
 
 See the documentation pages in the R package \ice{} for more
-information about the \Robject{chromosome1} example dataset.  The vanilla HMM
-can be fit to both arms of this simulated chromosome as follows:
+information about the \Robject{chromosome1} example dataset.
+Parameters for fitting the HMM are obtained by generating an instance
+of the class \Robject{HmmParameter}.  By default, the HMM assumes the
+hidden states are deletion (D), normal (N), LOH (L), and amplification
+(A).  See the HmmParameterClass vignette for more information.  An
+instance of the class is created by the method new:
 
-<<fitVanilla>>=
-require("pd.mapping50k.xba240")
-require("pd.mapping50k.hind240") 
-copyNumberIce(chromosome1) <- FALSE
-callsIce(chromosome1) <- FALSE
-fit1 <- hmm(chromosome1) 
+<<hmmParameters>>=
+params <- new("HmmParameter", chromosome1, states=c("D", "N", "L", "A"),
+              cn.location=log2(c(1, 2, 2, 3)))
+class(params)
 @ 
 
-Graphical parameters for plotting the results are easily obtained and
-manipulated:
+We may then fit the HMM by
 
-<<graph.par>>=
-graph.par <- getPar(fit1)
-class(graph.par)
+<<fit>>=
+fit <- hmm(params, chromosome1)
+fit
 @ 
-
-The predicted states are plotted beneath the observed data by
-
-<<vanilla, fig=TRUE, include=TRUE>>=
-plotSnp(graph.par, fit1)
-@ 
-
-%\begin{figure}[h]
-%\includegraphics[width=\textwidth]{ICE-vanilla}
-%\caption{The predicted states from the vanilla HMM plotted in color
-%  beneath the observed data for a simulated chromosome 1. }
-%\end{figure}
 
 See \cite{Scharpf2007a} for a more complete description of the
-simulated dataset and the features detected by this HMM.
+simulated dataset and the features detected by this HMM.  We may plot
+the data along with the predictions as follows:
 
-\section{Integrating Confidence Estimates (ICE)}  %Describe how ICE works.  What is needed to fit an HMM with ICE
+<<vanillaPlot,fig=TRUE,width=8,height=5>>=
+fn <- featureNames(params)
+idx <- match(fn, featureNames(chromosome1))
+chromosome1 <- chromosome1[idx, ]
+gp <- getPar(fit, chromosome1)
+plotSnp(object=gp, snpset=chromosome1, hmmPredict=fit) 
+@ 
+
+\subsection{Integrating Confidence Estimates (ICE)}
 
 In this section, we illustrate how one may fit an HMM that
 incorporates confidence esimates of the SNP-level summaries for
-genotype calls and copy number.
+genotype calls and copy number.  Confidence scores (inverse of
+standard errors) are available for this object (see Section \ref{sec:confidenceScores} for
+how confidence scores were derived).  This information is incorporated
+into the HMM emission probabilities in the following way:
 
+<<params>>=
+params.ice <- new("HmmParameter", chromosome1, states=c("D", "N", "L", "A"), cn.ICE=TRUE)
+@ 
 
-\subsection{Confidence scores for genotype calls}
+We may also incorporate the confidence scores for the genotype calls:
+
+<<params2>>=
+params.ice <- new("HmmParameter", chromosome1, states=c("D", "N", "L", "A"), 
+                  cn.ICE=TRUE, gt.ICE)
+@ 
+
+We fit the HMM in the usual way
+
+<<fitIce>>=
+fit.ice <- hmm(params.ice, chromosome1)
+@ 
+
+and plot the results using the same graphical parameters as above:
+
+<<icePlot, fig=TRUE, width=8, height=5>>=
+plotSnp(object=gp, snpset=chromosome1, hmmPredict=fit.ice) 
+@
+
+Note that the ICE HMM correctly identifies the simulated normal
+segments in features B and C (the normal segments were simulated to
+have high confidence scores). Additionally, the ICE HMM detects the
+micro-amplification in region E (also simulated to have high
+confidence scores).
+
+\subsection{Confidence scores}\label{sec:confidenceScores}
+
+\paragraph{Confidence scores for genotype calls}
 
 We suggest using the \Rfunction{CRLMM} algorithm \cite{Carvalho2007}
 for genotype calls.  \Rfunction{CRLMM} (in the R package
@@ -146,7 +216,7 @@ densities is stored in the experiment data package
 from the author's website.
 %\texttt{http://biostat.jhsph.edu/~rscharpf/software/index.html}.
 
-\subsection{Confidence scores for copy number estimates}
+\paragraph{Confidence scores for copy number estimates}
 
 To illustrate how standard errors of the copy number estimate could be
 integrated in the HMM, the R object \Robject{chromosome1} contains
@@ -159,74 +229,210 @@ we scaled $\epsilon$ by 2.  For more detailed information about how
 the data in the \Robject{chromosome1} was generated, see the
 documentation for this object in the R package \ice.
 
-\subsection{Fitting the ICE HMM}
+\section{The HmmParameter class}
 
-The results from fitting the ICE HMM to the \Robject{chromosome1} data
-have been stored in the assay data element \Robject{predictions} of
-\Robject{chromosome1}.  To see a table of the predicted underlying
-states (excluding normal segments) sorted by size (MB):
+The minimal information required to create an instance of class
+\Robject{HmmParameter} is
 
-<<predictions>>=
-breakpoints(chromosome1)
+\begin{enumerate}
+  
+  \item an object inheriting from the class \Robject{SnpLevelSet}.
+    For instance, an \Robject{oligoSnpSet}.
+    
+  \item a vector of names for the hidden states.  Only the name for
+    the normal state, ``N'', requires a controlled vocubulary.
+    
+  \item optionally, one may define any of the following arguments when
+    creating an instance of the class:
+    
+    \begin{itemize}
+      
+    \item \texttt{SCALE}
+    \item \texttt{tau.scale}
+    \item \texttt{tau}          
+    \item \texttt{pi}                    
+    \item \texttt{beta}                              
+    \item \texttt{cn.location}
+    \item \texttt{cn.scale}            
+    \item \texttt{cn.ICE}            
+    \item \texttt{gt.ICE}            
+    \item \texttt{gt.gte}                                              
+    \item \texttt{gt.state}                                              
+    \item \texttt{gt.confidence}                                                            
+    \item \texttt{gt.confidence.states}                                                            
+    \item \texttt{notes}                                                                          
+    \item \texttt{annotation}              
+    \end{itemize}
+    
+  \end{enumerate}
+  
+  An instance of the class is created by the method \Rfunction{new}:
+  
+<<hmmParameters, eval=FALSE>>=
+params <- new("HmmParameter", chromosome1, states=c("D", "N", "L", "A"),
+              cn.location=log2(c(1, 2, 2, 3)))
+@
+
+The object \Robject{params} contains all of the parameters needed for
+fitting the HMM, including the transition probabilities (tau),
+emission probabilities (beta), and initial state probabilities (pi).
+A summary of the parameters contained in the object \Robject{params}
+is obtained by
+
+<<>>=
+params
 @ 
 
-To reproduce these results, one must install the Experiment Data
-package \Rpackage{callsConfidence} and run the command:
+The emission probabilities for each sample in the
+\Robject{chromosome1} object are stored as a vector in the
+\Robject{params} object.  The emission probability matrix has
+dimension S*R $\times$ C, where $S$ is the number of hidden states,
+$R$ is the number of rows (SNPs), and $C$ is the number of columns
+(samples).  To obtain the emission probabilities for the $ith$ SNP,
+one may use $[$ to subset.  Currently, subset methods for the
+\Robject{HmmParameter} class are only available for 1 SNP and 1 sample
+at a time.  For instance, the emission probabilities for the 5th SNP
+are:
 
-<<setIce, eval=FALSE>>=
-library(callsConfidence)
-copyNumberIce(chromosome1) <- TRUE
-callsIce(chromosome1) <- TRUE
-chromosome1 <- hmm(chromosome1) 
+<<>>=
+tmp <- params[5, 1]
+round(exp(tmp[[1]]$beta), 3)
+@ 
+
+In the future, emission probabilities may be stored in arrays to
+facilitate subsetting.
+
+The relevant transition probability matrices for the 5th SNP are
+
+<<>>=
+lapply(tmp[[1]]$tau, function(x) exp(round(x, 4)))
 @ 
 
 
-<<graphparIce>>=
-graph.par <- getPar(chromosome1)
+The probability of remaining in the same state, $P(S_t = S_{t+1})$
+(the diagonal of the transition probability matrix) is a function of
+the distance between SNPs.  The probability of transitioning to some
+other state is $\epsilon$, where $\epsilon = 1 - P(S_t = S_{t+1})$.
+The $\epsilon$ is split among $S-1$ states.  By default, the
+probability of transitioning from an altered state back to the normal
+state is twice as likely as the probability of transitioning between
+two altered states.  The weights for $\epsilon$ are provided in the
+\texttt{tau.scale} matrix in the R object \Robject{params}
+
+<<tau.scale>>=
+params@tau.scale
+@
+
+\noindent and can be adjusted by the \texttt{SCALE} argument when
+creating an instance of the class.  For instance, here we make the
+probability of transitioning from an altered state to a normal state
+10 times as likely as the probability of transitioning between two
+altered states:
+
+<<>>=
+params <- new("HmmParameter", chromosome1, states=c("D", "N", "L", "A"), 
+              cn.location=log2(c(1, 2, 2, 3)), SCALE=10)
 @ 
 
-<<ice, fig=TRUE, include=TRUE>>=
-plotSnp(graph.par, chromosome1)
+To retrieve the copy number and genotype for the 5th SNP, one should
+use \Rfunction{match}:
+
+<<observed>>=
+i <- match(names(tmp), featureNames(chromosome1))
+c(copyNumber(chromosome1[i, ]), calls(chromosome1[i, ]))
 @ 
 
-Note that the ICE HMM correctly identifies the simulated normal
-segments in features B and C. Additionally, the ICE HMM detects the
-micro-amplification in region E.
+\section{The HmmPredict Class}
+
+The output from the HMM is an instance of the \Robject{HmmPredict}
+class and contains the predicted states as well as the breakpoints for
+the different states.
+
+<<hmmOutput>>=
+fit
+@ 
+
+The breakpoints are provided as a list, whereby each element in the
+list corresponds to a sample:
+
+<<breaks>>=
+breaks <- breakpoints(fit)
+breaks <- breaks[[1]]
+breaks <- breaks[breaks[, "state"] != "N", ]
+@ 
+
+One may order the altered states from biggest to smallest for each
+chromosome as follows:
+
+<<orderBreaks>>=
+breaks <- breaks[order(breaks[, "chr"], breaks[, "size"], decreasing=TRUE), ]
+@ 
+
+%\section{Integrating Confidence Estimates (ICE)}  %Describe how ICE works.  What is needed to fit an HMM with ICE
 
 
-\section{HMM for copy number alterations}
+
+
+%The results from fitting the ICE HMM to the \Robject{chromosome1} data
+%have been stored in the assay data element \Robject{predictions} of
+%\Robject{chromosome1}.  To see a table of the predicted underlying
+%states (excluding normal segments) sorted by size (MB):
+%
+%<<predictions>>=
+%breakpoints(chromosome1)
+%@ 
+%
+%To reproduce these results, one must install the Experiment Data
+%package \Rpackage{callsConfidence} and run the command:
+%
+%<<setIce, eval=FALSE>>=
+%library(callsConfidence)
+%copyNumberIce(chromosome1) <- TRUE
+%callsIce(chromosome1) <- TRUE
+%chromosome1 <- hmm(chromosome1) 
+%@ 
+%
+%
+%<<graphparIce>>=
+%graph.par <- getPar(chromosome1)
+%@ 
+%
+%<<ice, fig=TRUE, include=TRUE>>=
+%plotSnp(graph.par, chromosome1)
+%@ 
+%
+\section{HMMs for different classes of data}
+
+\subsection{Copy number}
 
 The method \Robject{hmm} has a different set of underlying hidden
 states depending on whether copy number estimates, genotype calls, or
 both are available.  When only copy number estimates are available,
 the hidden states (for autosomes) are hemizygous or homozygous
 deletion (one or fewer copies), normal (two copies), and amplification
-(three or more copies).  The corresponding class is
-\Robject{HmmSnpCopyNumberSet}.  To illustrate, we convert the
+(three or more copies).  The corresponding data class is
+{SnpCopyNumberSet}.  To illustrate, we convert the
 \Robject{chromosome1} example to an object of this class and fit the
 HMM.
 
 <<copyNumberHmm>>=
-chr1.cn <- as(chromosome1, "HmmSnpCopyNumberSet")
-locationCopyNumber(chr1.cn) <- c(log2(1), log2(2), log2(3))
-initialStateProbability(chr1.cn) <- c((1-0.99)/2, 0.99, (1-0.99)/2)
-scaleCopyNumber(chr1.cn) <- NULL
-stateNames(chr1.cn) <- c("deletion", "normal", "amplification")
-predictions(chr1.cn) <- matrix(NA, nrow(chr1.cn), ncol(chr1.cn))
-chr1.cn <- hmm(chr1.cn, verbose=TRUE)
-breakpoints(chr1.cn)
-graph.par <- getPar(chr1.cn)
+chr1.cn <- as(chromosome1, "SnpCopyNumberSet")
+params.cn <- new("HmmParameter", snpset=chr1.cn,
+                 cn.location=log2(1:3), states=c("D", "N", "A"))
+fit.cn <- hmm(params.cn, chr1.cn)
+breakpoints(fit.cn)
+graph.par <- getPar(fit.cn, chr1.cn)
 @ 
 
 <<copyNumberFigure, fig=TRUE, include=TRUE>>=
-plotSnp(graph.par, chr1.cn)
+plotSnp(graph.par, chr1.cn, fit.cn)
 @ 
 
 <<echo=FALSE>>=
-rm(chr1.cn)
+rm(chr1.cn, fit.cn, params.cn)
 @ 
 
-\section{HMM for loss of heterozygosity}
+\subsection{Genotype calls}
 
 When only genotype calls are available, the hidden states are loss and
 retention (ret) of heterozygosity.  We define \textit{loss} to be a
@@ -239,43 +445,25 @@ For illustration, we convert the \Robject{chromosome1} example to an
 object of class \Robject{HmmSnpCallSet} and refit the HMM.
 
 <<chr1Calls>>=
-chr1.calls <- as(chromosome1, "HmmSnpCallSet")
-stateNames(chr1.calls) <- c("loss", "ret")
-pCHOM(chr1.calls) <- c(0.999, 0.7)
-initialStateProbability(chr1.calls) <- c(1-0.99, 0.99)
-predictions(chr1.calls) <- matrix(NA, nrow(chr1.calls), ncol(chr1.calls))
-chr1.calls <- hmm(chr1.calls)
-breakpoints(chr1.calls)
-graph.par <- getPar(chr1.calls)
+chr1.calls <- as(chromosome1, "SnpCallSet")
+params.calls <- new("HmmParameter", snpset=chr1.calls,
+                    states=c("L", "N"))
+fit.calls <- hmm(params.calls, chr1.calls)
+breakpoints(fit.calls)
+graph.par <- getPar(fit.calls, chr1.calls)
 @ 
 
 <<callsFigure, fig=TRUE, include=TRUE>>=
-plotSnp(graph.par, chr1.calls)
+plotSnp(graph.par, chr1.calls, fit.calls)
 @ 
 
-\section{Classes for HMMs}
+\subsection{Genotype calls and copy number}
+
+Section \ref{sec:simpleUsage} illustrates how one may fit the HMM to
+objects of class \Robject{oligoSnpSet}.
 
 More documentation about the classes can be found in the documentation
-for the R package \ice. Note that the minimal SNP-level
-annotation required for the HMMs described here are physical position
-of the SNP (stored as an integer) and the chromosome (stored as a
-character string).  The motivation for requiring that this information
-be stored in the \Robject{featureData} is primarily for convenience
-when subsetting instances of these classes, but may be relaxed in
-future releases.  See, for instance, the \Robject{featureData} in the
-\Robject{chromosome1} object:
-
-<<varlabels>>=
-fvarLabels(chromosome1)
-@ 
-
-In addition to the class \Robject{HmmSnpSet} that contains SNP-level
-summaries of genotype and copy number, we define classes for
-genotype-only (\Robject{HmmSnpCallSet}) and copy number-only datasets
-(\Robject{HmmSnpCopyNumberSet}).  The parameters of the model,
-including the latent states, transition probabilities, and emission
-probabilities, are dependent on the class of data. See
-\cite{Scharpf2007a} additional details.
+for the R package \ice. 
 
 \section{Session Information}
 

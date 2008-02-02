@@ -9,25 +9,24 @@
 
 }
 \usage{
-viterbi(object, ...)
+viterbi(beta, pi, tau, states, arm)
 }
 
 \arguments{
-  \item{object}{object extending \code{hSet}}
-  \item{\dots}{optional}
+  \item{beta}{emission probabilities (log scale)}
+  \item{pi}{initial state probabilities (log scale)}
+  \item{tau}{transition probabilities (log scale)}
+  \item{states}{character string of hidden states}
+  \item{arm}{character string of chromosomal arm}
 }
 \details{
+
+  The viterbi algorithm is fit independently to each chromosomal arm.
 
 }
 \value{
   vector of integers
 }
-\references{ }
-\author{}
-\note{ 
-}
-\seealso{}
-\examples{
-}
-\keyword{methods}
+\author{R. Scharpf}
+\keyword{models}
 

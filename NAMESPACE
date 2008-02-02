@@ -1,60 +1,50 @@
 import(SNPchip, Biobase, oligoClasses)
-
-##classes for HMMs
-exportClasses("hSet", "HmmSnpSet", "HmmSnpCallSet", "HmmSnpCopyNumberSet")
+exportClasses("HmmParameter", "HmmOptions", "HmmPredict")
 exportMethods(
               "[",
-              "[<-",
-              bind,
+              annotation,
+              "annotation<-",
+              arm,
+              Beta,
               breakpoints,
-              byArm,
-              calculateEmissionProbability,
-              callsIce,
-              "callsIce<-",
+              calculateTransitionProbability,
+              cn.ICE, "cn.ICE<-",
+              gt.ICE, "gt.ICE<-",
+              cn.location,
+              cnEmission,
               chromosome,
-              position,
-              copyNumberIce,
-              "copyNumberIce<-",
+              db,
+              featureData,
+              featureNames,
+              getPar,
+              gtEmission,
+##              .gtEmission.ICE,
               coerce,
-              chromosomeArm, "chromosomeArm<-",
-              distance, "distance<-",
-              emissionProbability, "emissionProbability<-",
-              getBreaks,
-              getCopyNumberLocation,
-              getCopyNumberScale,
-              getInitialStateProbability,
-              getLohProbability,
-              getTransitionProbability,
-              hmm,
-              hmmBySample,
-              ice2VanillaICE,
+              hmmOptions,
               initialize,
-              initialStateProbability, "initialStateProbability<-",
-              isMissing,
-              likelihood, "likelihood<-",
-              locationCopyNumber, "locationCopyNumber<-",
-              numberStates, ##"numberStates<-",
-              pCHOM, "pCHOM<-",
-              predictions, "predictions<-",
-              scaleCopyNumber, "scaleCopyNumber<-",
-              stateNames, "stateNames<-",
+              notes,
+              pData,
+              pi,
+              plotSnp,
+              predictions,
+              sampleNames,
+              SnpClass,
+              states,
               show,
-              transitionProbability, "transitionProbability<-",
-              .unsplitHmm,
-              viterbi)
+              tau,
+              tau.scale)
 
-export(callEmission,
-       hapmapProbabilities,
-       getHapmapProbabilities,
-       getCallEmission)
+export(hmm,
+       calculateBreakpoints,
+       calculateCnSE,
+##       .getCallEmission,
+       plotPredictions,
+       viterbi)
 
 ###########################################################################
 ##classes for graphical parameters
 ###########################################################################
 exportClasses("ParHSet", "ParHmmSnpSet", "ParHmmSnpCallSet", "ParHmmSnpCopyNumberSet")
-###########################################################################
-##methods and functions for graphical parameters
-###########################################################################
-exportMethods(getPar, plotSnp)
-export(plotPredictions)
+
+
 

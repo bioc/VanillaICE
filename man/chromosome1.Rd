@@ -47,8 +47,13 @@ chromosome, see the manuscript referenced below.
 \source{
 }
 
-\references{RB Scharpf et al. (2007), Department of Biostatistics
-  Working Papers, Working Paper 136}
+\references{
+
+    RB Scharpf et al. (2008) Hidden Markov Models for the assessment of
+  chromosomal alterations using high-throughput SNP arrays, Annals of
+  Applied Statistics
+
+}
 
 \examples{
 data(chromosome1)
