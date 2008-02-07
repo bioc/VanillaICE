@@ -101,7 +101,8 @@ chromosome1
 Before deciding whether to fit a HMM, plot the data:
 
 <<plotSnp,fig=TRUE,width=8, height=5>>=
-gp <- getPar(chromosome1)
+gp <- new("ParSnpSet")
+gp <- getPar(gp, chromosome1)
 plotSnp(object=gp, snpset=chromosome1) 
 @ 
 
@@ -142,7 +143,9 @@ the data along with the predictions as follows:
 fn <- featureNames(params)
 idx <- match(fn, featureNames(chromosome1))
 chromosome1 <- chromosome1[idx, ]
-gp <- getPar(fit, chromosome1)
+##gp <- getPar(fit, chromosome1)
+gp <- new("ParHmmSnpSet")
+gp <- getPar(gp, snpset=chromosome1)
 plotSnp(object=gp, snpset=chromosome1, hmmPredict=fit) 
 @ 
 
@@ -421,7 +424,9 @@ params.cn <- new("HmmParameter", snpset=chr1.cn,
                  cn.location=log2(1:3), states=c("D", "N", "A"))
 fit.cn <- hmm(params.cn, chr1.cn)
 breakpoints(fit.cn)
-graph.par <- getPar(fit.cn, chr1.cn)
+graph.par <- new("ParHmmSnpCopyNumberSet")
+##graph.par <- getPar(graph.par, chr1.cn, fit.cn)
+graph.par <- getPar(graph.par, chr1.cn)
 @ 
 
 <<copyNumberFigure, fig=TRUE, include=TRUE>>=
@@ -450,7 +455,8 @@ params.calls <- new("HmmParameter", snpset=chr1.calls,
                     states=c("L", "N"))
 fit.calls <- hmm(params.calls, chr1.calls)
 breakpoints(fit.calls)
-graph.par <- getPar(fit.calls, chr1.calls)
+gp <- new("ParHmmSnpCallSet")
+graph.par <- getPar(gp, chr1.calls)
 @ 
 
 <<callsFigure, fig=TRUE, include=TRUE>>=

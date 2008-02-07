@@ -98,6 +98,24 @@
   emission.gt
 }
 
+addFeatureData <- function(snpset){
+  featureNames <- featureNames(snpset)
+  data(chromosomeAnnotation, package="SNPchip", envir=environment())
+  chrAnn <- as.matrix(chromosomeAnnotation)
+  tmp <- position(snpset) <= chromosomeAnnotation[chromosome(snpset), "centromereStart"]
+  chromosomeArm <- as.character(tmp)
+  chromosomeArm[chromosomeArm == "TRUE"] <- "p"
+  chromosomeArm[chromosomeArm == "FALSE"] <- "q"
+
+  fD <- data.frame(cbind(chromosome(snpset), arm=chromosomeArm), row.names=featureNames,
+                   stringsAsFactors=FALSE)
+  fD$position <- position(snpset) 
+  colnames(fD) <- c("chromosome", "arm", "position")
+  varMetadata <- data.frame(labelDescription=c("chromosome", "chromosomal arm", "physical position"), row.names=colnames(fD))
+  featureData <- new("AnnotatedDataFrame", data=fD, varMetadata=varMetadata)
+  featureData
+}
+
 ##.calculateYlim <- function(object, op){
 ##  if("copyNumber" %in% ls(assayData(object))){
 ##    ##only print this if there is more than one sample or more than 1 chromosome to plot
@@ -131,6 +149,85 @@
   bands <- cytoband[cytoband[, "chromEnd"] > as.numeric(breaks["start"]) & cytoband[, "chromStart"] < as.numeric(breaks["last"]), "name"]
   bands <- paste(bands, collapse=", ")
 }
+
+##setMethod("calculateBreakpoints", "HmmParameter",
+##          function(object, x, position, chromosome, states, digits=2, sampleNames, ...){
+calculateBreakpoints <- function(x, position, chromosome, states, digits=2, sampleNames){
+            if(any(is.na(x))){
+              Nmissing <- sum(is.na(x))
+            } else Nmissing <- 0
+            N <- length(x)
+            if(length(unique(x)) == 1) return(NULL)
+            d <- diff(x)
+            if(sum(abs(d), na.rm=TRUE) < 1){
+              print("No breakpoints in this region")
+              return(NULL)
+            }
+            index <- c(1, (2:N)[d != 0 & !is.na(d)])
+            index <- cbind(index[-length(index)], index[2:length(index)])
+            index[, 2] <- index[, 2] - 1
+            lastBreak <- index[nrow(index), 2]
+            index <- rbind(index, c(lastBreak+1, N))  
+
+            ##index is a matrix of indices in object where breaks occured.
+            ##Replace by physical position.
+            physical.positions <- matrix(position[as.vector(index)], nrow(index), ncol(index))
+            physical.positions <- physical.positions/1e6
+            colnames(physical.positions) <- c("start", "last")
+            size <- (physical.positions[, "last"] - physical.positions[, "start"])
+            N <- index[, 2] - index[, 1] + 1
+            physical.positions <- cbind(physical.positions, size, N)
+            colnames(physical.positions)[3:4] <- c("size", "N")
+            predictedState <- function(i, x, chromosome){
+              if(any(is.na(i))){
+                stop("missing values")
+              }
+              pred <- x[(i[1]:i[2])]
+              pred <- pred[!is.na(pred)]
+              pred <- unique(pred)
+              if(length(pred) > 1) {
+                stop("predictions not unique")
+              }
+              chrom <- chromosome[i[1]:i[2]]
+              chrom <- paste(unique(chrom), collapse=", ")
+              c(pred, chrom)
+            }
+            ##The vector of predicted states (integer)
+            ps <- t(apply(index, 1, predictedState, x, chromosome))
+            states <- states[as.numeric(ps[, 1])]
+            breaks <- data.frame(physical.positions)
+            breaks$state <- states
+            breaks$chrom <- ps[, 2]
+            ##breaks$id <- rep(sampleNames(object), nrow(breaks))
+
+            ##################################################
+            ##Find positions of adjacent SNPs
+            ##################################################
+            adjacentSnps <- function(x, position, chromosome, digits){
+              start <- as.numeric(x["start"])*1e6
+              last <- as.numeric(x["last"])*1e6
+              chrom <- x["chrom"]
+              if(any(position < start & chromosome == chrom)){
+                prevSnp <- max(position[position < start & chromosome == chrom])
+              } else prevSnp <- NA
+              if(any(position > last & chromosome == chrom)){                 
+                nextSnp <- min(position[position > last & chromosome == chrom])
+              } else nextSnp <- NA
+              adj <- c(prevSnp, nextSnp)/1e6
+              adj
+            }
+            adjacent <- t(apply(breaks, 1, adjacentSnps, position=position,
+                                chromosome=chromosome, digits=digits))
+            colnames(adjacent) <- c("prev", "next")
+            breaks <- cbind(breaks, adjacent)
+            breaks$id <- rep(sampleNames, nrow(breaks))
+            colnames(breaks) <- c("start", "last", "size", "N", "state", "chr", "prev", "next", "id")
+
+            ##Add columns for the name of the first SNP and the name of the last SNP
+            colnames <- c("id", "chr", "state", "size", "N", "start", "last", "prev", "next")
+            breaks <- breaks[, colnames]
+            breaks
+          }
 
 calculateCnSE <- function(object,
                           referenceSet,
@@ -186,113 +283,5 @@ viterbi <- function(beta, pi, tau, states, arm){
   qhat    
 }
 
-hmm <- function(object, snpset){
-  arm <- paste(chromosome(object), arm(object), sep="")
-  beta <- data.frame(Beta(object))
-  predictions <- apply(beta, 2, viterbi, pi=pi(object),
-                       tau=tau(object), states=states(object),
-                       arm=arm)
-  rownames(predictions) <- featureNames(object)
-  colnames(predictions) <- sampleNames(object)
 
-  ##make sure the snpset is exactly like it was.  Is there a better way?
-            snpset <- snpset[!(is.na(chromosome(snpset))), ]
-            chrom <- chromosome(snpset)
-            chrom[chrom == "X"] <- 23
-            chrom[chrom == "XY"] <- 24
-            chrom[chrom == "M"] <- 25
-            chrom <- as.numeric(chrom)            
-            snpset <- snpset[order(chrom, position(snpset)), ]
-  
-  breaks <- mapply(calculateBreakpoints, x=data.frame(predictions),
-                   sampleNames=as.list(sampleNames(snpset)),
-                   MoreArgs=list(position=position(snpset),
-                     chromosome=chromosome(snpset),
-                     states=states(object)),
-                   SIMPLIFY=FALSE)
-
-  hmmOut <- new("HmmPredict",
-                states=states(object),
-                predictions=predictions,
-                breakpoints=breaks,
-                SnpClass=SnpClass(object))
-}
-
-calculateBreakpoints <- function(x, position, chromosome, states, digits=2, sampleNames){
-  if(any(is.na(x))){
-    Nmissing <- sum(is.na(x))
-  } else Nmissing <- 0
-  N <- length(x)
-  if(length(unique(x)) == 1) return(NULL)
-  d <- diff(x)
-  if(sum(abs(d), na.rm=TRUE) < 1){
-    print("No breakpoints in this region")
-    return(NULL)
-  }
-  index <- c(1, (2:N)[d != 0 & !is.na(d)])
-  index <- cbind(index[-length(index)], index[2:length(index)])
-  index[, 2] <- index[, 2] - 1
-  lastBreak <- index[nrow(index), 2]
-  index <- rbind(index, c(lastBreak+1, N))  
-
-  ##index is a matrix of indices in object where breaks occured.
-  ##Replace by physical position.
-  physical.positions <- matrix(position[as.vector(index)], nrow(index), ncol(index))
-  physical.positions <- physical.positions/1e6
-  colnames(physical.positions) <- c("start", "last")
-  size <- (physical.positions[, "last"] - physical.positions[, "start"])
-  N <- index[, 2] - index[, 1] + 1
-  physical.positions <- cbind(physical.positions, size, N)
-  colnames(physical.positions)[3:4] <- c("size", "N")
-  predictedState <- function(i, x, chromosome){
-    if(any(is.na(i))){
-      stop("missing values")
-    }
-    pred <- x[(i[1]:i[2])]
-    pred <- pred[!is.na(pred)]
-    pred <- unique(pred)
-    if(length(pred) > 1) {
-      stop("predictions not unique")
-    }
-
-    chrom <- chromosome[i[1]:i[2]]
-    chrom <- paste(unique(chrom), collapse=", ")
-    c(pred, chrom)
-  }
-  ##The vector of predicted states (integer)
-  ps <- t(apply(index, 1, predictedState, x, chromosome))
-  states <- states[as.numeric(ps[, 1])]
-  breaks <- data.frame(physical.positions)
-  breaks$state <- states
-  breaks$chrom <- ps[, 2]
-  ##breaks$id <- rep(sampleNames(object), nrow(breaks))
-
-  ##################################################
-  ##Find positions of adjacent SNPs
-  ##################################################
-  adjacentSnps <- function(x, position, chromosome, digits){
-    start <- as.numeric(x["start"])*1e6
-    last <- as.numeric(x["last"])*1e6
-    chrom <- x["chrom"]
-    if(any(position < start & chromosome == chrom)){
-      prevSnp <- max(position[position < start & chromosome == chrom])
-    } else prevSnp <- NA
-    if(any(position > last & chromosome == chrom)){                 
-      nextSnp <- min(position[position > last & chromosome == chrom])
-    } else nextSnp <- NA
-    adj <- c(prevSnp, nextSnp)/1e6
-    adj
-  }
-  adjacent <- t(apply(breaks, 1, adjacentSnps, position=position,
-                      chromosome=chromosome, digits=digits))
-  colnames(adjacent) <- c("prev", "next")
-  breaks <- cbind(breaks, adjacent)
-  breaks$id <- rep(sampleNames, nrow(breaks))
-  colnames(breaks) <- c("start", "last", "size", "N", "state", "chr", "prev", "next", "id")
-
-  ##Add columns for the name of the first SNP and the name of the last SNP
-  colnames <- c("id", "chr", "state", "size", "N", "start", "last", "prev", "next")
-  breaks <- breaks[, colnames]
-  breaks
-}
 

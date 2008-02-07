@@ -1,7 +1,8 @@
 \name{ParHmmSnpCallSet-class}
 \docType{class}
 \alias{ParHmmSnpCallSet-class}
-\alias{initialize,ParHmmSnpCallSet-method} 
+\alias{initialize,ParHmmSnpCallSet-method}
+\alias{plotSnp,ParHmmSnpCallSet,SnpLevelSet-method}
 \title{Graphical parameters for plotting}
 \description{Graphical parameters for plotting \code{SnpCallSet} and the
 corresponding predicted states from the hidden Markov model}
@@ -21,6 +22,8 @@ Class \code{"\linkS4class{ParESet}"}, by class "ParHSet", distance 2.
 \section{Methods}{
   \describe{
     \item{initialize}{\code{signature(.Object = "ParHmmSnpSet")}}
+    \item{plotSnp}{\code{signature("ParHmmSnpCallSet", "SnpLevelSet")}:
+      plotting predictions from the hidden markov model along with tracks of data}
     }
 }
 \author{R. Scharpf}

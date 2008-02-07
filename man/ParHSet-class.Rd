@@ -1,6 +1,7 @@
 \name{ParHSet-class}
 \docType{class}
 \alias{ParHSet-class}
+\alias{getPar,ParHSet,SnpLevelSet-method}
 \alias{initialize,ParHSet-method}
 \alias{plotSnp,ParHSet,SnpLevelSet-method}
 \alias{show,ParHSet-method}
@@ -23,6 +24,7 @@ Class \code{"\linkS4class{ParESet}"}, directly.
 }
 \section{Methods}{
   \describe{
+    \item{getPar}{\code{signature(.Object = "ParHSet")} }
     \item{initialize}{\code{signature(.Object = "ParHSet")}}
     \item{plotSnp}{\code{signature(object = "ParHSet", snpset =
 	"SnpLevelSet")}: See also \code{\link[SNPchip]{plotSnp}}}

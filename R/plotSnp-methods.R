@@ -37,14 +37,29 @@ setMethod("plotSnp", c("ParHmmSnpCopyNumberSet", "SnpLevelSet"), ##"hSet",
             snpset <- snpset[idx, ]
             idx <- match(featureNames(snpset), featureNames(hmmPredict))
             hmmPredict <- hmmPredict[idx, ]
-            
             if(!identical(featureNames(snpset), featureNames(hmmPredict)))
               stop("featureNames in snpset and hmmPredict arguments are not identical")
             callNextMethod(object, snpset, hmmPredict, hmmParams, ...)
           })
 
-plotPredictions <- function(predictions, op, breakpoints, position,
-                            chromosome, states, ...){
+setMethod("plotSnp", c("ParHmmSnpCallSet", "SnpLevelSet"), ##"hSet",
+          function(object, snpset, hmmPredict, ...){
+            idx <- match(featureNames(hmmPredict), featureNames(snpset))
+            idx <- idx[!is.na(idx)]
+            snpset <- snpset[idx, ]
+            idx <- match(featureNames(snpset), featureNames(hmmPredict))
+            hmmPredict <- hmmPredict[idx, ]
+            if(!identical(featureNames(snpset), featureNames(hmmPredict)))
+              stop("featureNames in snpset and hmmPredict arguments are not identical")
+            callNextMethod(object, snpset, hmmPredict, hmmParams, ...)            
+          })
+
+plotPredictions <- function(predictions,
+                            op,
+                            breakpoints,
+                            position,
+                            chromosome,
+                            states, ...){
   chr <- unique(chromosome)
   for(i in chr){
     tmp <- breakpoints[breakpoints[, "chr"] == i, , drop=FALSE]
@@ -115,7 +130,4 @@ setMethod("show", "ParHSet", function(object) str(snpPar(object)))
 ##            callNextMethod()
 ##          })
 ##
-##setMethod("plotSnp", c("ParHmmSnpCallSet", "HmmSnpCallSet"), ##"hSet",
-##          function(object, snpset, breaks, ...){
-##            callNextMethod()
-##          })
+

@@ -99,9 +99,9 @@ We can now use methods from the \R{} package \Rpackage{SNPchip} to
 plot the data:
 
 <<plotSnp, fig=TRUE, width=8, height=5>>=
-gp <- getPar(snpset)
-gp$pch <- 21
-gp$cex <- 0.8
+gp <- new("ParSnpSet")
+gp <- getPar(gp, snpset)
+gp$cex <- 3
 gp$ylim <- c(-2, 2)
 gp$ylab <- "log2 ratio"
 plotSnp(gp, snpset)
@@ -129,9 +129,9 @@ example, the entire region is normal):
 fn <- featureNames(params)
 idx <- match(fn, featureNames(snpset))
 snpset <- snpset[idx, ]
-gp <- getPar(fit, snpset)
-gp$cex <- 0.8
-gp$pch <- 21
+gp <- new("ParHmmSnpSet")
+gp <- getPar(gp, snpset)
+gp$cex <- 3
 gp$ylab <- "log2 ratio copy number"
 plotSnp(object=gp, snpset=snpset, hmmPredict=fit) 
 @ 

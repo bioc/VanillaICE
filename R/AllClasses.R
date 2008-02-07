@@ -26,7 +26,8 @@ setClass("HmmParameter", representation(hmmOptions="HmmOptions",
 setClass("HmmPredict", representation(states="character",
                                       predictions="matrix",
                                       breakpoints="list",
-                                      SnpClass="character"))
+                                      SnpClass="character",
+                                      featureData="AnnotatedDataFrame"))
 
 ##Classes for graphical parameters
 setClass("ParHSet", contains="ParESet")

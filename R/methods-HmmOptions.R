@@ -10,7 +10,13 @@ setReplaceMethod("annotation", "HmmOptions", function(object, value){
   object
 })
 
+setMethod("cn.robustSE", "HmmOptions", function(object) object@cn.robustSE)
 setMethod("notes", "HmmOptions", function(object) object@notes)
+setReplaceMethod("states", c("HmmOptions", "character"),
+                 function(object, value){
+                   object@states <- states
+                   object
+                 })
 
 setMethod("initialize", "HmmOptions",
           function(.Object, snpset,

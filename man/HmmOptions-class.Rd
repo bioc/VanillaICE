@@ -9,6 +9,8 @@
 \alias{cn.ICE,HmmOptions-method}
 \alias{cn.ICE<-,HmmOptions,logical-method}
 \alias{cn.location,HmmOptions-method}
+\alias{cn.robustSE}
+\alias{cn.robustSE,HmmOptions-method}
 \alias{cnEmission,numeric,HmmOptions-method}
 \alias{db,HmmOptions-method}
 \alias{gt.ICE,HmmOptions-method}
@@ -18,7 +20,11 @@
 \alias{initialize,HmmOptions-method}
 \alias{notes,HmmOptions-method}
 \alias{show,HmmOptions-method}
+\alias{states}
+\alias{states<-}
 \alias{states,HmmOptions-method}
+\alias{states<-,HmmOptions,character-method}
+
 
 \title{Options for the hidden Markov model}
 \description{Options for fitting the hidden Markov model are stored in
@@ -75,7 +81,10 @@ Objects can be created by calls of the form \code{new("HmmOptions", snpset, stat
     \item{cn.ICE<-}{\code{signature(object = "HmmOptions", value =
     "logical")}: See also \code{\link{cn.ICE}}}
     \item{cn.location}{\code{signature(object = "HmmOptions")}: See also
-    \code{\link{cn.location}}}
+      \code{\link{cn.location}}}
+    \item{cn.robustSE}{\code{signature(object="HmmOptions")}: Accessor
+    for the robust estimate of the copy number standard deviation.
+    Estimated using the autosomal chromosomes.}    
     \item{cnEmission}{\code{signature(x = "numeric", options =
     "HmmOptions")}: See also \code{\link{cnEmission}}}
     \item{db}{\code{signature(object = "HmmOptions")}: Retrieves SNP

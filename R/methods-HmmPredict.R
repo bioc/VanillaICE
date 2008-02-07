@@ -3,17 +3,23 @@ setMethod("initialize", "HmmPredict",
                    states=character(),
                    predictions=matrix(),
                    breakpoints=list(),
-                   SnpClass=character()){
+                   SnpClass=character(),
+                   featureData=new("AnnotatedDataFrame")){
             .Object@predictions <- predictions
             .Object@breakpoints <- breakpoints
             .Object@SnpClass <- SnpClass
             .Object@states <- states
+            .Object@featureData <- featureData
             .Object
           })
 
 setMethod("featureNames", "HmmPredict", function(object) rownames(predictions(object)))
+setMethod("featureData", "HmmPredict", function(object) object@featureData)
+setMethod("fData", "HmmPredict", function(object) pData(object@featureData))
 setMethod("sampleNames", "HmmPredict", function(object) colnames(predictions(object)))
 setMethod("predictions", "HmmPredict", function(object) object@predictions)
+setMethod("position", "HmmPredict", function(object) fData(object)$position)
+setMethod("chromosome", "HmmPredict", function(object) fData(object)$chromosome)
 setMethod("breakpoints", "HmmPredict", function(object) object@breakpoints)
 setMethod("states", "HmmPredict", function(object) object@states)
 setMethod("SnpClass", "HmmPredict", function(object) object@SnpClass)
@@ -30,7 +36,11 @@ setMethod("show", "HmmPredict", function(object){
   idx <- lapply(tmp, unlist)
   print(mapply(function(object, idx) object[idx, ], object=breaks, idx=idx, SIMPLIFY=FALSE))
   breaks
+  cat("\n featureData \n")
+  show(featureData(object))
 })
+
+
 
 setMethod("[", "HmmPredict",
           function(x, i, j, ..., drop = FALSE){
@@ -44,12 +54,14 @@ setMethod("[", "HmmPredict",
             }
             if(!missing(i) && missing(j)){
               x@predictions <- x@predictions[i, , drop=FALSE]
+              x@featureData <- x@featureData[i, , drop=FALSE]
             }
             if(missing(i) && !missing(j)){
               x@predictions <- x@predictions[, j, drop=FALSE]
             }            
             if(!missing(i) && !missing(j)){
               x@predictions <- x@predictions[i, j, drop=FALSE]
+              x@featureData <- x@featureData[i, , drop=FALSE]
             }
             x
           })

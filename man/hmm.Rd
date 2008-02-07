@@ -5,12 +5,12 @@
 Fits the hidden Markov model
 }
 \usage{
-hmm(object, snpset)
+hmm(object, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{object}{An object of class \code{HmmParameter}}
-  \item{snpset}{An object inherited from class \code{SnpLevelSet}}
+  \item{\dots}{Not implemented}
 }
 \details{
   None yet.
