@@ -30,6 +30,7 @@ setMethod("initialize", "HmmOptions",
                    gt.confidence.states=character(),
                    gt.ICE=FALSE,
                    annotation=character(),
+                   beta=matrix(),
                    notes=""){
             snpset <- snpset[!(is.na(chromosome(snpset))), ]
             if(length(states) == 0){
@@ -41,6 +42,7 @@ setMethod("initialize", "HmmOptions",
             }
             if(!("N" %in% states)) stop("one hidden state must have the name 'N' (normal)")          
 
+            if(length(beta) == 0){
             if(length(cn.location) == 0 & class(snpset) != "SnpCallSet"){
               cn.location <- switch(class(snpset),
                                     SnpCopyNumberSet=log2(c(1, 2, 3)),
@@ -93,6 +95,7 @@ setMethod("initialize", "HmmOptions",
               names(gte.state) <- states
               notes <- paste(notes, "gt.state is P(gte = HOM | state)", sep=", ")
             }
+          }
             .Object@SnpClass <- class(snpset)
             .Object@states <- states
             .Object@cn.location <- cn.location

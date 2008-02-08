@@ -30,7 +30,9 @@
 \description{Options for fitting the hidden Markov model are stored in
   objects of this class.}
 \section{Objects from the Class}{
-Objects can be created by calls of the form \code{new("HmmOptions", snpset, states, cn.location, cn.SE, cn.robustSE, cn.ICE, gt.gte, gte.state, gt.confidence.states, gt.ICE, annotation, notes)}.
+Objects can be created by calls of the form \code{new("HmmOptions",
+  snpset, states, cn.location, cn.SE, cn.robustSE, cn.ICE, gt.gte,
+  gte.state, gt.confidence.states, gt.ICE, annotation, beta, notes)}.
 }
 \section{Slots}{
 	 \describe{

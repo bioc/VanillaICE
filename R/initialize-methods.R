@@ -105,6 +105,7 @@ setMethod("initialize", "HmmParameter",
             ##Emission Probabilities
             ###########################################################################
             ##Rows = number of SNPs * number of states, Columns = number of samples
+            if(length(beta) == 0){
             if(hmmOptions@SnpClass == "SnpCallSet" | hmmOptions@SnpClass == "oligoSnpSet"){
               x <- data.frame(calls(snpset), row.names=featureNames(snpset))
               confidence <- data.frame(callsConfidence(snpset), row.names=featureNames(snpset))
@@ -133,6 +134,7 @@ setMethod("initialize", "HmmParameter",
             beta.gt[is.na(beta.gt)] <- 0
             beta.cn[is.na(beta.cn)] <- 0
             beta <- beta.cn + beta.gt
+          }
 
             ###########################################################################            
             ##Transition Probabilities
