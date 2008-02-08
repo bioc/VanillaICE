@@ -76,15 +76,15 @@ setMethod("initialize", "HmmParameter",
                    tau=matrix(),
                    tau.scale=matrix(),                   
                    pi=numeric(),
-                   beta=matrix(),
                    notes=character(),
+                   beta=matrix(),
                    SCALE=2,##by default, twice as likely to return to normal state
                    ...){
             snpset <- snpset[!(is.na(chromosome(snpset))), ]
             chrom <- chromosome2numeric(chromosome(snpset))
             snpset <- snpset[order(chrom, position(snpset)), ]
 
-            hmmOptions <- new("HmmOptions", snpset=snpset, states=states, ...)
+            hmmOptions <- new("HmmOptions", snpset=snpset, states=states, beta=beta, ...)
             S <- length(hmmOptions@states)
             featureNames <- featureNames(snpset)
             featureData <- addFeatureData(snpset)
