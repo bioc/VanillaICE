@@ -42,7 +42,7 @@ setMethod("initialize", "HmmOptions",
             }
             if(!("N" %in% states)) stop("one hidden state must have the name 'N' (normal)")          
 
-            if(length(beta) == 0){
+            if(length(beta) == 1){
             if(length(cn.location) == 0 & class(snpset) != "SnpCallSet"){
               cn.location <- switch(class(snpset),
                                     SnpCopyNumberSet=log2(c(1, 2, 3)),
