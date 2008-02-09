@@ -234,11 +234,11 @@ calculateCnSE <- function(object,
                           epsilon=0.1){
   if(missing(referenceSet)) stop("Require a referenceSet for estimating SNP-specific across sample variation in copy number estimates")
   require(genefilter) || stop("genefilter not available")
-  is.autosome <- chromosome(object) %in% as.character(1:22)
+  is.autosome <- chromosome(object) %in% as.character(1:22) 
   object <- object[is.autosome, ]  
   referenceSet <- referenceSet[match(featureNames(object), featureNames(referenceSet)), ]
   robustSD <- function(X){
-    diff(quantile(X, probs=c(0.16, (1-0.16))))/2
+    diff(quantile(X, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2
   }
   within.sd <- apply(copyNumber(object), 2, robustSD)
   across.sd <- rowSds(copyNumber(referenceSet), na.rm=TRUE)

@@ -35,7 +35,7 @@ setMethod("show", "HmmPredict", function(object){
   tmp <- lapply(breaks, selectSomeIndex)
   idx <- lapply(tmp, unlist)
   print(mapply(function(object, idx) object[idx, ], object=breaks, idx=idx, SIMPLIFY=FALSE))
-  breaks
+  ##breaks
   cat("\n featureData \n")
   show(featureData(object))
 })

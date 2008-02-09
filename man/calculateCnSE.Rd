@@ -8,9 +8,9 @@ Calculates SNP-specific standard errors for copy number using a reference set.
 calculateCnSE(object, referenceSet, epsilon = 0.1)
 }
 \arguments{
-  \item{object}{ An object inherited of class \code{SnpCopyNumberSet} or
+  \item{object}{ An object of class \code{SnpCopyNumberSet} or
     \code{oligoSnpSet}.  }
-  \item{referenceSet}{ An object inherited of class \code{SnpCopyNumberSet} or
+  \item{referenceSet}{ An object of class \code{SnpCopyNumberSet} or
     \code{oligoSnpSet}.  }
   \item{epsilon}{minimum standard error}
 }
