@@ -241,7 +241,9 @@ calculateCnSE <- function(object,
     diff(quantile(X, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2
   }
   within.sd <- apply(copyNumber(object), 2, robustSD)
-  across.sd <- rowSds(copyNumber(referenceSet), na.rm=TRUE)
+
+  across.sd <- apply(copyNumber(referenceSet), 1, robustSD)
+##  across.sd <- rowSds(copyNumber(referenceSet), na.rm=TRUE)
   across.sd <- matrix(across.sd, nrow=nrow(object), ncol=ncol(object), byrow=FALSE)
   ##scale across.sd by the median sd of the sample
   median.across.sd <- median(across.sd)
