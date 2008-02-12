@@ -16,8 +16,8 @@ Objects can be created by calls of the form \code{new("ParHmmSnpCallSet", border
   }
 }
 \section{Extends}{
-Class \code{"\linkS4class{ParHSet}"}, directly.
-Class \code{"\linkS4class{ParESet}"}, by class "ParHSet", distance 2.
+Class \code{\linkS4class{ParHSet}}, directly.
+Class \code{\link[SNPchip]{ParESet-class}}, by class "ParHSet", distance 2.
 }
 \section{Methods}{
   \describe{

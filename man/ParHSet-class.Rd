@@ -20,7 +20,7 @@ Objects can be created by calls of the form \code{new("ParHSet", border.predicti
   }
 }
 \section{Extends}{
-Class \code{"\linkS4class{ParESet}"}, directly.
+Class \code{\link[SNPchip]{ParESet-class}}, directly.
 }
 \section{Methods}{
   \describe{
