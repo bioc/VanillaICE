@@ -41,7 +41,8 @@ exportMethods(
               tau.scale)
 
 export(addFeatureData,
-       calculateBreakpoints,       
+       calculateBreakpoints,
+       calculateDistance,
        calculateCnSE,
 ##       .getCallEmission,
        plotPredictions,

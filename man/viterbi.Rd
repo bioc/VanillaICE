@@ -9,7 +9,7 @@
 
 }
 \usage{
-viterbi(beta, pi, tau, states, arm)
+viterbi(beta, pi, tau, states, arm, tau.scale)
 }
 
 \arguments{
@@ -18,10 +18,25 @@ viterbi(beta, pi, tau, states, arm)
   \item{tau}{transition probabilities (log scale)}
   \item{states}{character string of hidden states}
   \item{arm}{character string of chromosomal arm}
+  \item{tau.scale}{scales the probability of transitioning between an
+  altered state to a normal state relative to the probability of
+  transitioning between two altered states.}
 }
 \details{
 
-  The viterbi algorithm is fit independently to each chromosomal arm.
+  The Viterbi algorithm is fit independently to each chromosomal arm.
+
+  Argument \code{tau.scale} is a matrix that scales the probability of
+  transitioning from an altered state to a normal state to the
+  probability of transitioning between two altered states.
+
+  When initializing an object of class \code{HmmParameter}, the default
+  is to make the probability of transitioning from an altered state to a
+  normal state twice the probability of transitioning between two
+  altered states. Further flexibility could be obtained by replacing the
+  tau.scale matrix in an instance of the \code{HmmParameter} class with
+  your own matrix.  The dimension of this matrix must be S x S, where S
+  is the number of hidden states.
 
 }
 \value{

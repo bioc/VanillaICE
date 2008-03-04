@@ -254,35 +254,43 @@ calculateCnSE <- function(object,
 }
 
 ##Code this in C
-viterbi <- function(beta, pi, tau, states, arm){
-  S <- length(states)
-  T <- nrow(tau) + 1
-  beta <- matrix(beta, nr=T, nc=S)
-  delta <- psi <- matrix(NA, T, S)
-  colnames(delta) <- colnames(psi) <- states
-  delta[1, ] <- pi + beta[1, ]
-  psi[1, ] <- rep(0, S)
-
-  for(t in 2:T){
-    if(arm[t] != arm[t-1]){
-      ##SNP t is on a different chromosome/chromosome arm
-      delta[t, ] <- pi + beta[t, ]
-      psi[t, ] <- rep(0, S)
-    }
-    AA <- matrix(tau[t-1, ], nr=S, nc=S)
-    for(j in 1:S){
-      ##Equation 105b
-      delta[t, j] <- max(delta[t-1, ] + AA[, j]) + beta[t, j]
-      psi[t, j] <- order(delta[t-1, ] + AA[, j], decreasing=TRUE)[1]
-    }
-  }
-  Pstar <- max(delta[nrow(delta), ])
-  qhat <- rep(NA, nrow(delta))
-  T <- nrow(delta)
-  names(qhat) <- rownames(delta)  
-  qhat[T] <- order(delta[T, ], decreasing=TRUE)[1]
-  for(t in (T-1):1) qhat[t] <- psi[t+1, qhat[t+1]]
-  qhat    
+viterbi <- function(beta, pi, tau, states, arm, tau.scale){
+	S <- length(states)
+	T <- length(tau) + 1
+	##beta <- matrix(beta, nr=T, nc=S)
+	delta <- psi <- matrix(NA, T, S)
+	colnames(delta) <- colnames(psi) <- states
+	delta[1, ] <- pi + beta[1, ]
+	psi[1, ] <- rep(0, S)
+	for(t in 2:T){
+		if(arm[t] != arm[t-1]){
+			##SNP t is on a different chromosome/chromosome arm
+			delta[t, ] <- pi + beta[t, ]
+			psi[t, ] <- rep(0, S)
+			next()
+		}
+		AA <- matrix(tau[t-1], nr=S, nc=S)
+		AA[upper.tri(AA)] <- AA[lower.tri(AA)] <- (1-tau[t-1])/(S-1)
+		AA <- log(AA*tau.scale)
+		for(j in 1:S){
+			##Equation 105b
+			delta[t, j] <- max(delta[t-1, ] + AA[, j]) + beta[t, j]
+			psi[t, j] <- order(delta[t-1, ] + AA[, j], decreasing=TRUE)[1]
+		}
+	}
+	Pstar <- max(delta[nrow(delta), ])
+	qhat <- rep(NA, nrow(delta))
+	T <- nrow(delta)
+	names(qhat) <- rownames(delta)  
+	qhat[T] <- order(delta[T, ], decreasing=TRUE)[1]
+	for(t in (T-1):1){
+		if(arm[t] != arm[t+1]){
+			qhat[t] <- order(delta[t, ], decreasing=TRUE)[1]
+		} else {
+			qhat[t] <- psi[t+1, qhat[t+1]]
+		}
+	}
+	qhat    
 }
 
 

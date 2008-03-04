@@ -1,17 +1,4 @@
-setMethod("initialize", "HmmPredict",
-          function(.Object,
-                   states=character(),
-                   predictions=matrix(),
-                   breakpoints=list(),
-                   SnpClass=character(),
-                   featureData=new("AnnotatedDataFrame")){
-            .Object@predictions <- predictions
-            .Object@breakpoints <- breakpoints
-            .Object@SnpClass <- SnpClass
-            .Object@states <- states
-            .Object@featureData <- featureData
-            .Object
-          })
+
 
 setMethod("featureNames", "HmmPredict", function(object) rownames(predictions(object)))
 setMethod("featureData", "HmmPredict", function(object) object@featureData)

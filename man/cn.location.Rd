@@ -18,7 +18,5 @@ cn.location(object)
 }
 \author{R. Scharpf}
 \seealso{\code{\link{HmmParameter-class}}}
-\examples{
-}
 \keyword{methods}
 

@@ -1,10 +1,23 @@
 setMethod("hmm", "HmmParameter",
           function(object, snpset, sn, ...){
             arm <- paste(chromosome(object), arm(object), sep="")
-            beta <- data.frame(Beta(object))
-            predictions <- apply(beta, 2, viterbi, pi=pi(object),
-                                 tau=tau(object), states=states(object),
-                                 arm=arm)
+
+	    ##beta <- data.frame(Beta(object))
+            ##beta is an array
+	    
+            beta <- Beta(object)
+            predictions <- matrix(NA, nrow=nrow(snpset), ncol=(dim(beta)[3]))
+            for(i in 1:(dim(beta)[3])){
+              predictions[, i] <- viterbi(beta[, , i],
+                                          pi=pi(object),
+                                          tau=tau(object),
+                                          states=states(object),
+                                          arm=arm,
+                                          tau.scale=tau.scale(object))
+##              predictions <- apply(beta, 2, viterbi, pi=pi(object),
+##                                   tau=tau(object), states=states(object),
+##                                   arm=arm)
+            }
             rownames(predictions) <- featureNames(object)
             if(missing(sn)) sn <- sampleNames(snpset)
             colnames(predictions) <- sn
@@ -65,40 +78,45 @@ setMethod("[", "HmmParameter",
                      "' to access phenoData variables")
               return(x)
             }
-            if(length(j) > 1 | missing(j)){
-              stop("must specify 1 column (sample) to subset")
-            }
-            if(length(i) > 1 | missing(i)){
-              stop("must specify 1 SNP to subset")
-            }
+##            if(length(j) > 1 | missing(j)){
+##              stop("must specify 1 column (sample) to subset")
+##            }
+##            if(length(i) > 1 | missing(i)){
+##              stop("must specify 1 SNP to subset")
+##            }
             ##number of rows (SNPs)
             R <- length(featureNames(x))
             ##number of states 
             S <- length(pi(x))
             ##number of columns (samples)
             C <- ncol(Beta(x))
-            if(!missing(i)){
-              beta <- Beta(x)[, j]
-              beta <- matrix(beta, nrow=R, ncol=S)
-              beta <- beta[i, , drop=FALSE]
-              colnames(beta) <- states(x)
-              featureData <- featureData(x)[i, j]              
-              rownames(beta) <- featureNames(featureData)
+            if(!missing(i) & !missing(j)){
+              x@beta <- Beta(x)[i, , j, drop=FALSE]
+##              beta <- matrix(beta, nrow=R, ncol=S)
+##              beta <- beta[i, , drop=FALSE]
+##              colnames(beta) <- states(x)
+##              featureData <- featureData(x)[i, j]              
+##              rownames(beta) <- featureNames(featureData)
 
-              transition <- list()
-              states <- states(x)
-              transition[[1]] <- matrix(tau(x)[(i-1), ], nrow=S, ncol=S)
-              colnames(transition[[1]]) <- paste(states, "t+1", sep="_")
-              rownames(transition[[1]]) <- paste(states, "t", sep="_")
-              transition[[2]] <- matrix(tau(x)[(i-1), ], nrow=S, ncol=S)
-              colnames(transition[[2]]) <- paste(states, "t+1", sep="_")
-              rownames(transition[[2]]) <- paste(states, "t", sep="_")
-              names(transition) <- rownames(tau(x))[(i-1):i]
+              
+#              transition <- list()
+#              states <- states(x)
+#              transition[[1]] <- matrix(tau(x)[(i-1), ], nrow=S, ncol=S)
+#              colnames(transition[[1]]) <- paste(states, "t+1", sep="_")
+#              rownames(transition[[1]]) <- paste(states, "t", sep="_")
+#              transition[[2]] <- matrix(tau(x)[(i-1), ], nrow=S, ncol=S)
+#              colnames(transition[[2]]) <- paste(states, "t+1", sep="_")
+#              rownames(transition[[2]]) <- paste(states, "t", sep="_")
+#              names(transition) <- rownames(tau(x))[(i-1):i]
+              x@featureData <- featureData(x)[i, ]
+              x@tau <- tau(x)[i[-length(i)]]
             }
-            results <- list()
-            results[[1]] <- list(tau=transition, beta=beta)
-            names(results) <- featureNames(featureData)
-            results
+            if(!missing(i) & missing(j)){
+              x@beta <- Beta(x)[i, , , drop=FALSE]
+              x@tau <- tau(x)[i[-length(i)]]
+              x@featureData <- featureData(x)[i, ]
+            }
+            x
           })
 
           

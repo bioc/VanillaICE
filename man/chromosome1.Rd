@@ -7,8 +7,6 @@
  (Affymetrix 100k platform).
 }
 \usage{data(chromosome1)}
-\format{
-}
 
 \details{
 
@@ -44,8 +42,6 @@ For additional information on the five abnormalities simulated in this
 chromosome, see the manuscript referenced below.
  }
 
-\source{
-}
 
 \references{
 

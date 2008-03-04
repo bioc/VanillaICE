@@ -18,7 +18,7 @@
 \newcommand{\Robject}[1]{\texttt{#1}}
 
 \title{HowTo: Creating HMM objects from BeadStudio-processed Illumina
-  chips} 
+  arrays}
 
 \author{Robert B. Scharpf}
 \begin{document}

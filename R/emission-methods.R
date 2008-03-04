@@ -27,7 +27,7 @@ setMethod("gtEmission", c("integer", "HmmOptions"),
                                              confidence=confidence,
                                              options=options)
             }
-            as.vector(log(gt.emission))
+            log(gt.emission)
           })
 
 setMethod(".gtEmission.ICE", c("integer", "HmmOptions"),
@@ -54,6 +54,7 @@ setMethod(".gtEmission.ICE", c("integer", "HmmOptions"),
             }
             names(hapmapP) <- pkgs
             if(length(pkgs) > 1){
+              require(RSQLite) || stop("RSQLite package not available")
               sql <- "SELECT man_fsetid FROM featureSet WHERE man_fsetid LIKE 'SNP%'"
               object1 <- object2 <- options
               annotation(object1) <- pkgs[1]
@@ -121,5 +122,5 @@ setMethod("cnEmission", c("numeric", "HmmOptions"),
             ##rownames(emission.cn) <- names(cne)
             ##colnames(emission.cn) <- states
             ##length should be R*S (R = number of SNPs, S = number of states)
-            as.vector(log(emission.cn))
+            log(emission.cn)
           })

@@ -143,7 +143,6 @@ the data along with the predictions as follows:
 fn <- featureNames(params)
 idx <- match(fn, featureNames(chromosome1))
 chromosome1 <- chromosome1[idx, ]
-##gp <- getPar(fit, chromosome1)
 gp <- new("ParHmmSnpSet")
 gp <- getPar(gp, snpset=chromosome1)
 plotSnp(object=gp, snpset=chromosome1, hmmPredict=fit) 
@@ -164,9 +163,9 @@ params.ice <- new("HmmParameter", chromosome1, states=c("D", "N", "L", "A"), cn.
 
 We may also incorporate the confidence scores for the genotype calls:
 
-<<params2>>=
+<<params2, eval=FALSE>>=
 params.ice <- new("HmmParameter", chromosome1, states=c("D", "N", "L", "A"), 
-                  cn.ICE=TRUE, gt.ICE)
+                  cn.ICE=TRUE, gt.ICE=TRUE)
 @ 
 
 We fit the HMM in the usual way
@@ -286,28 +285,23 @@ is obtained by
 params
 @ 
 
-The emission probabilities for each sample in the
-\Robject{chromosome1} object are stored as a vector in the
-\Robject{params} object.  The emission probability matrix has
-dimension S*R $\times$ C, where $S$ is the number of hidden states,
-$R$ is the number of rows (SNPs), and $C$ is the number of columns
-(samples).  To obtain the emission probabilities for the $ith$ SNP,
-one may use $[$ to subset.  Currently, subset methods for the
-\Robject{HmmParameter} class are only available for 1 SNP and 1 sample
-at a time.  For instance, the emission probabilities for the 5th SNP
+The emission probabilities are stored as an array in the
+\Robject{params} object.  The emission probability array has dimension
+R $\times$ S $\times$ C, where $S$ is the number of hidden states, $R$
+is the number of rows (SNPs), and $C$ is the number of samples.  To
+obtain the emission probabilities for the $ith$ SNP, one may use $[$
+to subset.  For instance, the emission probabilities for the 5th SNP
 are:
 
 <<>>=
 tmp <- params[5, 1]
-round(exp(tmp[[1]]$beta), 3)
+exp(Beta(tmp))
 @ 
 
-In the future, emission probabilities may be stored in arrays to
-facilitate subsetting.
+FIXME:
+Note, currently the 
 
-The relevant transition probability matrices for the 5th SNP are
-
-<<>>=
+<<eval=FALSE>>=
 lapply(tmp[[1]]$tau, function(x) exp(round(x, 4)))
 @ 
 

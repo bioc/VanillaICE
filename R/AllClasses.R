@@ -16,12 +16,20 @@ setClass("HmmOptions", representation(SnpClass="character",
                                       notes="character"))
 
 setClass("HmmParameter", representation(hmmOptions="HmmOptions",
-                                        tau="matrix",  ##transition probability
+                                        tau="numeric",  ##transition probability
                                         tau.scale="matrix",
                                         pi="numeric",  ##initialStateProbability
-                                        beta="matrix", ##emission probability
+                                        beta="array", ##emission probability
                                         featureData="AnnotatedDataFrame",
                                         notes="character"))
+
+##If we extend SnpLevelSet, the dimensions of the predictions in
+##assayData would probably need to match the number of samples.  Not
+##useful for trios
+##setClass("HmmPredict", contains="SnpLevelSet",
+##         representation(states="character",
+##                        breakpoints="list",
+##                        SnpClass="character"))
 
 setClass("HmmPredict", representation(states="character",
                                       predictions="matrix",
