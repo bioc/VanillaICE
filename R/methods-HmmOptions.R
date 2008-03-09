@@ -45,8 +45,8 @@ setMethod("initialize", "HmmOptions",
             if(length(beta) == 1){
             if(length(cn.location) == 0 & class(snpset) != "SnpCallSet"){
               cn.location <- switch(class(snpset),
-                                    SnpCopyNumberSet=log2(c(1, 2, 3)),
-                                    oligoSnpSet=log2(c(1, 2, 2, 3)),
+                                    SnpCopyNumberSet=c(1, 2, 3),
+                                    oligoSnpSet=c(1, 2, 2, 3),
                                     stop("if cn.location not given, snpset must be one of the following classes: SnpCopyNumberSet, oligoSnpSet"))
               if(length(cn.location) != length(states)) stop("Must specify cn.location and cn.SE")
               names(cn.location) <- states
@@ -66,7 +66,10 @@ setMethod("initialize", "HmmOptions",
               if(class(snpset) != "SnpCallSet" && length(cn.robustSE) == 0){
                 autosomes <- chromosome(snpset) != "X" & chromosome(snpset) != "Y" & chromosome(snpset) != "XY"
                 snpset.autosomes <- snpset[autosomes, ]
-                cn.robustSE <- apply(copyNumber(snpset.autosomes), 2, function(x)  diff(quantile(x, probs=c(0.16, 0.84), na.rm=TRUE))/2)
+		f <- function(x){
+			diff(quantile(x, probs=c(0.16, 0.84), na.rm=TRUE))/2 ##+ quantile(x, probs=0.16)
+		}
+                cn.robustSE <- apply(copyNumber(snpset.autosomes), 2, f)
                 names(cn.robustSE) <- sampleNames(snpset)
               }
             }

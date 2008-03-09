@@ -79,112 +79,130 @@ setMethod("initialize", "HmmParameter",
                    notes=character(),
                    beta=array(),
                    SCALE=2,##by default, twice as likely to return to normal state
-                   ...){
-            snpset <- snpset[!(is.na(chromosome(snpset))), ]
-            chrom <- chromosome2numeric(chromosome(snpset))
-            snpset <- snpset[order(chrom, position(snpset)), ]
+		   ...){
+		  if(any(is.na(chromosome(snpset)))){
+			  warning("missing values for chromosome(snpset) -- these SNPs are removed")
+			  snpset <- snpset[!(is.na(chromosome(snpset))), ]			  
+		  }
 
-            hmmOptions <- new("HmmOptions", snpset=snpset, states=states, beta=beta, ...)
-            S <- length(hmmOptions@states)
-            featureNames <- featureNames(snpset)
-            featureData <- addFeatureData(snpset)
+		  chrom <- chromosome2numeric(chromosome(snpset))
+		  tmp <- snpset[order(chrom, position(snpset)), ]
+		  if(!identical(featureNames(tmp), featureNames(snpset))){
+			  warning("snpset object ordered by chromosome and physical position.  Results will be returned in this order")
+		  }
+		  snpset <- tmp; rm(tmp)
+		  gc()
 
-            ###########################################################################            
-            ##Initial State Probabilities
-            ###########################################################################
-            states <- hmmOptions@states
-            if(length(pi) == 0){
-              tmp <- rep(0, length(states))
-              names(tmp) <- states
-              tmp["N"] <- 0.999
-              tmp[states != "N"] <- (1-0.999)/(length(states) - 1)
-              pi <- log(tmp)
-            }
+		  if("copyNumber" %in% assayDataElementNames(snpset)){
+			  if(min(copyNumber(snpset), na.rm=TRUE) > 0){
+				  print("Transforming copy number to log2 scale.")
+				  copyNumber(snpset) <- log2(copyNumber(snpset))
+				  log2cn.location <- TRUE
+			  } else{
+				  print("Negative values in the copy number.  Assume that copy number has been suitably transformed and is approximately Gaussian")
+				  log2cn.location <- FALSE
+			  }
+		  }
+		  hmmOptions <- new("HmmOptions", snpset=snpset,
+				    states=states, beta=beta, ...)
 
-            ###########################################################################            
-            ##Emission Probabilities
-            ###########################################################################
-            ##Rows = number of SNPs * number of states, Columns = number of samples
-            ##array: dims = number of SNPs, number states, number samples
-            if(length(beta) == 1){
-            if(hmmOptions@SnpClass == "SnpCallSet" | hmmOptions@SnpClass == "oligoSnpSet"){
-              x <- data.frame(calls(snpset), row.names=featureNames(snpset))
-              confidence <- data.frame(callsConfidence(snpset), row.names=featureNames(snpset))
-              print("Calculating emission probabilities for genotype calls.... ")
-              beta.gt <- array(NA, c(nrow(snpset), length(states), ncol(snpset)))
-              for(i in 1:ncol(snpset)){
-                beta.gt[, , i] <- gtEmission(x=x[, i],
-                                             confidence=confidence[, i],
-                                             options=hmmOptions,
-                                             featureNames=featureNames(snpset))
-              }
-##                  mapply(gtEmission, x=x, confidence=confidence,
-##                                  MoreArgs=list(options=hmmOptions, featureNames=featureNames(snpset)), SIMPLIFY=TRUE)
-            } else { beta.gt <- 0}
+		  if("copyNumber" %in% assayDataElementNames(snpset)){		  
+			  if(log2cn.location){
+				  hmmOptions@cn.location <- log2(hmmOptions@cn.location)
+			  }
+		  }
+		  S <- length(hmmOptions@states)
+		  featureNames <- featureNames(snpset)
+		  featureData <- addFeatureData(snpset)
 
-            if(hmmOptions@SnpClass == "SnpCopyNumberSet" | hmmOptions@SnpClass == "oligoSnpSet"){
-              x <- data.frame(copyNumber(snpset), row.names=featureNames(snpset))
-              confidence <- data.frame(cnConfidence(snpset), row.names=featureNames(snpset))
-              cn.robustSE <- as.list(hmmOptions@cn.robustSE)
-              print("Calculating emission probabilities for copy number estimates... ")
-              beta.cn <- array(NA, c(nrow(snpset), length(states), ncol(snpset)))
-              for(i in 1:ncol(snpset)){
-                beta.cn[, , i] <- cnEmission(x=x[, i],
-                                             confidence=confidence[, i],
-                                             robustSE=cn.robustSE[[i]],
-                                             options=hmmOptions,
-                                             featureNames=featureNames(snpset))
-##                
-##                beta.cn <- mapply(cnEmission, x=x, confidence=confidence,
-##                                  robustSE=cn.robustSE,
-##                                  MoreArgs=list(options=hmmOptions, featureNames=featureNames(snpset)), SIMPLIFY=TRUE)
-              }
-            } else {beta.cn <- 0}
+                  ###########################################################################            
+                  ##Initial State Probabilities
+                  ###########################################################################
+		  states <- hmmOptions@states
+		  if(length(pi) == 0){
+			  tmp <- rep(0, length(states))
+			  names(tmp) <- states
+			  tmp["N"] <- 0.999
+			  tmp[states != "N"] <- (1-0.999)/(length(states) - 1)
+			  pi <- log(tmp)
+		  }
 
-            ##Missing values in the emission probabilities are
-            ##typically caused by missing values for genotype calls.
-            ##Plugging in a constant such as zero for each of the
-            ##hidden states should prevent the genotype call of the
-            ##SNP from contributing to the likelihood, however the
-            ##copy number estimate (if available) will still
-            ##contribute
-            beta.gt[is.na(beta.gt)] <- 0
-            beta.cn[is.na(beta.cn)] <- 0
-            beta <- beta.cn + beta.gt
-          }
+                  ###########################################################################            
+		  ##Emission Probabilities
+                  ###########################################################################
+		  ##Rows = number of SNPs * number of states, Columns = number of samples
+		  ##array: dims = number of SNPs, number states, number samples
+		  if(length(beta) == 1){
+			  if(hmmOptions@SnpClass == "SnpCallSet" | hmmOptions@SnpClass == "oligoSnpSet"){
+				  x <- data.frame(calls(snpset), row.names=featureNames(snpset))
+				  confidence <- data.frame(callsConfidence(snpset), row.names=featureNames(snpset))
+				  print("Calculating emission probabilities for genotype calls.... ")
+				  beta.gt <- array(NA, c(nrow(snpset), length(states), ncol(snpset)))
+				  for(i in 1:ncol(snpset)){
+					  beta.gt[, , i] <- gtEmission(x=x[, i],
+								       confidence=confidence[, i],
+								       options=hmmOptions,
+								       featureNames=featureNames(snpset))
+				  }
+			  } else { beta.gt <- 0}
+			  if(hmmOptions@SnpClass == "SnpCopyNumberSet" | hmmOptions@SnpClass == "oligoSnpSet"){
+				  x <- data.frame(copyNumber(snpset), row.names=featureNames(snpset))
+				  confidence <- data.frame(cnConfidence(snpset), row.names=featureNames(snpset))
+				  cn.robustSE <- as.list(hmmOptions@cn.robustSE)
+				  print("Calculating emission probabilities for copy number estimates... ")
+				  beta.cn <- array(NA, c(nrow(snpset), length(states), ncol(snpset)))
+				  for(i in 1:ncol(snpset)){
+					  beta.cn[, , i] <- cnEmission(x=x[, i],
+								       confidence=confidence[, i],
+								       robustSE=cn.robustSE[[i]],
+								       options=hmmOptions,
+								       featureNames=featureNames(snpset))
+				  }
+			  } else {beta.cn <- 0}
+			  ##Missing values in the emission
+			  ##probabilities are typically caused by missing values for
+			  ##genotype calls.  Plugging in a constant such as zero for
+			  ##each of the hidden states should prevent the genotype
+			  ##call of the SNP from contributing to the likelihood,
+			  ##however the copy number estimate (if available) will
+			  ##still contribute
+			  beta.gt[is.na(beta.gt)] <- 0
+			  beta.cn[is.na(beta.cn)] <- 0
+			  beta <- beta.cn + beta.gt
+		  }
 
-            ###########################################################################            
-            ##Transition Probabilities
-            ###########################################################################                        
-            ##Scaling transition probabilities between states
-            if(missing(tau.scale) & S > 2){
-              ##scalar parameters for the transition probability
-              ##matrix.  By default, the probability of transitioning
-              ##from an altered state back to a normal state is twice
-              ##as likely as the probability of transitioning between
-              ##two altered states              
-              S <- length(states)
-              tau.scale <- matrix(1, S, S)
-              rownames(tau.scale) <- colnames(tau.scale) <- states
-              x <- seq(1, (S-1), by=0.01)
-              y <- rep(NA, length(x))
-              for(i in 1:length(x)){
-                y[i] <- ((S-1)-x[i])/(S-2) 
-              }
-              z <- abs(x/y - SCALE)
-              z <- z == min(z)
-              x <- x[z]
-              y <- y[z]
-              tau.scale[upper.tri(tau.scale)] <- y
-              tau.scale[lower.tri(tau.scale)] <- y
-              tau.scale[, "N"] <- x
-              ##by default, do not tau.scale the probabilities of leaving the normal state
-              tau.scale["N", ] <- 1
-              diag(tau.scale) <- 1
-            }
-            if(S == 2) tau.scale <- matrix(1, nrow=S, ncol=S)
+                  ###########################################################################            
+		  ##Transition Probabilities
+                  ###########################################################################                        
+		  ##Scaling transition probabilities between states
+		  if(missing(tau.scale) & S > 2){
+			  ##scalar parameters for the transition probability
+			  ##matrix.  By default, the probability of transitioning
+			  ##from an altered state back to a normal state is twice
+			  ##as likely as the probability of transitioning between
+			  ##two altered states              
+			  S <- length(states)
+			  tau.scale <- matrix(1, S, S)
+			  rownames(tau.scale) <- colnames(tau.scale) <- states
+			  x <- seq(1, (S-1), by=0.01)
+			  y <- rep(NA, length(x))
+			  for(i in 1:length(x)){
+				  y[i] <- ((S-1)-x[i])/(S-2) 
+			  }
+			  z <- abs(x/y - SCALE)
+			  z <- z == min(z)
+			  x <- x[z]
+			  y <- y[z]
+			  tau.scale[upper.tri(tau.scale)] <- y
+			  tau.scale[lower.tri(tau.scale)] <- y
+			  tau.scale[, "N"] <- x
+			  ##by default, do not tau.scale the probabilities of leaving the normal state
+			  tau.scale["N", ] <- 1
+			  diag(tau.scale) <- 1
+		  }
+		  if(S == 2) tau.scale <- matrix(1, nrow=S, ncol=S)
               
-            ##We definine the transition probability matrix as a
+		  ##We definine the transition probability matrix as a
             ##function of the distance between adjacent SNPs on the
             ##same chromosomal arm.  This requires breaking the object
             ##into a list by chromosome.  We then order the SNPs by
@@ -199,44 +217,65 @@ setMethod("initialize", "HmmParameter",
             ##NA's.  For SNPs at the beginning or end of a chromosomal
             ##arm, the transition probability matrix can be any number
             ##(it will not be used by the HMM).
-            if(length(tau) == 0){
-##              tau <- calculateTransitionProbability(object=snpset, options=hmmOptions)
-              d <- calculateDistance(object=snpset)
-              tau <- exp(-2 * d/(100*1e6))
-            }
-            if(any(is.na(tau))){
-              warning("Missing values in transition probabilities")
-              browser()
-            }
-##            names(tau) <- paste(featureNames(snpset)[1:(nrow(snpset)-1)], featureNames(snpset)[2:nrow(snpset)], sep="->")
-            .Object@hmmOptions <- hmmOptions
-            .Object@tau <- tau
-            .Object@tau.scale <- tau.scale
-            .Object@pi <- pi
-            .Object@beta <- beta
-            .Object@featureData <- featureData
-            .Object
+		  if(length(tau) == 0){
+			  ##              tau <- calculateTransitionProbability(object=snpset, options=hmmOptions)
+			  d <- calculateDistance(object=snpset)
+			  tau <- exp(-2 * d/(100*1e6))
+		  }
+		  if(any(is.na(tau))){
+			  warning("Missing values in transition probabilities")
+			  browser()
+		  }
+		  ##            names(tau) <- paste(featureNames(snpset)[1:(nrow(snpset)-1)], featureNames(snpset)[2:nrow(snpset)], sep="->")
+		  if("copyNumber" %in% assayDataElementNames(snpset)){		  
+			  if(log2cn.location){
+				  hmmOptions@cn.location <- 2^hmmOptions@cn.location
+			  }
+		  }
+		  .Object@hmmOptions <- hmmOptions
+		  .Object@tau <- tau
+		  .Object@tau.scale <- tau.scale
+		  .Object@pi <- pi
+		  .Object@beta <- beta
+		  .Object@featureData <- featureData
+		  .Object
           })
+
 
 setMethod("initialize", "HmmPredict",
           function(.Object,
-                   states=character(),
-                   predictions=matrix(),
-                   breakpoints=list(),
-                   SnpClass=character(),
-                   featureData=new("AnnotatedDataFrame")){
-            .Object@predictions <- predictions
-            .Object@breakpoints <- breakpoints
-            .Object@SnpClass <- SnpClass
-            .Object@states <- states
-            .Object@featureData <- featureData
-            .Object
+                   predictions=new("matrix"),
+		   SnpClass=character(),
+		   states=character(),
+		   breakpoints=data.frame(), ... ){
+		  .Object <- callNextMethod(.Object,
+					    predictions=predictions, ...)
+		  .Object@SnpClass <- SnpClass
+		  .Object@states <- states
+		  breakpoints(.Object) <- breakpoints
+		  .Object
           })
 
 
-##setValidity("HmmPredict", function(object) {
-##  assayDataValidMembers(assayData(object), "predictions")
-##})
+##setMethod("initialize", "HmmPredict",
+##          function(.Object,
+##                   states=character(),
+##                   predictions=matrix(),
+##                   breakpoints=list(),
+##                   SnpClass=character(),
+##                   featureData=new("AnnotatedDataFrame")){
+##            .Object@predictions <- predictions
+##            .Object@breakpoints <- breakpoints
+##            .Object@SnpClass <- SnpClass
+##            .Object@states <- states
+##            .Object@featureData <- featureData
+##            .Object
+##          })
+
+
+setValidity("HmmPredict", function(object) {
+  assayDataValidMembers(assayData(object), "predictions")
+})
 
 
 

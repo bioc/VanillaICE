@@ -37,7 +37,10 @@ hmm(object, ...)
 \examples{
 data(chromosome1)
 chromosome1 <- chromosome1[1:500, ]
-params <- new("HmmParameter", snpset=chromosome1)
+params <- new("HmmParameter", snpset=chromosome1,
+	      states=c("D", "N", "L", "A"), ##Deletion, Normal, Loss of hetozygosity, Amplification
+	      cn.location=c(1, 2, 2, 3),
+	      gte.state=c(0.99, 0.8, 0.99, 0.8))
 fit <- hmm(params, chromosome1)
 }
 \keyword{models}

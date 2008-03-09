@@ -152,105 +152,148 @@ addFeatureData <- function(snpset){
 
 ##setMethod("calculateBreakpoints", "HmmParameter",
 ##          function(object, x, position, chromosome, states, digits=2, sampleNames, ...){
-calculateBreakpoints <- function(x, position, chromosome, states, digits=2, sampleNames){
-            if(any(is.na(x))){
-              Nmissing <- sum(is.na(x))
-            } else Nmissing <- 0
-            N <- length(x)
-            if(length(unique(x)) == 1) return(NULL)
-            d <- diff(x)
-            if(sum(abs(d), na.rm=TRUE) < 1){
-              print("No breakpoints in this region")
-              return(NULL)
-            }
-            index <- c(1, (2:N)[d != 0 & !is.na(d)])
-            index <- cbind(index[-length(index)], index[2:length(index)])
-            index[, 2] <- index[, 2] - 1
-            lastBreak <- index[nrow(index), 2]
-            index <- rbind(index, c(lastBreak+1, N))  
+.calculatebreaks <- function(x, position, chromosome, states, digits=2, sampleNames){
+	if(any(is.na(x))){
+		Nmissing <- sum(is.na(x))
+	} else Nmissing <- 0
+	N <- length(x)
+	if(length(unique(x)) == 1){
+		breaks <- data.frame(sampleNames,
+				     chromosome,
+				     unique(x),
+				     (max(position) - min(position))/1e6,
+				     length(position)/1e6,
+				     min(position)/1e6,
+				     max(position)/1e6,
+				     NA, NA)
+		colnames <- c("id", "chr", "state", "size", 
+			      "N", "start", "last", "prev", "next")
+##		breaks <- matrix(breaks, nrow=1)
+		colnames(breaks) <- colnames
+		return(breaks)
+	}
+	d <- diff(x)
+	if(sum(abs(d), na.rm=TRUE) < 1){
+		breaks <- data.frame(sampleNames,
+				     chromosome,
+				     unique(x),
+				     (max(position) - min(position))/1e6,
+				     length(position)/1e6,
+				     min(position)/1e6,
+				     max(position)/1e6,
+				     NA, NA)
+		colnames <- c("id", "chr", "state", "size", 
+			      "N", "start", "last", "prev", "next")
+		breaks <- matrix(breaks, nrow=1)
+		colnames(breaks) <- colnames
+		return(breaks)		    
+	}
+	index <- c(1, (2:N)[d != 0 & !is.na(d)])
+	index <- cbind(index[-length(index)], index[2:length(index)])
+	index[, 2] <- index[, 2] - 1
+	lastBreak <- index[nrow(index), 2]
+	index <- rbind(index, c(lastBreak+1, N))  
 
-            ##index is a matrix of indices in object where breaks occured.
-            ##Replace by physical position.
-            physical.positions <- matrix(position[as.vector(index)], nrow(index), ncol(index))
-            physical.positions <- physical.positions/1e6
-            colnames(physical.positions) <- c("start", "last")
-            size <- (physical.positions[, "last"] - physical.positions[, "start"])
-            N <- index[, 2] - index[, 1] + 1
-            physical.positions <- cbind(physical.positions, size, N)
-            colnames(physical.positions)[3:4] <- c("size", "N")
-            predictedState <- function(i, x, chromosome){
-              if(any(is.na(i))){
-                stop("missing values")
-              }
-              pred <- x[(i[1]:i[2])]
-              pred <- pred[!is.na(pred)]
-              pred <- unique(pred)
-              if(length(pred) > 1) {
-                stop("predictions not unique")
-              }
-              chrom <- chromosome[i[1]:i[2]]
-              chrom <- paste(unique(chrom), collapse=", ")
-              c(pred, chrom)
-            }
-            ##The vector of predicted states (integer)
-            ps <- t(apply(index, 1, predictedState, x, chromosome))
-            states <- states[as.numeric(ps[, 1])]
-            breaks <- data.frame(physical.positions)
-            breaks$state <- states
-            breaks$chrom <- ps[, 2]
-            ##breaks$id <- rep(sampleNames(object), nrow(breaks))
-
-            ##################################################
-            ##Find positions of adjacent SNPs
-            ##################################################
-            adjacentSnps <- function(x, position, chromosome, digits){
-              start <- as.numeric(x["start"])*1e6
-              last <- as.numeric(x["last"])*1e6
-              chrom <- x["chrom"]
-              if(any(position < start & chromosome == chrom)){
-                prevSnp <- max(position[position < start & chromosome == chrom])
-              } else prevSnp <- NA
-              if(any(position > last & chromosome == chrom)){                 
-                nextSnp <- min(position[position > last & chromosome == chrom])
-              } else nextSnp <- NA
-              adj <- c(prevSnp, nextSnp)/1e6
-              adj
-            }
-            adjacent <- t(apply(breaks, 1, adjacentSnps, position=position,
-                                chromosome=chromosome, digits=digits))
-            colnames(adjacent) <- c("prev", "next")
-            breaks <- cbind(breaks, adjacent)
-            breaks$id <- rep(sampleNames, nrow(breaks))
-            colnames(breaks) <- c("start", "last", "size", "N", "state", "chr", "prev", "next", "id")
-
-            ##Add columns for the name of the first SNP and the name of the last SNP
-            colnames <- c("id", "chr", "state", "size", "N", "start", "last", "prev", "next")
-            breaks <- breaks[, colnames]
-            breaks
-          }
+	##index is a matrix of indices in object where breaks occured.
+	##Replace by physical position.
+	physical.positions <- matrix(position[as.vector(index)], nrow(index), ncol(index))
+	physical.positions <- physical.positions/1e6
+	colnames(physical.positions) <- c("start", "last")
+	size <- (physical.positions[, "last"] - physical.positions[, "start"])
+	N <- index[, 2] - index[, 1] + 1
+	physical.positions <- cbind(physical.positions, size, N)
+	colnames(physical.positions)[3:4] <- c("size", "N")
+	predictedState <- function(i, x){
+		if(any(is.na(i))){
+			stop("missing values")
+		}
+		pred <- x[(i[1]:i[2])]
+		pred <- pred[!is.na(pred)]
+		pred <- unique(pred)
+		if(length(pred) > 1) {
+			stop("predictions not unique")
+		}
+		pred
+	}
+	##The vector of predicted states (integer)
+	ps <- t(apply(index, 1, predictedState, x))
+	states <- states[as.numeric(ps)]
+	breaks <- data.frame(physical.positions)
+	breaks$state <- states
+	breaks$chrom <- chromosome
+	##breaks$id <- rep(sampleNames(object), nrow(breaks))
+	
+	##---------------------------------------------------------------------------
+	##Find positions of adjacent SNPs
+	##---------------------------------------------------------------------------	
+	adjacentSnps <- function(x, position, chromosome, digits){
+		start <- as.numeric(x["start"])*1e6
+		last <- as.numeric(x["last"])*1e6
+		chrom <- x["chrom"]
+		if(any(position < start & chromosome == chrom)){
+			prevSnp <- max(position[position < start & chromosome == chrom])
+		} else prevSnp <- NA
+		if(any(position > last & chromosome == chrom)){                 
+			nextSnp <- min(position[position > last & chromosome == chrom])
+		} else nextSnp <- NA
+		if(!is.na(prevSnp)) prevSnp <- prevSnp/1e6
+		if(!is.na(nextSnp)) nextSnp <- nextSnp/1e6
+		adj <- c(prevSnp, nextSnp)
+		adj
+	}
+	adjacent <- t(apply(breaks, 1, adjacentSnps, position=position,
+			    chromosome=chromosome, digits=digits))
+	colnames(adjacent) <- c("prev", "next")
+	breaks <- cbind(breaks, adjacent)
+	breaks$id <- rep(sampleNames, nrow(breaks))
+	colnames(breaks) <- c("start", "last", "size", "N", "state", "chr", "prev", "next", "id")
+	##Add columns for the name of the first SNP and the name of the last SNP
+	colnames <- c("id", "chr", "state", "size", "N", "start", "last", "prev", "next")
+	breaks <- breaks[, colnames]
+	breaks
+}
 
 calculateCnSE <- function(object,
                           referenceSet,
                           epsilon=0.1){
-  if(missing(referenceSet)) stop("Require a referenceSet for estimating SNP-specific across sample variation in copy number estimates")
-  require(genefilter) || stop("genefilter not available")
-  is.autosome <- chromosome(object) %in% as.character(1:22) 
-  object <- object[is.autosome, ]  
-  referenceSet <- referenceSet[match(featureNames(object), featureNames(referenceSet)), ]
-  robustSD <- function(X){
-    diff(quantile(X, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2
-  }
-  within.sd <- apply(copyNumber(object), 2, robustSD)
 
-  across.sd <- apply(copyNumber(referenceSet), 1, robustSD)
-##  across.sd <- rowSds(copyNumber(referenceSet), na.rm=TRUE)
-  across.sd <- matrix(across.sd, nrow=nrow(object), ncol=ncol(object), byrow=FALSE)
-  ##scale across.sd by the median sd of the sample
-  median.across.sd <- median(across.sd)
-  std.across.sd <- across.sd/median.across.sd
-  SE <- within.sd*std.across.sd
-  SE[SE == 0] <- epsilon
-  SE
+	if(min(copyNumber(snpset), na.rm=TRUE) > 0){
+		print("Robust estimates of the standard error are on the log2 scale.")
+		print("Transforming copy number in object to log2 scale")
+		copyNumber(object) <- log2(copyNumber(object))
+	} else{
+		warning("Negative values in the copy number.  Assume that data in the copyNumber element of assayData has been suitably transformed and is approximately Gaussian")
+	}
+	if(!missing(referenceSet)){
+		if(min(copyNumber(referenceSet), na.rm=TRUE) > 0){
+			print("Transforming copy number in referenceSet to log2 scale")
+			copyNumber(referenceSet) <- log2(copyNumber(referenceSet))
+		} else{
+			warning("Negative values in the copy number.  Calculations assume that data in the copyNumber element of assayData has been suitably transformed and is approximately Gaussian")
+		}
+	}
+	if(missing(referenceSet)){
+		print("using object to compute across sample standard deviations...assumes reasonable sample size")
+		referenceSet <- object
+	}
+	require(genefilter) || stop("genefilter not available")
+	is.autosome <- chromosome(object) %in% as.character(1:22) 
+	object <- object[is.autosome, ]  
+	referenceSet <- referenceSet[match(featureNames(object), featureNames(referenceSet)), ]
+	robustSD <- function(X){
+		diff(quantile(X, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2 
+	}
+	within.sd <- apply(copyNumber(object), 2, robustSD)
+	across.sd <- apply(copyNumber(referenceSet), 1, robustSD)
+	##  across.sd <- rowSds(copyNumber(referenceSet), na.rm=TRUE)
+	across.sd <- matrix(across.sd, nrow=nrow(object), ncol=ncol(object), byrow=FALSE)
+	##scale across.sd by the median sd of the sample
+	median.across.sd <- median(across.sd)
+	std.across.sd <- across.sd/median.across.sd
+	SE <- within.sd*std.across.sd
+	SE[SE == 0] <- epsilon
+	rownames(SE) <- featureNames(object)
+	SE
 }
 
 ##Code this in C
@@ -292,6 +335,78 @@ viterbi <- function(beta, pi, tau, states, arm, tau.scale){
 	}
 	qhat    
 }
+
+##How often is a SNP altered across samples
+makeTable <- function(object, state, by, unit=1000, digits=3){
+	if(missing(state)) stop("must specify state")
+	if(missing(by)) by <- "chr"
+	breaks <- breakpoints(object)
+	X <- breaks[breaks[, "state"] == state, ]
+	##split by chromosome
+	X <- split(X, X[, by])
+	##Frequency of alterations of a specific type per chromosome
+	if(length(X) == 1){
+		freq <- nrow(X[[1]])
+	} else{
+		freq <- sapply(X, nrow)
+	}
+	##Length of alterations
+	med.L <- sapply(X, function(x) median(as.numeric(x[, "size"])*unit, na.rm=TRUE))
+	avg.L <- sapply(X, function(x) mean(as.numeric(x[, "size"])*unit, na.rm=TRUE))
+	sd.L <- sapply(X, function(x) sd(as.numeric(x[, "size"])*unit, na.rm=TRUE))
+	##Number of SNPs per alteration
+	med.N <- sapply(X, function(x) median(as.numeric(x[, "N"]), na.rm=TRUE))
+	avg.N <- sapply(X, function(x) mean(as.numeric(x[, "N"]), na.rm=TRUE))
+	sd.N <- sapply(X, function(x) sd(as.numeric(x[, "N"]), na.rm=TRUE))	
+	stats <- as.data.frame(cbind(freq, med.L, avg.L, sd.L, med.N, avg.N, sd.N))
+	colnames(stats) <- c("Freq", "med(length)", "avg(length)", 
+			     "sd(length)", "med(n.snp)", "avg(n.snp)", 
+			     "sd(n.snp)")
+	stats[, c(3, 4, 6, 7)] <- round(stats[, c(3, 4, 6, 7)], digits)
+	if("X" %in% rownames(stats)){
+		rownames(stats)["X"] <- 23
+	}
+	stats <- stats[order(as.numeric(rownames(stats))), ]
+	
+	##Marginal stats
+	X <- breaks[breaks[, "state"] == state, ]
+	if(nrow(stats) <= 1){
+		return(stats)
+	}
+	freq <- c(median(stats[, "Freq"]),
+		  mean(stats[, "Freq"]),
+		  sd(stats[, "Freq"]))
+	med.L <- c(median(stats[, "med(length)"]),
+		   mean(stats[, "med(length)"]),
+		   sd(stats[, "med(length)"]))
+	avg.L <- c(median(stats[, "avg(length)"]),
+		   mean(stats[, "avg(length)"]),
+		   sd(stats[, "avg(length)"]))
+	avg.L <- round(avg.L, digits)
+	sd.L <- c(median(stats[, "sd(length)"]),
+		   mean(stats[, "sd(length)"]),
+		   sd(stats[, "sd(length)"]))
+	sd.L <- round(sd.L, digits)
+	med.N <- c(median(stats[, "med(n.snp)"]),
+		   mean(stats[, "med(n.snp)"]),
+		   sd(stats[, "med(n.snp)"]))		
+	avg.N <- c(median(stats[, "avg(n.snp)"]),
+		   mean(stats[, "avg(n.snp)"]),
+		   sd(stats[, "avg(n.snp)"]))
+	avg.N <- round(avg.N, digits)
+	sd.N <- c(median(stats[, "sd(n.snp)"]),
+		   mean(stats[, "sd(n.snp)"]),
+		   sd(stats[, "sd(n.snp)"]))
+	sd.N <- round(sd.N, digits)
+	overall <- cbind(freq, med.L, avg.L, sd.L, med.N, avg.N, sd.N)
+	rownames(overall) <- c("median", "avg", "sd")
+	stats <- rbind(stats, overall)
+	stats
+}
+
+
+
+
 
 
 

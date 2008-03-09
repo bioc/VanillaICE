@@ -7,7 +7,8 @@ exportMethods(
               arm,
               Beta,
               breakpoints,
-##              calculateBreakpoints,
+	      "breakpoints<-",
+              calculateBreakpoints,
               calculateTransitionProbability,
               cn.ICE, "cn.ICE<-",
               gt.ICE, "gt.ICE<-",
@@ -32,19 +33,22 @@ exportMethods(
               plotSnp,
               position,
               predictions,
+	      "predictions<-",
               sampleNames,
               SnpClass,
               states,
               "states<-",
               show,
+	      summary,
               tau,
               tau.scale)
 
 export(addFeatureData,
-       calculateBreakpoints,
        calculateDistance,
        calculateCnSE,
 ##       .getCallEmission,
+       .calculatebreaks,
+       makeTable,
        plotPredictions,
        viterbi)
 

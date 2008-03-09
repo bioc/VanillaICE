@@ -30,12 +30,16 @@ setClass("HmmParameter", representation(hmmOptions="HmmOptions",
 ##         representation(states="character",
 ##                        breakpoints="list",
 ##                        SnpClass="character"))
-
-setClass("HmmPredict", representation(states="character",
-                                      predictions="matrix",
-                                      breakpoints="list",
-                                      SnpClass="character",
-                                      featureData="AnnotatedDataFrame"))
+setClass("HmmPredict", contains="SnpLevelSet",
+	 representation(states="character",
+			SnpClass="character",
+			breakpoints="data.frame"))
+			 
+##setClass("HmmPredict", representation(states="character",
+##                                      predictions="matrix",
+##                                      breakpoints="list",
+##                                      SnpClass="character",
+##                                      featureData="AnnotatedDataFrame"))
 
 ##Classes for graphical parameters
 setClass("ParHSet", contains="ParESet")

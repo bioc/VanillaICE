@@ -1,29 +1,26 @@
 \name{calculateBreakpoints}
 \alias{calculateBreakpoints}
-\title{Calculating breakpoints in the hidden states}
+\title{ Calculate breakpoints for altered states from the prediction
+  matrix}
 \description{
-  Computes indices for the breakpoints from the matrix of predicted
-  states.
+ Calculate breakpoints for altered states from the prediction matrix in
+ an object of class \code{HmmPredict}
 }
 \usage{
-calculateBreakpoints(x, position, chromosome, states, digits = 2, sampleNames)
+calculateBreakpoints(object, ...)
 }
 \arguments{
-  \item{x}{vector of predictions}
-  \item{position}{Vector of physical positions}
-  \item{chromosome}{ Vector of chromosomes (character string)}
-  \item{states}{Character string:  the hidden states}
-  \item{digits}{ Whether to round the results (e.g., size of altered region)}
-  \item{sampleNames}{ Names of the samples}
+  \item{object}{Object of class \code{HmmPredict}}
+  \item{\dots}{ Not implemented}
 }
 \details{
-  None yet
+  Returns a matrix with information on size of region (Mb), predicted state,
+  number of SNPs in region, chromosome number, and position.
 }
 \value{
-  List of breakpoint matrices.  Each matrix in the list corresponds to
-  the matrix of breakpoints identified in a single sample.
+  A matrix
 }
 \author{R. Scharpf}
-\seealso{\code{\link{HmmPredict-class}}, \code{\link{hmm}}}
+\seealso{\code{\link{summary}}}
 \keyword{manip}
-
+\keyword{methods}

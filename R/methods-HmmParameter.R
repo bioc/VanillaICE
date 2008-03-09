@@ -1,42 +1,47 @@
 setMethod("hmm", "HmmParameter",
-          function(object, snpset, sn, ...){
-            arm <- paste(chromosome(object), arm(object), sep="")
+          function(object, snpset, sn, verbose=FALSE, ...){
+		  if("copyNumber" %in% assayDataElementNames(snpset)){		  
+			  if(min(copyNumber(snpset), na.rm=TRUE) > 0){
+				  print("Transforming copy number to log2 scale.")
+				  copyNumber(snpset) <- log2(copyNumber(snpset))
+			  } else{
+				  print("Negative values in the copy number.  Assume that copy number has been suitably transformed and is approximately Gaussian")
+			  }
+		  }
+		  
+		  arm <- paste(chromosome(object), arm(object), sep="")
+		  beta <- Beta(object)
+		  predictions <- matrix(NA, nrow=nrow(snpset), ncol=(dim(beta)[3]))
+		  for(i in 1:(dim(beta)[3])){
+			  if(verbose){
+				  if(i == 1){
+					  print(paste("Fitting HMM to sample", i))
+				  } else {cat(i, "\n")}
+			  }
+			  predictions[, i] <- viterbi(beta[, , i],
+						      pi=pi(object),
+						      tau=tau(object),
+						      states=states(object),
+						      arm=arm,
+						      tau.scale=tau.scale(object))
+		  }
+		  rownames(predictions) <- featureNames(object)
+		  if(missing(sn)) sn <- sampleNames(snpset)
+		  colnames(predictions) <- sn
 
-	    ##beta <- data.frame(Beta(object))
-            ##beta is an array
-	    
-            beta <- Beta(object)
-            predictions <- matrix(NA, nrow=nrow(snpset), ncol=(dim(beta)[3]))
-            for(i in 1:(dim(beta)[3])){
-              predictions[, i] <- viterbi(beta[, , i],
-                                          pi=pi(object),
-                                          tau=tau(object),
-                                          states=states(object),
-                                          arm=arm,
-                                          tau.scale=tau.scale(object))
-##              predictions <- apply(beta, 2, viterbi, pi=pi(object),
-##                                   tau=tau(object), states=states(object),
-##                                   arm=arm)
-            }
-            rownames(predictions) <- featureNames(object)
-            if(missing(sn)) sn <- sampleNames(snpset)
-            colnames(predictions) <- sn
-
-            ##  snpset <- snpset[!(is.na(chromosome(snpset))), ]
-            snpset <- snpset[match(featureNames(object), featureNames(snpset)), ]
-            breaks <- mapply(calculateBreakpoints, x=data.frame(predictions),
-                             sampleNames=as.list(sn),
-                             MoreArgs=list(position=position(snpset),
-                               chromosome=chromosome(snpset),
-                               states=states(object)),  ##for inheritance purposes
-                             SIMPLIFY=FALSE)
-            hmmOut <- new("HmmPredict",
-                          states=states(object),
-                          predictions=predictions,
-                          breakpoints=breaks,
-                          SnpClass=SnpClass(object),
-                          featureData=featureData(object))
+		  hmmOut <- new("HmmPredict",
+				states=states(object),
+				predictions=predictions,
+				SnpClass=SnpClass(object),
+				featureData=featureData(object),
+				experimentData=experimentData(snpset),
+				phenoData=phenoData(snpset),
+				annotation=annotation(snpset))
+		  breakpoints(hmmOut) <- calculateBreakpoints(hmmOut)
+		  return(hmmOut)
           })
+
+
 
 setMethod("hmmOptions", "HmmParameter", function(object) object@hmmOptions)
 setReplaceMethod("hmmOptions", c("HmmParameter", "HmmOptions"),
@@ -46,7 +51,7 @@ setReplaceMethod("hmmOptions", c("HmmParameter", "HmmOptions"),
                  })
 setMethod("featureData", "HmmParameter", function(object) object@featureData)
 setMethod("featureNames", "HmmParameter", function(object) featureNames(featureData(object)))
-##setMethod("nrow", "HmmParameter", function(x) length(featureNames(x)))
+setMethod("nrow", "HmmParameter", function(x) length(featureNames(x)))
 setMethod("fData", "HmmParameter", function(object) pData(featureData(object)))
 setMethod("sampleNames", "HmmParameter", function(object) colnames(Beta(object)))
 setMethod("chromosome", "HmmParameter", function(object) featureData(object)$chromosome)
@@ -78,12 +83,6 @@ setMethod("[", "HmmParameter",
                      "' to access phenoData variables")
               return(x)
             }
-##            if(length(j) > 1 | missing(j)){
-##              stop("must specify 1 column (sample) to subset")
-##            }
-##            if(length(i) > 1 | missing(i)){
-##              stop("must specify 1 SNP to subset")
-##            }
             ##number of rows (SNPs)
             R <- length(featureNames(x))
             ##number of states 
@@ -92,28 +91,18 @@ setMethod("[", "HmmParameter",
             C <- ncol(Beta(x))
             if(!missing(i) & !missing(j)){
               x@beta <- Beta(x)[i, , j, drop=FALSE]
-##              beta <- matrix(beta, nrow=R, ncol=S)
-##              beta <- beta[i, , drop=FALSE]
-##              colnames(beta) <- states(x)
-##              featureData <- featureData(x)[i, j]              
-##              rownames(beta) <- featureNames(featureData)
-
-              
-#              transition <- list()
-#              states <- states(x)
-#              transition[[1]] <- matrix(tau(x)[(i-1), ], nrow=S, ncol=S)
-#              colnames(transition[[1]]) <- paste(states, "t+1", sep="_")
-#              rownames(transition[[1]]) <- paste(states, "t", sep="_")
-#              transition[[2]] <- matrix(tau(x)[(i-1), ], nrow=S, ncol=S)
-#              colnames(transition[[2]]) <- paste(states, "t+1", sep="_")
-#              rownames(transition[[2]]) <- paste(states, "t", sep="_")
-#              names(transition) <- rownames(tau(x))[(i-1):i]
               x@featureData <- featureData(x)[i, ]
-              x@tau <- tau(x)[i[-length(i)]]
+	      idx <- sort(unique(c(i-1, i, i+1)))
+	      idx <- idx[idx != 0]
+	      idx <- idx[idx != R]
+	      x@tau <- tau(x)[idx]
             }
             if(!missing(i) & missing(j)){
               x@beta <- Beta(x)[i, , , drop=FALSE]
-              x@tau <- tau(x)[i[-length(i)]]
+	      idx <- sort(unique(c(i-1, i, i+1)))
+	      idx <- idx[idx != 0]
+	      idx <- idx[idx != R]
+	      x@tau <- tau(x)[idx]
               x@featureData <- featureData(x)[i, ]
             }
             x

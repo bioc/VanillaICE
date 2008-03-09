@@ -5,6 +5,10 @@
 \alias{[,HmmPredict-method}
 \alias{breakpoints}
 \alias{breakpoints,HmmPredict-method}
+\alias{breakpoints<-}
+\alias{breakpoints<-,HmmPredict-method}
+\alias{breakpoints<-,HmmPredict,ANY-method}
+\alias{calculateBreakpoints,HmmPredict-method}
 \alias{chromosome,chromosome-method}
 \alias{chromosome,HmmPredict-method}
 \alias{fData,HmmPredict-method}
@@ -14,10 +18,13 @@
 \alias{initialize,HmmPredict-method}
 \alias{position,HmmPredict-method}
 \alias{predictions}
+\alias{predictions<-}
 \alias{predictions,HmmPredict-method}
+\alias{predictions<-,HmmPredict,matrix-method}
 \alias{sampleNames,HmmPredict-method}
 \alias{show,HmmPredict-method}
 \alias{states,HmmPredict-method}
+\alias{summary,HmmPredict-method}
 \title{Class for the hidden Markov model results}
 \description{Contains the predictions for the hidden states and a list
   of breakpoint matrices.  Each element in the list corresponds to the
@@ -45,6 +52,8 @@ Objects can be created by calls of the form \code{new("HmmPredict", states, pred
     \item{[}{\code{signature(x = "HmmPredict")}: Subsetting the predictions}
     \item{breakpoints}{\code{signature(object = "HmmPredict")}: Accessor
       for the list of breakpoints}
+    \item{breakpoints<-}{\code{signature(object = "HmmPredict", value = "data.frame")}:
+      Replacement method for breakpoints}    
     \item{fData}{\code{signature(object="HmmPredict")}: Accessor for the
       data frame of all feature-level (SNP-level) annotation (e.g., physical
       position)}
@@ -57,7 +66,9 @@ Objects can be created by calls of the form \code{new("HmmPredict", states, pred
     \item{position}{\code{signature(object = "HmmPredict")}: Accessor
     for the physical position of SNPs in the object \code{HmmPredict}}
     \item{predictions}{\code{signature(object = "HmmPredict")}: Accessor
-    for the predictions}
+      for the predictions}
+    \item{predictions<-}{\code{signature(object = "HmmPredict",
+	value="matrix")}: Replacement method for predictions}    
     \item{sampleNames}{\code{signature(object = "HmmPredict")}: Sample names}
     \item{show}{\code{signature(object = "HmmPredict")}}
     \item{states}{\code{signature(object = "HmmPredict")}: Accessor for

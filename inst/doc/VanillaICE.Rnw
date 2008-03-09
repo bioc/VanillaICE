@@ -36,7 +36,7 @@
 \begin{document}
 \title{\ice{}: Hidden Markov Models for the Assessment of Chromosomal
   Alterations using High-throughput SNP Arrays}
-\author{Robert Scharpf and Ingo Ruczinski}
+\author{Robert Scharpf}
 \maketitle
 
 <<setup, echo=FALSE, results=hide>>=
@@ -107,15 +107,10 @@ plotSnp(object=gp, snpset=chromosome1)
 @ 
 
 The HMM assumes that the copy number estimates, conditional on the
-hidden state, are approximately Gaussian.  A log transformation is
-often helpful:
-
-<<logTransform>>=
-copyNumber(chromosome1) <- log2(copyNumber(chromosome1))
-@ 
-
-See the documentation pages in the R package \ice{} for more
-information about the \Robject{chromosome1} example dataset.
+hidden state, are approximately Gaussian.  A log transformation will
+be performed automatically provided that the copy number estimates are
+all positive.  See the documentation pages in the R package \ice{} for
+more information about the \Robject{chromosome1} example dataset.
 Parameters for fitting the HMM are obtained by generating an instance
 of the class \Robject{HmmParameter}.  By default, the HMM assumes the
 hidden states are deletion (D), normal (N), LOH (L), and amplification
@@ -123,8 +118,10 @@ hidden states are deletion (D), normal (N), LOH (L), and amplification
 instance of the class is created by the method new:
 
 <<hmmParameters>>=
-params <- new("HmmParameter", chromosome1, states=c("D", "N", "L", "A"),
-              cn.location=log2(c(1, 2, 2, 3)))
+params <- new("HmmParameter", 
+	      chromosome1, 
+	      states=c("D", "N", "L", "A"),
+              cn.location=c(1, 2, 2, 3))
 class(params)
 @ 
 
@@ -133,7 +130,21 @@ We may then fit the HMM by
 <<fit>>=
 fit <- hmm(params, chromosome1)
 fit
+tmp <- calculateBreakpoints(fit)
+breakpoints(fit)
 @ 
+
+
+FIXME: prev and next are NA in the breakpoints matrix.
+
+Summary statistics for the breakpoints (more useful when multiple
+chromosomes and samples are in the \Robject{fit} object)
+
+<<summary>>=
+summary(fit)
+@ 
+
+
 
 See \cite{Scharpf2007a} for a more complete description of the
 simulated dataset and the features detected by this HMM.  We may plot
@@ -153,19 +164,26 @@ plotSnp(object=gp, snpset=chromosome1, hmmPredict=fit)
 In this section, we illustrate how one may fit an HMM that
 incorporates confidence esimates of the SNP-level summaries for
 genotype calls and copy number.  Confidence scores (inverse of
-standard errors) are available for this object (see Section \ref{sec:confidenceScores} for
-how confidence scores were derived).  This information is incorporated
-into the HMM emission probabilities in the following way:
+standard errors) are available for this object (see Section
+\ref{sec:confidenceScores} for how confidence scores were derived).
+This information is incorporated into the HMM emission probabilities
+in the following way:
 
 <<params>>=
-params.ice <- new("HmmParameter", chromosome1, states=c("D", "N", "L", "A"), cn.ICE=TRUE)
+params.ice <- new("HmmParameter", 
+		  chromosome1, 
+		  states=c("D", "N", "L", "A"), 
+		  cn.ICE=TRUE)
 @ 
 
 We may also incorporate the confidence scores for the genotype calls:
 
 <<params2, eval=FALSE>>=
-params.ice <- new("HmmParameter", chromosome1, states=c("D", "N", "L", "A"), 
-                  cn.ICE=TRUE, gt.ICE=TRUE)
+params.ice <- new("HmmParameter", 
+		  chromosome1, 
+		  states=c("D", "N", "L", "A"), 
+                  cn.ICE=TRUE, 
+		  gt.ICE=TRUE)
 @ 
 
 We fit the HMM in the usual way
@@ -285,6 +303,7 @@ is obtained by
 params
 @ 
 
+\paragraph{Emission probabilities.}
 The emission probabilities are stored as an array in the
 \Robject{params} object.  The emission probability array has dimension
 R $\times$ S $\times$ C, where $S$ is the number of hidden states, $R$
@@ -298,37 +317,37 @@ tmp <- params[5, 1]
 exp(Beta(tmp))
 @ 
 
-FIXME:
-Note, currently the 
-
-<<eval=FALSE>>=
-lapply(tmp[[1]]$tau, function(x) exp(round(x, 4)))
-@ 
 
 
+\paragraph{Transition probabilities.}
 The probability of remaining in the same state, $P(S_t = S_{t+1})$
 (the diagonal of the transition probability matrix) is a function of
-the distance between SNPs.  The probability of transitioning to some
-other state is $\epsilon$, where $\epsilon = 1 - P(S_t = S_{t+1})$.
-The $\epsilon$ is split among $S-1$ states.  By default, the
-probability of transitioning from an altered state back to the normal
-state is twice as likely as the probability of transitioning between
-two altered states.  The weights for $\epsilon$ are provided in the
-\texttt{tau.scale} matrix in the R object \Robject{params}
+the distance (d) between SNPs: $e^{-2d(100 * 1e6)}$.  This value is
+stored in the slot \Robject{tau} of the \Robject{params} object.  The
+probability of leaving a state is $\epsilon$, where $\epsilon = 1 -
+P(S_t = S_{t+1})$.  The $\epsilon$ is split among $S-1$ states.  By
+default, the probability of transitioning from an altered state back
+to the normal state is twice as likely as the probability of
+transitioning between two altered states.  The weights for $\epsilon$
+are provided in the \texttt{tau.scale} matrix in the R object
+\Robject{params}
 
 <<tau.scale>>=
 params@tau.scale
 @
 
 \noindent and can be adjusted by the \texttt{SCALE} argument when
-creating an instance of the class.  For instance, here we make the
-probability of transitioning from an altered state to a normal state
-10 times as likely as the probability of transitioning between two
-altered states:
+creating an instance of the class.  For illustration, one could make
+the probability of transitioning from an altered state to a normal
+state 10 times as likely as the probability of transitioning between
+two altered states by the following commmand:
 
 <<>>=
-params <- new("HmmParameter", chromosome1, states=c("D", "N", "L", "A"), 
-              cn.location=log2(c(1, 2, 2, 3)), SCALE=10)
+params <- new("HmmParameter", 
+	      chromosome1, 
+	      states=c("D", "N", "L", "A"), 
+              cn.location=c(1, 2, 2, 3), 
+	      SCALE=10)  ##10 times as likely to go back to normal
 @ 
 
 To retrieve the copy number and genotype for the 5th SNP, one should
@@ -349,12 +368,10 @@ the different states.
 fit
 @ 
 
-The breakpoints are provided as a list, whereby each element in the
-list corresponds to a sample:
+The breakpoints are provided as a \Robject{data.frame}:
 
 <<breaks>>=
 breaks <- breakpoints(fit)
-breaks <- breaks[[1]]
 breaks <- breaks[breaks[, "state"] != "N", ]
 @ 
 
@@ -362,42 +379,22 @@ One may order the altered states from biggest to smallest for each
 chromosome as follows:
 
 <<orderBreaks>>=
-breaks <- breaks[order(breaks[, "chr"], breaks[, "size"], decreasing=TRUE), ]
+breaks[order(breaks[, "chr"], breaks[, "size"], decreasing=TRUE), ]
 @ 
 
-%\section{Integrating Confidence Estimates (ICE)}  %Describe how ICE works.  What is needed to fit an HMM with ICE
+The \Robject{summary} method returns a list where each element in the
+list provides statistics for an altered states.  For each chromosome,
+the mean, median, and standard deviation of the size of the features
+and number of SNPs involved are reported. For instance, in this HMM
+the altered states were loss of heterozygosity (L), amplification of
+copy number (A), and deletion of copy number (D). Because we only have
+one sample and one chromosome in the \Robject{fit} example, the
+\Robject{summary} method is not that useful:
 
+<<summary>>=
+summary(fit)
+@ 
 
-
-
-%The results from fitting the ICE HMM to the \Robject{chromosome1} data
-%have been stored in the assay data element \Robject{predictions} of
-%\Robject{chromosome1}.  To see a table of the predicted underlying
-%states (excluding normal segments) sorted by size (MB):
-%
-%<<predictions>>=
-%breakpoints(chromosome1)
-%@ 
-%
-%To reproduce these results, one must install the Experiment Data
-%package \Rpackage{callsConfidence} and run the command:
-%
-%<<setIce, eval=FALSE>>=
-%library(callsConfidence)
-%copyNumberIce(chromosome1) <- TRUE
-%callsIce(chromosome1) <- TRUE
-%chromosome1 <- hmm(chromosome1) 
-%@ 
-%
-%
-%<<graphparIce>>=
-%graph.par <- getPar(chromosome1)
-%@ 
-%
-%<<ice, fig=TRUE, include=TRUE>>=
-%plotSnp(graph.par, chromosome1)
-%@ 
-%
 \section{HMMs for different classes of data}
 
 \subsection{Copy number}
@@ -415,11 +412,11 @@ HMM.
 <<copyNumberHmm>>=
 chr1.cn <- as(chromosome1, "SnpCopyNumberSet")
 params.cn <- new("HmmParameter", snpset=chr1.cn,
-                 cn.location=log2(1:3), states=c("D", "N", "A"))
+                 cn.location=1:3, 
+		 states=c("D", "N", "A"))
 fit.cn <- hmm(params.cn, chr1.cn)
 breakpoints(fit.cn)
 graph.par <- new("ParHmmSnpCopyNumberSet")
-##graph.par <- getPar(graph.par, chr1.cn, fit.cn)
 graph.par <- getPar(graph.par, chr1.cn)
 @ 
 
@@ -445,7 +442,8 @@ object of class \Robject{HmmSnpCallSet} and refit the HMM.
 
 <<chr1Calls>>=
 chr1.calls <- as(chromosome1, "SnpCallSet")
-params.calls <- new("HmmParameter", snpset=chr1.calls,
+params.calls <- new("HmmParameter", 
+		    snpset=chr1.calls,
                     states=c("L", "N"))
 fit.calls <- hmm(params.calls, chr1.calls)
 breakpoints(fit.calls)
