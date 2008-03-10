@@ -130,7 +130,6 @@ We may then fit the HMM by
 <<fit>>=
 fit <- hmm(params, chromosome1)
 fit
-tmp <- calculateBreakpoints(fit)
 breakpoints(fit)
 @ 
 
@@ -156,6 +155,7 @@ idx <- match(fn, featureNames(chromosome1))
 chromosome1 <- chromosome1[idx, ]
 gp <- new("ParHmmSnpSet")
 gp <- getPar(gp, snpset=chromosome1)
+gp$abline.v <- TRUE
 plotSnp(object=gp, snpset=chromosome1, hmmPredict=fit) 
 @ 
 
@@ -418,6 +418,7 @@ fit.cn <- hmm(params.cn, chr1.cn)
 breakpoints(fit.cn)
 graph.par <- new("ParHmmSnpCopyNumberSet")
 graph.par <- getPar(graph.par, chr1.cn)
+graph.par$abline.v <- TRUE
 @ 
 
 <<copyNumberFigure, fig=TRUE, include=TRUE>>=

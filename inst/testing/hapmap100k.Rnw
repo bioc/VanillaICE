@@ -453,7 +453,7 @@ We instantiate an object of class \Robject{HmmParameter}, first
 providing a standard order for the chromosomes and ordering the SNPs
 by physical position within each chromosome:
 
-<<echo=FALSE>>=
+<<echo=FALSE, eval=TRUE>>=
 load("~/projects/sandbox/presentations/2008/aha/snpset.rda")
 @ 
 
@@ -495,8 +495,8 @@ system.time(fit.hapmap <- hmm(params, snpset))
 breakpoints(fit.hapmap) <- calculateBreakpoints(fit.hapmap)
 @ 
 
-<<echo=FALSE>>=
-save(fit.hapmap, file="~/test/VanillaICE/inst/testing/fit.hapmap100k.rda", compress=TRUE)
+<<echo=FALSE, eval=TRUE>>=
+save(fit.hapmap, file="~/madman/Rpacks/VanillaICE/inst/testing/fit.hapmap100k.rda", compress=TRUE)
 @ 
 
 <<echo=FALSE, eval=FALSE>>=
@@ -509,7 +509,7 @@ if(!identical(featureNames(snpset), featureNames(fit.hapmap))){
 @ 
 
 Summary statistics for the breakpoints by chromosome
-<<summarizeBreaks,eval=TRUE>>=
+<<summarizeBreaks,eval=FALSE>>=
 tab <- summary(fit.hapmap)
 tab[[1]]
 @ 
@@ -518,7 +518,7 @@ tab[[1]]
 
 Transform the prediction matrix to 1's (altered) and 0's (normal)
 
-<<eval=TRUE>>=
+<<eval=FALSE>>=
 altered <- predictions(fit.hapmap)
 altered[altered == 3] <- 0
 altered[altered != 0] <- 1
@@ -530,7 +530,7 @@ x <- 1:N
 
 Here we plot the proportion of SNPs in an altered state for each sample.
 
-<<pSnp, fig=TRUE, eval=TRUE>>=
+<<pSnp, fig=TRUE, eval=FALSE>>=
 par(las=1)
 plot(c(x, rev(x)), c(rev(p), rep(0, N)), 
      col="grey70", type="l", xaxt="n", xlab="Samples", bty="o", 
@@ -543,14 +543,14 @@ polygon(c(x, rev(x)),
 Alternatively, we may calculate the number of samples for which each
 SNP is in an altered state 
 
-<<eval=TRUE>>=
+<<eval=FALSE>>=
 p <- rowSums(altered)
 N <- length(p)
 x <- 1:N
 @ 
 
 Plotting methods at this level could stand improvement
-<<pSample, fig=TRUE,eval=TRUE>>=
+<<pSample, fig=TRUE,eval=FALSE>>=
 par(las=1)
 plot(c(x, rev(x)), c(rev(p), rep(0, N)), 
      col="grey70", type="l", #xaxt="n",
@@ -562,7 +562,7 @@ polygon(c(x, rev(x)),
 @ 
 
 
-<<echo=FALSE>>=
+<<echo=FALSE,eval=FALSE>>=
 ##Same as previous, but by chromosome and use physical position for x-axis
 p.chr <- split(p, chromosome(fit.hapmap))
 x <- split(position(fit.hapmap)/1e6, chromosome(fit.hapmap))

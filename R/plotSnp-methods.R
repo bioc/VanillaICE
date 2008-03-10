@@ -2,10 +2,12 @@ setMethod("plotSnp", c("ParHSet", "SnpLevelSet"), ##"hSet",
           function(object, snpset, hmmPredict, ...){
             old.par <- par(no.readonly=TRUE)
             on.exit(par(old.par))
-	    if(length(sampleNames(snpset)) == 1){
-		    v <- breakpoints(hmmPredict)[, c("start", "last")]*1e6
-		    v <- v[v != min(v) & v != max(v)]
-		    object$abline.v <- v
+	    if(!is.null(object$abline.v)){
+		    if(length(sampleNames(snpset)) == 1){
+			    v <- breakpoints(hmmPredict)[, c("start", "last")]*1e6
+			    v <- v[v != min(v) & v != max(v)]
+			    object$abline.v <- v
+		    }
 	    }
             callNextMethod(object, snpset)
             predictions <- data.frame(predictions(hmmPredict))
@@ -91,6 +93,7 @@ plotPredictions <- function(predictions,
 		  predict <- predictions[position >= start & position <= last & chromosome == x["chr"]]
 		  predict <- predict[!is.na(predict)]
 		  if(length(unique(predict)) > 1) {
+			  browser()
 			  stop("predictions not unique")
 		  }
 		  col <- col[unique(predict)]

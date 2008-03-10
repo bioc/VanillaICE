@@ -23,17 +23,23 @@ setReplaceMethod("predictions", signature(object="HmmPredict", value="matrix"),
 
 setMethod("[", "HmmPredict",
           function(x, i, j, ..., drop = FALSE){
-		  object <- callNextMethod()
+		  ##subset the features, but not the samples
+		  x <- callNextMethod(x=x, i=i)
 		  if(!missing(i) && !missing(j)){
-			  chr <- unique(chromosome(object))
-			  f <- function(x, chr) x[x$chr %in% chr, ]
-			  id <- sampleNames(object)[j]
-			  breakpoints(object) <- breakpoints(object)[breakpoints(object)[, "id"] %in% id, drop=FALSE]
+			  ##What chromosomes remain?
+			  chr <- unique(chromosome(x))
+			  ##Keep the breakpoints in the above chromosomes
+			  breakpoints(x) <- breakpoints(x)[breakpoints(x)$chr %in% chr, , drop=FALSE]
+##			  f <- function(x, chr) x[x$chr %in% chr, ]
+			  id <- sampleNames(x)[j]
+			  breakpoints(x) <- breakpoints(x)[breakpoints(x)$id %in% id, , drop=FALSE]
 		  }            
 		  if(missing(i) && !missing(j)){
-			  id <- sampleNames(object)[j]
-			  breakpoints(object) <- breakpoints(object)[breakpoints(object)[, "id"] %in% id]			  
+			  id <- sampleNames(x)[j]
+			  breakpoints(x) <- breakpoints(x)[breakpoints(x)$id %in% id, , drop=FALSE]			  
 		  }
+		  ##Now subset the i as per use
+		  object <- callNextMethod(x, j=j)		  
 		  object
           })
 
