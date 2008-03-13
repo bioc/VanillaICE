@@ -121,7 +121,8 @@ instance of the class is created by the method new:
 params <- new("HmmParameter", 
 	      chromosome1, 
 	      states=c("D", "N", "L", "A"),
-              cn.location=c(1, 2, 2, 3))
+              cn.location=c(1, 2, 2, 3),
+	      gte.state=c(0.99, 0.7, 0.99, 0.7))
 class(params)
 @ 
 
@@ -133,29 +134,25 @@ fit
 breakpoints(fit)
 @ 
 
-
-FIXME: prev and next are NA in the breakpoints matrix.
-
-Summary statistics for the breakpoints (more useful when multiple
-chromosomes and samples are in the \Robject{fit} object)
+Summary statistics for the breakpoints (more useful when multiple chromosomes and samples are in the \Robject{fit} object)
 
 <<summary>>=
 summary(fit)
 @ 
 
 
-
-See \cite{Scharpf2007a} for a more complete description of the
-simulated dataset and the features detected by this HMM.  We may plot
-the data along with the predictions as follows:
+See \cite{Scharpf2007a} for a more complete description of the simulated dataset and the features detected by this HMM.  We may plot the data along with the predictions as follows:
 
 <<vanillaPlot,fig=TRUE,width=8,height=5>>=
-fn <- featureNames(params)
-idx <- match(fn, featureNames(chromosome1))
-chromosome1 <- chromosome1[idx, ]
-gp <- new("ParHmmSnpSet")
+if(!identical(featureNames(fit), featureNames(chromosome1))){
+	fn <- featureNames(params)
+	idx <- match(fn, featureNames(chromosome1))
+	chromosome1 <- chromosome1[idx, ]
+}
+##source("~/madman/Rpacks/SNPchip/R/plotSnp-methods.R")
+gp <- new("ParSnpSet")
 gp <- getPar(gp, snpset=chromosome1)
-gp$abline.v <- TRUE
+gp$abline.v <- TRUE ##plots vertical dashed lines
 plotSnp(object=gp, snpset=chromosome1, hmmPredict=fit) 
 @ 
 
@@ -173,7 +170,9 @@ in the following way:
 params.ice <- new("HmmParameter", 
 		  chromosome1, 
 		  states=c("D", "N", "L", "A"), 
-		  cn.ICE=TRUE)
+		  cn.ICE=TRUE,
+		  gte.state=c(0.99, 0.75, 0.99, 0.75))
+fit.ice <- hmm(params.ice, chromosome1)
 @ 
 
 We may also incorporate the confidence scores for the genotype calls:
@@ -183,26 +182,25 @@ params.ice <- new("HmmParameter",
 		  chromosome1, 
 		  states=c("D", "N", "L", "A"), 
                   cn.ICE=TRUE, 
-		  gt.ICE=TRUE)
+		  gt.ICE=TRUE,
+		  gte.state=c(0.99, 0.75, 0.99, 0.75))
 @ 
 
-We fit the HMM in the usual way
-
-<<fitIce>>=
-fit.ice <- hmm(params.ice, chromosome1)
-@ 
-
-and plot the results using the same graphical parameters as above:
 
 <<icePlot, fig=TRUE, width=8, height=5>>=
-plotSnp(object=gp, snpset=chromosome1, hmmPredict=fit.ice) 
+gp <- new("ParSnpSet")
+gp$abline.v <- NULL
+gp$cytoband.side <- 3; gp$heights <- rev(gp$heights)
+gp <- getPar(gp, chromosome1)
+gp$col.predict <- c("darkblue", "white", "yellow", "orange")
+gp <- plotSnp(object=gp, snpset=chromosome1, hmmPredict=fit.ice) 
+legend(-0.05, 10, fill=gp$col.predict[c(1, 3, 4)],
+       legend=c("< 2 copies", "copy-neutral LOH", "> 2 copies"),
+       bty="n", title="predicted states")
+legend(0, 0.6, legend="predictions", bty="n", cex=0.8, adj=0)
 @
 
-Note that the ICE HMM correctly identifies the simulated normal
-segments in features B and C (the normal segments were simulated to
-have high confidence scores). Additionally, the ICE HMM detects the
-micro-amplification in region E (also simulated to have high
-confidence scores).
+Note that the ICE HMM correctly identifies the simulated normal segments in features B and C (the normal segments were simulated to have high confidence scores). Additionally, the ICE HMM detects the micro-amplification in region E (also simulated to have high confidence scores).
 
 \subsection{Confidence scores}\label{sec:confidenceScores}
 
@@ -360,9 +358,7 @@ c(copyNumber(chromosome1[i, ]), calls(chromosome1[i, ]))
 
 \section{The HmmPredict Class}
 
-The output from the HMM is an instance of the \Robject{HmmPredict}
-class and contains the predicted states as well as the breakpoints for
-the different states.
+The output from the HMM is an instance of the \Robject{HmmPredict} class and contains the predicted states as well as the breakpoints  for the different states.
 
 <<hmmOutput>>=
 fit
@@ -416,13 +412,17 @@ params.cn <- new("HmmParameter", snpset=chr1.cn,
 		 states=c("D", "N", "A"))
 fit.cn <- hmm(params.cn, chr1.cn)
 breakpoints(fit.cn)
-graph.par <- new("ParHmmSnpCopyNumberSet")
+graph.par <- new("ParSnpCopyNumberSet")
+graph.par$cytoband.side <- 3
 graph.par <- getPar(graph.par, chr1.cn)
-graph.par$abline.v <- TRUE
+graph.par$abline.v <- FALSE
 @ 
 
 <<copyNumberFigure, fig=TRUE, include=TRUE>>=
-plotSnp(graph.par, chr1.cn, fit.cn)
+graph.par <- plotSnp(graph.par, chr1.cn, fit.cn)
+legend(0, 0.8, fill=graph.par$col.predict[c(1, 3)], 
+       legend=c("< 2 copes", "> 2 copies"),
+       bty="n", cex=0.8)
 @ 
 
 <<echo=FALSE>>=
@@ -448,12 +448,18 @@ params.calls <- new("HmmParameter",
                     states=c("L", "N"))
 fit.calls <- hmm(params.calls, chr1.calls)
 breakpoints(fit.calls)
-gp <- new("ParHmmSnpCallSet")
-graph.par <- getPar(gp, chr1.calls)
+graph.par <- new("ParSnpCallSet")
+graph.par$cytoband.side <- 3
+graph.par <- getPar(graph.par, chr1.calls)
+graph.par$col.predict <- c("black", "white")
+graph.par$ylim <- c(-0.5, 1)
+graph.par$add.centromere <- FALSE
 @ 
 
 <<callsFigure, fig=TRUE, include=TRUE>>=
 plotSnp(graph.par, chr1.calls, fit.calls)
+legend(0, -0.1, legend="loss of heterozygosity", fill="black", 
+       title="predictions", bty="o", cex=0.8)
 @ 
 
 \subsection{Genotype calls and copy number}

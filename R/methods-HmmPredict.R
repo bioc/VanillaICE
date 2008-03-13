@@ -29,14 +29,17 @@ setMethod("[", "HmmPredict",
 			  ##What chromosomes remain?
 			  chr <- unique(chromosome(x))
 			  ##Keep the breakpoints in the above chromosomes
-			  breakpoints(x) <- breakpoints(x)[breakpoints(x)$chr %in% chr, , drop=FALSE]
-##			  f <- function(x, chr) x[x$chr %in% chr, ]
-			  id <- sampleNames(x)[j]
-			  breakpoints(x) <- breakpoints(x)[breakpoints(x)$id %in% id, , drop=FALSE]
+			  if(nrow(breakpoints(x)) > 0){
+				  breakpoints(x) <- breakpoints(x)[breakpoints(x)$chr %in% chr, , drop=drop]
+				  id <- sampleNames(x)[j]
+				  breakpoints(x) <- breakpoints(x)[breakpoints(x)$id %in% id, , drop=drop]
+			  }
 		  }            
 		  if(missing(i) && !missing(j)){
 			  id <- sampleNames(x)[j]
-			  breakpoints(x) <- breakpoints(x)[breakpoints(x)$id %in% id, , drop=FALSE]			  
+			  if(nrow(breakpoints(x)) > 0){
+				  breakpoints(x) <- breakpoints(x)[breakpoints(x)$id %in% id, , drop=drop]
+			  }
 		  }
 		  ##Now subset the i as per use
 		  object <- callNextMethod(x, j=j)		  
@@ -47,14 +50,8 @@ setMethod("calculateBreakpoints", "HmmPredict",
 	  function(object, ...){
 		  breaks <- list()
 		  for(i in 1:ncol(object)){
-			  x <- split(predictions(object)[, i], chromosome(object))
-			  breaks[[i]] <- mapply(.calculatebreaks,
-						x=x,
-						chromosome=as.list(names(x)),
-						MoreArgs=list(position=position(object),
-						states=states(object),
-						sampleNames=sampleNames(object)[i]),
-						SIMPLIFY=FALSE)
+			  x <- split(object[, i], chromosome(object))
+			  breaks[[i]] <- lapply(x, .calculatebreaks)
 			  breaks[[i]] <- do.call("rbind", breaks[[i]])
 		  }
 		  breaks <- do.call("rbind", breaks)

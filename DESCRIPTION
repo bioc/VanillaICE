@@ -15,9 +15,7 @@ Collate:  AllGenerics.R
 	  methods-HmmParameter.R	  
 	  methods-SnpLevelSet.R
 	  methods-HmmPredict.R	  
-	  methods-ParHSet.R
 	  initialize-methods.R
-	  plotSnp-methods.R
 	  emission-methods.R
 	  functions.R
 biocViews: Statistics, DNACopyNumber, SNPsAndGeneticVariability, Visualization

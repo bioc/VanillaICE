@@ -447,6 +447,18 @@ if(identical(rownames(cn.se), featureNames(snpset))){
 }
 @ 
 
+Here we save a \Robject{sample.snpset} object that is used in the \Rpackage{SNPchip} vignette.
+
+<<sample.snpset>>=
+sample.snpset <- snpset[sample(1:nrow(sample.snpset), 40000), 1:4]
+@ 
+
+<<echo=FALSE>>=
+save(sample.snpset, file="~/madman/Rpacks/SNPchip/data/sample.snpset.RData", compress=TRUE)
+notes(sample.snpset) <- "This R object was created using the hapmap100k vignette in the R package VanillaICE. Look in the inst/testing subdirectory of VanillaICE for additional details"
+@ 
+
+
 \section{Fitting the ICE HMM}
 
 We instantiate an object of class \Robject{HmmParameter}, first
@@ -492,7 +504,7 @@ We may then fit the HMM
 
 <<fitHmm, eval=TRUE>>=
 system.time(fit.hapmap <- hmm(params, snpset))
-breakpoints(fit.hapmap) <- calculateBreakpoints(fit.hapmap)
+##breakpoints(fit.hapmap) <- calculateBreakpoints(fit.hapmap)
 @ 
 
 <<echo=FALSE, eval=TRUE>>=

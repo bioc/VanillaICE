@@ -152,39 +152,46 @@ addFeatureData <- function(snpset){
 
 ##setMethod("calculateBreakpoints", "HmmParameter",
 ##          function(object, x, position, chromosome, states, digits=2, sampleNames, ...){
-.calculatebreaks <- function(x, position, chromosome, states, digits=2, sampleNames){
+.calculatebreaks <- function(object, digits=2){
+	if(class(object) != "HmmPredict") stop("arg object in .calcualtebreaks should be an object of class HmmPredict")
+	position <- position(object)
+	chromosome <- unique(chromosome(object))
+	if(length(chromosome) > 1) stop("only 1 chromosome at a time")
+	states <- states(object)
+	sampleNames <- sampleNames(object)
+	if(length(sampleNames) > 1) stop("only 1 sample at a time")
+	x <- predictions(object)
 	if(any(is.na(x))){
 		Nmissing <- sum(is.na(x))
 	} else Nmissing <- 0
 	N <- length(x)
+	colnames <- c("id", "chr", "state", "size", 
+		      "N", "start", "last", "prev", "next")
+	
 	if(length(unique(x)) == 1){
 		breaks <- data.frame(sampleNames,
 				     chromosome,
-				     unique(x),
+				     states[unique(x)],
 				     (max(position) - min(position))/1e6,
-				     length(position)/1e6,
+				     length(position),
 				     min(position)/1e6,
 				     max(position)/1e6,
-				     NA, NA)
-		colnames <- c("id", "chr", "state", "size", 
-			      "N", "start", "last", "prev", "next")
-##		breaks <- matrix(breaks, nrow=1)
+				     NA,
+				     NA)
 		colnames(breaks) <- colnames
 		return(breaks)
 	}
+	
 	d <- diff(x)
 	if(sum(abs(d), na.rm=TRUE) < 1){
 		breaks <- data.frame(sampleNames,
 				     chromosome,
-				     unique(x),
+				     states[unique(x)],
 				     (max(position) - min(position))/1e6,
-				     length(position)/1e6,
+				     length(position),
 				     min(position)/1e6,
 				     max(position)/1e6,
 				     NA, NA)
-		colnames <- c("id", "chr", "state", "size", 
-			      "N", "start", "last", "prev", "next")
-		breaks <- matrix(breaks, nrow=1)
 		colnames(breaks) <- colnames
 		return(breaks)		    
 	}
@@ -248,7 +255,6 @@ addFeatureData <- function(snpset){
 	breaks$id <- rep(sampleNames, nrow(breaks))
 	colnames(breaks) <- c("start", "last", "size", "N", "state", "chr", "prev", "next", "id")
 	##Add columns for the name of the first SNP and the name of the last SNP
-	colnames <- c("id", "chr", "state", "size", "N", "start", "last", "prev", "next")
 	breaks <- breaks[, colnames]
 	breaks
 }

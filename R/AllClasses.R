@@ -42,10 +42,10 @@ setClass("HmmPredict", contains="SnpLevelSet",
 ##                                      featureData="AnnotatedDataFrame"))
 
 ##Classes for graphical parameters
-setClass("ParHSet", contains="ParESet")
-setClass("ParHmmSnpCallSet", contains="ParHSet")
-setClass("ParHmmSnpCopyNumberSet", contains="ParHSet")
-setClass("ParHmmSnpSet", contains="ParHSet")
+##setClass("ParHSet", contains="ParESet")
+##setClass("ParHmmSnpCallSet", contains="ParHSet")
+##setClass("ParHmmSnpCopyNumberSet", contains="ParHSet")
+##setClass("ParHmmSnpSet", contains="ParHSet")
 
 ###########################################################################
 ##Deprecated classes
