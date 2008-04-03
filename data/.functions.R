@@ -24,11 +24,11 @@ chr1Example <- function(na06993){
   ##################################################  
   ##Region B, deletion
   ##################################################  
-  epsilon <- diff(quantile(base::log(copyNumber(chr1), 2), probs=c(0.16, (1-0.16))))/2  
+  epsilon <- diff(quantile(log(copyNumber(chr1), 2), probs=c(0.16, (1-0.16))))/2  
   calls(chr1)[B] <- rbinom(100, 1, 0.001) + 1
-  copyNumber(chr1)[B] <- 2^(base::log(1, 2) + rnorm(100, 0, epsilon))
+  copyNumber(chr1)[B] <- 2^(log(1, 2) + rnorm(100, 0, epsilon))
   calls(chr1)[6050] <- 2
-  copyNumber(chr1)[6050:6051] <- 2^(base::log(2, 2) + rnorm(2, 0, epsilon/4))
+  copyNumber(chr1)[6050:6051] <- 2^(log(2, 2) + rnorm(2, 0, epsilon/4))
   ##precise estimate simulated by a robust estimate of the copy number standard deviation
   cnConfidence(chr1)[6050:6051] <- epsilon/2
 
@@ -37,16 +37,16 @@ chr1Example <- function(na06993){
   ##Region C,  Deletion
   ##################################################  
   calls(chr1)[C] <- 1
-  copyNumber(chr1)[C] <- 2^(base::log(1, 2) + rnorm(100, 0, epsilon/2))
-  copyNumber(chr1)[8050:8051] <- 2^(base::log(2, 2)) + rnorm(2, 0, epsilon/4)
+  copyNumber(chr1)[C] <- 2^(log(1, 2) + rnorm(100, 0, epsilon/2))
+  copyNumber(chr1)[8050:8051] <- 2^(log(2, 2)) + rnorm(2, 0, epsilon/4)
   ##Noisy estimate
   cnConfidence(chr1)[8050:8051] <- epsilon*2
 
   ##################################################  
   ##Region D, Amplification
   ##################################################  
-  copyNumber(chr1)[D] <- 2^(base::log(3, 2) + rnorm(200, 0, epsilon/2))
-  copyNumber(chr1)[2100:2101] <- 2^(base::log(2, 2) + rnorm(2, 0, epsilon/4))
+  copyNumber(chr1)[D] <- 2^(log(3, 2) + rnorm(200, 0, epsilon/2))
+  copyNumber(chr1)[2100:2101] <- 2^(log(2, 2) + rnorm(2, 0, epsilon/4))
   ##precise estimate simulated by a robust estimate of the copy number standard deviation
   cnConfidence(chr1)[2100:2101] <- epsilon/2
   calls(chr1)[2101] <- 2
@@ -60,8 +60,8 @@ chr1Example <- function(na06993){
   ##################################################  
   ##Region E, microdeletion, microamplification
   ##################################################
-  copyNumber(chr1)[E1] <- 2^(base::log(1, 2) + rnorm(5, 0, epsilon/4))  
-  copyNumber(chr1)[E2] <- 2^(base::log(3, 2) + rnorm(3, 0, epsilon/4))
+  copyNumber(chr1)[E1] <- 2^(log(1, 2) + rnorm(5, 0, epsilon/4))  
+  copyNumber(chr1)[E2] <- 2^(log(3, 2) + rnorm(3, 0, epsilon/4))
   calls(chr1)[E1] <- 1
   cnConfidence(chr1)[E1] <- epsilon/2
   cnConfidence(chr1)[E2] <- epsilon/2  
@@ -83,7 +83,8 @@ chr1Example <- function(na06993){
   data(hindPhat)
   group <- hindPhat[, 1] ##see referenceProbabilities.R in callsConfidence package  
   callsConfidence(chr1)[isHindHom] <- sample(hindPhat[group == 3, 2], sum(isHindHom), replace=FALSE)
-  callsConfidence(chr1)[isHindHet] <- sample(hindPhat[group == 2, 2], sum(isHindHet), replace=FALSE)  
+  callsConfidence(chr1)[isHindHet] <- sample(hindPhat[group == 2, 2], sum(isHindHet), replace=FALSE)
+
   ##save(chr1, file="~/projects/hmm/HmmDataSets/data/chr1.rda", compress=TRUE)
   chr1
 }

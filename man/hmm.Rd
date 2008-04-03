@@ -5,12 +5,12 @@
 Fits the hidden Markov model
 }
 \usage{
-hmm(object, ...)
+hmm(object, params)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{object}{An object of class \code{HmmParameter}}
-  \item{\dots}{Not implemented}
+  \item{object}{An object of class \code{HmmOptions}}
+  \item{params}{An object of class \code{HmmParameter}}
 }
 \details{
   None yet.
@@ -37,10 +37,21 @@ hmm(object, ...)
 \examples{
 data(chromosome1)
 chromosome1 <- chromosome1[1:500, ]
-params <- new("HmmParameter", snpset=chromosome1,
-	      states=c("D", "N", "L", "A"), ##Deletion, Normal, Loss of hetozygosity, Amplification
-	      cn.location=c(1, 2, 2, 3),
-	      gte.state=c(0.99, 0.8, 0.99, 0.8))
-fit <- hmm(params, chromosome1)
+options <- new("HmmOptions",
+	       states=c("D", "N", "L", "A"),
+	       snpset=chromosome1,
+	       copyNumber.location=c(1, 2, 2, 3),
+	       probHomCall=c(0.99, 0.7, 0.99, 0.7))
+validObject(options)
+params <- new("HmmParameter", 
+	      states=states(options),
+	      initialStateProbability=0.99)
+cn.emission <- copyNumber.emission(options)
+gt.emission <- calls.emission(options)
+emission(params) <- cn.emission + gt.emission ##log scale
+genomicDistance(params) <- exp(-2 * calculateDistance(options)/(100*1e6))
+transitionScale(params) <- scaleTransitionProbability(options)
+validObject(params)
+fit <- hmm(options, params)
 }
 \keyword{models}

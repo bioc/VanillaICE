@@ -98,23 +98,33 @@
   emission.gt
 }
 
-addFeatureData <- function(snpset){
-  featureNames <- featureNames(snpset)
-  data(chromosomeAnnotation, package="SNPchip", envir=environment())
-  chrAnn <- as.matrix(chromosomeAnnotation)
-  tmp <- position(snpset) <= chromosomeAnnotation[chromosome(snpset), "centromereStart"]
-  chromosomeArm <- as.character(tmp)
-  chromosomeArm[chromosomeArm == "TRUE"] <- "p"
-  chromosomeArm[chromosomeArm == "FALSE"] <- "q"
-
-  fD <- data.frame(cbind(chromosome(snpset), arm=chromosomeArm), row.names=featureNames,
-                   stringsAsFactors=FALSE)
-  fD$position <- position(snpset) 
-  colnames(fD) <- c("chromosome", "arm", "position")
-  varMetadata <- data.frame(labelDescription=c("chromosome", "chromosomal arm", "physical position"), row.names=colnames(fD))
-  featureData <- new("AnnotatedDataFrame", data=fD, varMetadata=varMetadata)
-  featureData
+getChromosomeArm <- function(snpset){
+	data(chromosomeAnnotation, package="SNPchip", envir=environment())
+	chrAnn <- as.matrix(chromosomeAnnotation)
+	tmp <- position(snpset) <= chromosomeAnnotation[chromosome(snpset), "centromereStart"]
+	chromosomeArm <- as.character(tmp)
+	chromosomeArm[chromosomeArm == "TRUE"] <- "p"
+	chromosomeArm[chromosomeArm == "FALSE"] <- "q"
+	chromosomeArm
 }
+
+
+
+addFeatureData <- function(snpset){
+	featureNames <- featureNames(snpset)
+
+	if(!("arm" %in% fvarLabels(snpset))){
+		arm <- getChromosomeArm(snpset)
+	}
+	fD <- data.frame(cbind(chromosome(snpset), arm=chromosomeArm), row.names=featureNames,
+			 stringsAsFactors=FALSE)
+	fD$position <- position(snpset) 
+	colnames(fD) <- c("chromosome", "arm", "position")
+	varMetadata <- data.frame(labelDescription=c("chromosome", "chromosomal arm", "physical position"), row.names=colnames(fD))
+	featureData <- new("AnnotatedDataFrame", data=fD, varMetadata=varMetadata)
+	featureData
+}
+	
 
 ##.calculateYlim <- function(object, op){
 ##  if("copyNumber" %in% ls(assayData(object))){
@@ -258,6 +268,7 @@ addFeatureData <- function(snpset){
 	breaks <- breaks[, colnames]
 	breaks
 }
+	
 
 calculateCnSE <- function(object,
                           referenceSet,
@@ -302,6 +313,35 @@ calculateCnSE <- function(object,
 	SE
 }
 
+scaleTransitionProbability <- function(object, SCALE=2, normalLabel="N"){##HmmOptions
+	if(!(normalLabel %in% object@states)) stop("must supply the label for the normal (baseline) state")
+	states <- object@states
+	S <- length(states)
+	if(S > 2){
+		tau.scale <- matrix(1, S, S)
+		rownames(tau.scale) <- colnames(tau.scale) <- states
+		x <- seq(1, (S-1), by=0.01)
+		y <- rep(NA, length(x))
+		for(i in 1:length(x)){
+			y[i] <- ((S-1)-x[i])/(S-2) 
+		}
+		z <- abs(x/y - SCALE)
+		z <- z == min(z)
+		x <- x[z]
+		y <- y[z]
+		tau.scale[upper.tri(tau.scale)] <- y
+		tau.scale[lower.tri(tau.scale)] <- y
+		i <- match(normalLabel, states)
+		tau.scale[, i] <- x
+		##by default, do not tau.scale the probabilities of leaving the normal state
+		tau.scale[i, ] <- 1
+		diag(tau.scale) <- 1
+	} else{
+		if(S == 2) tau.scale <- matrix(1, nrow=S, ncol=S)
+	}
+	return(tau.scale)
+}
+
 ##Code this in C
 viterbi <- function(beta, pi, tau, states, arm, tau.scale){
 	S <- length(states)
@@ -341,6 +381,92 @@ viterbi <- function(beta, pi, tau, states, arm, tau.scale){
 	}
 	qhat    
 }
+
+##this methods loops over snps for all samples, but is 15 times slower
+.viterbi2 <- function(object, params){ ##HmmOptions, HmmParameters
+	snpset <- object@snpset
+##	i <- match(featureNames(snpset(object)), dimnames(emission(params))[[1]])
+	if(!(identical(featureNames(snpset), dimnames(emission(params))[[1]]))) stop("feature names should match")
+	arm <- paste(chromosome(snpset), featureData(snpset)$arm, sep="")
+	beta <- emission(params)
+	S <- length(object@states)
+	T <- nrow(snpset)
+	
+	tau <- genomicDistance(params)
+	pi <- log(pi(params))
+	tau.scale <- transitionScale(params)
+	if(nrow(tau.scale) == 0){
+		tau.scale <- matrix(1, S, S)
+	}
+	delta <- psi <- array(NA, dim=c(nrow(snpset), ncol(snpset), S))
+	dimnames(delta) <- dimnames(psi) <- list(featureNames(snpset),
+						 sampleNames(snpset),
+						 states(object))
+	pi <- matrix(pi, nrow=ncol(snpset), ncol=S, byrow=TRUE)
+	delta[1, , ] <- pi + beta[1, , ]
+	initial.psi <- matrix(0, nr=ncol(snpset), nc=S)
+	psi[1, , ] <- initial.psi##rep(0, S)
+
+	##handling of missing values for SNP t: the delta and psi
+	##values for SNP t are assigned the delta and psi from the
+	##previous SNP
+	
+	for(t in 2:T){
+		if(t%%1000 == 0) cat(".")
+		if(arm[t] != arm[t-1]){
+			##SNP t is on a different chromosome/chromosome arm
+			delta[t, , ] <- pi + beta[t, , ]
+			psi[t, ,  ] <- initial.psi
+			next()
+		}
+		AA <- matrix(tau[t-1], nr=S, nc=S)
+		AA[upper.tri(AA)] <- AA[lower.tri(AA)] <- (1-tau[t-1])/(S-1)
+		AA <- log(AA*tau.scale)
+##		AA <- aperm(array(AA, dim=c(S, S, ncol(snpset))))
+		##dimnames(AA) <- list(sampleNames(snpset), states(object), states(object))
+		##Loop over states
+		for(j in 1:S){
+			##Equation 105b
+			x <- matrix(delta[t-1, , ], nrow=ncol(snpset))
+			y <- matrix(AA[, j], nrow=ncol(snpset), byrow=TRUE)
+			z <- x + y
+			delta[t, , j] <- apply(z, 1, "max") + beta[t, , j]
+			f <- function(x) order(x, decreasing=TRUE)[1]
+			psi[t, , j] <- apply(z, 1, f)
+		}
+##		if(any(is.na(delta[t, , ]))){
+##			x <- matrix(delta[t, , ], nrow=dim(delta)[2])
+##			samples <- which(apply(x, 1, function(x) any(is.na(x))))
+##			delta[t, samples, ] <- delta[t-1, samples, ]
+##			psi[t, samples, ] <- psi[t-1, samples, ]
+##			next()
+##		}
+##		if(any(is.na(psi[t, , ]))){
+##			x <- matrix(psi[t, , ], nrow=dim(psi)[2])
+##			samples <- which(apply(x, 1, function(x) any(is.na(x))))
+##			delta[t, samples, ] <- delta[t-1, samples, ]
+##			psi[t, samples, ] <- psi[t-1, samples, ]
+##		}
+		if(t == T) cat("\n")
+	}
+	x <- matrix(delta[T, , ], nrow=dim(delta)[2])
+	Pstar <- apply(x, 1, "max")
+	qhat <- matrix(NA, nrow(delta), ncol(snpset))
+##	rownames(qhat) <- dimnames(delta)[[1]]
+##	colnames(qhat) <- sampleNames(snpset)
+	qhat[T, ] <- apply(x, 1, function(x) order(x, decreasing=TRUE)[1])
+	for(t in (T-1):1){
+		if(arm[t] != arm[t+1]){
+			x <- matrix(delta[t, , ], nrow=dim(delta)[2])
+			qhat[t, ] <- apply(x, 1, function(x) order(x, decreasing=TRUE)[1])
+		} else {
+			qhat[t, ] <- psi[t+1, , qhat[t+1]]
+		}
+	}
+	qhat
+}
+
+	
 
 ##How often is a SNP altered across samples
 makeTable <- function(object, state, by, unit=1000, digits=3){

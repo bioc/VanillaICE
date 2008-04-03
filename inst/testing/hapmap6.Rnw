@@ -64,40 +64,28 @@ be generating.
 <<packages>>=
 library(oligo)
 library(VanillaICE)
-library(pd.mapping50k.xba240)
-library(pd.mapping50k.hind240)
+library(pd.genomewidesnp.6)
 @
 
-\Rpackage{oligo} presently does not support '.gz' files, so the first
-thing I'm doing is copying all the unprocessed zipped (*CEL.gz) to a
-local temporary directory.
+%\Rpackage{oligo} presently does not support '.gz' files, so the first
+%thing I'm doing is copying all the unprocessed zipped (*CEL.gz) to a
+%local temporary directory.
+From node 31,
 
-<<tmpDirectory, eval=FALSE>>=
-pathFrom <- "/nexsan/bst2/microarray/SNP/hapmap/100k"
-if(!file.exists(pathFrom)){
-	stop("dir does not exist")
-}
-pathTo <- "/tmp/rs100kCrlmm"
-if(!file.exists(pathTo)){
-	dir.create("/tmp/rs100kCrlmm")
-}
-@ 
-
-<<copyFiles, eval=FALSE>>=
-system(paste("cp -R", pathFrom, "/hind ", pathTo, sep=""))
-system(paste("cp -R", pathFrom, "/xba ", pathTo, sep=""))
-##uncompress
-setwd(pathTo)
-setwd("hind")
-system("gunzip *.gz")
-setwd("../xba")
-system("gunzip *.gz")
+<<tmpDirectory>>=
+pathToCel <- "/nexsan/bst2/microarray/SNP/GenomeWideByAffy/cel/GenomeWideSNP_6/hapmap"
+if(!file.exists(pathToCel)) stop("directory does not exist")
+setwd(pathToCel)
+pathTo <- "/tmp/rsHapmapAffy6"
+##if(!file.exists(pathTo)){
+##	dir.create(pathTo)
+##}
 @ 
 
 Here we load a \Robject{data.frame} containing phenotypic information
 on the samples.
 
-<<phenoData, eval=FALSE>>=
+<<phenoData, eval=TRUE>>=
 pathTesting <- system.file("testing", package="VanillaICE")
 load(paste(pathTesting, "hapmapTable.rda", sep="/"))
 str(hapmapTable)
@@ -112,11 +100,11 @@ covariate 'gender' is useful and the vocabulary for this is
 controlled. AFAIK, gender = 1 for male and 2 for female is always
 required.
 
-<<eval=FALSE>>=
-setwd(paste(pathTo, "xba", sep="/"))
+<<eval=TRUE>>=
 celfiles <- list.celfiles()
 createHapmapInfo <- function(files, point){
 	ids <- sapply(strsplit(files, "\\."), function(x) x[point])
+	ids <- sapply(strsplit(ids, "_"), function(x) x[point])
 	idx <- match(ids, hapmapTable$hapmap)
 	hapmapTable[idx, ]
 }
@@ -137,12 +125,12 @@ I am going to make the set of files analyzed slightly smaller by only
 considering the samples that are independent--those with founder id
 (fid) value of zero.
 
-<<independentSamples, eval=FALSE>>=
+<<independentSamples, eval=TRUE>>=
 which <- pd$fid == 0
 pd <- pd[which, ]
 celfiles <- celfiles[which]
-sampleNames(pd) <-celfiles
-fullFilenames <- paste(getwd(), celfiles, sep="/")
+sampleNames(pd) <- pd$hapmap
+fullFilenames <- file.path(getwd(), celfiles)
 @ 
 
 Now we use the function \Robject{justCRLMM} to preprocess.  This
@@ -152,17 +140,58 @@ summaries of the intensities for the A and B alleles on both the sense
 and antisense strands.  We will later demonstrate a quick way to get a
 first approximation of copy number using these intensities.
 
-<<justCrlmm.xba, eval=FALSE>>=
-system.time(xba <- justCRLMM(fullFilenames, phenoData=pd, verbose=FALSE))
+<<justCrlmmPartial, eval=FALSE, echo=FALSE>>=
+fullFilenames <- fullFilenames[1:3]
+pd <- pd[1:3, ]
 @ 
 
-Preprocessing the \Robject{hind} platform:
+In the devel version of \Rpackage{oligo}, several intermediate files are produced from
+the \Robject{crlmm} function and nothing is returned.
 
-<<justCrlmm.hind, eval=FALSE>>=
-setwd(paste(pathTo, "hind", sep="/"))
-fullFilenames <- paste(getwd(), celfiles, sep="/")
-system.time(hind <- justCRLMM(fullFilenames, phenoData=pd, verbose=FALSE))
+<<crlmm, eval=TRUE>>=
+stopifnot(all(sapply(fullFilenames, file.exists)))
+outdir <- file.path(pathTo, "tmp")
+if(file.exists(outdir)){
+	unlink(outdir, recursive=TRUE)
+}
+
+
+crlmm(fullFilenames, outdir=outdir) #phenoData=pd, verbose=FALSE)
+calls.file <- file.path(outdir, "crlmm-calls.txt")
+conf.file <- file.path(outdir, "crlmm-conf.txt")
+calls <- as(read.delim(calls.file), "matrix")
+conf <- as(read.delim(conf.file), "matrix")
+alleleA <- readSummaries("alleleA", outdir)##[1:5,]
+alleleB <- readSummaries("alleleB", outdir)
+
+##Save by chromosome or by sample?  Might be easiest (downstream) to save by sample.
+callsetplus <- new("SnpCnvCallSetPlus",
+		   calls=calls,
+		   callsConfidence=conf,
+		   thetaA=alleleA,
+		   thetaB=alleleB,
+		   phenoData=pd)
+callset <- strsplit(callsetplus, sampleNames(callsetplus))
+for(i in 1:length(callset)){
+	
+}
+
+
+save(callsetplus, file=file.path(pathTo, "callsetplus.rda"), compress=TRUE)
 @ 
+
+<<clean, eval=TRUE>>=
+unlink(outdir, recursive=TRUE)
+@ 
+
+<<eval=FALSE>>=
+
+##Get position of all probes (polymorphic + nonpolymorphic)
+##Get copy number for polymorphic probes.  What to use for nonpolymorphic probes?
+@ 
+
+Read in the intermediate files and create an object of class
+\Robject{SnpCnvCallSetPlus}.
 
 \section{SNP-level summaries}
 
@@ -171,14 +200,14 @@ system.time(hind <- justCRLMM(fullFilenames, phenoData=pd, verbose=FALSE))
 A summary of the \Robject{SnpCallSetPlus} instance:
 
 <<snpCallSetPlus, eval=FALSE>>=
-hind
+callsetplus
 @ 
 
 Note that a column \Robject{crlmmSNR} has been added to the
 \Robject{phenoData}:
 
 <<varlabels, eval=FALSE>>=
-varLabels(hind)
+varLabels(callsetplus)
 @ 
 
 The \Robject{crlmmSNR} covariate is a signal to noise ratio and
@@ -186,21 +215,7 @@ summarizes the overall quality of the samples.  If the SNR ratio is $<
 3$, we recommend excluding the sample from downstream analyses.
 
 <<exclusions, eval=FALSE>>=
-hind <- hind[, hind$crlmmSNR > 3]
-xba <- xba[, xba$crlmmSNR > 3]
-@ 
-
-In order to combine the \Robject{SnpCallSetPlus} objects, the
-phenotypic information in the \Robject{phenoData} slots must be the
-same.  Here, we simply average the two SNR estimates to give an
-overall estimate of the SNR in the two platforms.
-
-<<averageSNR, eval=FALSE>>=
-avgSNR <- rowMeans(cbind(hind$crlmmSNR, xba$crlmmSNR))
-xba$crlmmSNR <- hind$crlmmSNR <- avgSNR
-if(identical(phenoData(xba), phenoData(hind))){
-	callset <- combine(hind, xba)
-}
+callset <- callsetplus[, callsetplus$crlmmSNR > 3]
 @ 
 
 At least for the 100k platform, the speed of all of the following
@@ -214,40 +229,36 @@ featureData(callset)$position <- position(callset)
 @ 
 
 <<eval=FALSE, echo=FALSE>>=
-save(callset, file="/tmp/rs100kCrlmm/callset.rda", compress=TRUE)
+save(callset, file=paste(pathTo, "callset.rda", sep="/"), compress=TRUE)
 @ 
 
 <<echo=FALSE, eval=FALSE>>=
-load("/tmp/rs100kCrlmm/callset.rda")
+load(paste(pathTo, "callset.rda", sep="/"))
 @ 
 
 \subsection{Estimating copy number}
 
-We expect that the intensities for the A and B alleles averaged over
-the sense and antisense strands will be proportional to the total copy
-number.  Because the fluorescence at a SNP is very much SNP-dependent,
-we'll center each SNP at the median value and then recenter at the
-'normal' copy number.  Here, we define normal copy number to be two
-for autosomes, 1 for the male X, and 2 for the female X. Because we've
-noticed that homozygous genotype calls appear to have overall less
-fluorescence than the heterozygous genotype calls, we'll recenter the
-median intensities for the homozygous and heterozygous genotypes to be
-equivalent.
-
-We begin by extracting an array of average values for the sense (A and
-B alleles) and antisense (A and B) strands.
+We expect that the averaged intensities for the A and B alleles will
+be proportional to the total copy number.  Because the fluorescence at
+a SNP is very much SNP-dependent, we'll center each SNP at the median
+value and then recenter at the 'normal' copy number.  Here, we define
+normal copy number to be two for autosomes, one for the male X, and
+two for the female X. Because we've noticed that homozygous genotype
+calls appear to have overall less fluorescence than the heterozygous
+genotype calls, we'll center the homozygous and heterozygous genotype
+calls at their respective medians.
 
 <<A, eval=FALSE>>=
-A <- getA(callset)
-dim(A)
-@ 
-
-We then average the sense and antisense values:
-
-<<avgA, eval=FALSE>>=
-log2cn <- rowMeans(A, dims=2, na.rm=TRUE)
+log2cn <- getA(callset)
 dim(log2cn)
 @ 
+
+%We then average the sense and antisense values:
+
+%<<avgA, eval=FALSE>>=
+%log2cn <- rowMeans(A, dims=2, na.rm=TRUE)
+%dim(log2cn)
+%@ 
 
 We center the homozygous and heterozygous genotypes separately (since
 the average intensities differs by call):
@@ -288,8 +299,8 @@ robust.median <- apply(log2cn, 2, f, chromosome(callset))
 log2cn <- sweep(log2cn, 2, robust.median)
 @ 
 
-Next, we sweep out the SNP-specific median intensities and then
-recenter to the expected copy number (depends on chromosome):
+Next, we sweep out the SNP-specific median intensities and recenter
+(centering depends on chromosome):
 
 <<sweepMedian, eval=FALSE>>=
 rowSweep <- function(callset, X, value, recenter, j){
@@ -468,11 +479,11 @@ We instantiate an object of class \Robject{HmmParameter}, first
 providing a standard order for the chromosomes and ordering the SNPs
 by physical position within each chromosome:
 
-<<echo=FALSE, eval=TRUE>>=
+<<echo=FALSE, eval=FALSE>>=
 load("~/projects/sandbox/presentations/2008/aha/snpset.rda")
 @ 
 
-<<hmmParams, eval=TRUE>>=
+<<hmmParams, eval=FALSE>>=
 chrom <- chromosome2numeric(chromosome(snpset))
 snpset <- snpset[order(chrom, position(snpset)), ]
 ##save(snpset, file="~/projects/sandbox/presentations/2008/aha/snpset.rda", compress=TRUE)
@@ -505,12 +516,12 @@ the copy number and genotype estimates by setting \Robject{cn.ICE} and
 
 We may then fit the HMM
 
-<<fitHmm, eval=TRUE>>=
+<<fitHmm, eval=FALSE>>=
 system.time(fit.hapmap <- hmm(params, snpset))
 ##breakpoints(fit.hapmap) <- calculateBreakpoints(fit.hapmap)
 @ 
 
-<<echo=FALSE, eval=TRUE>>=
+<<echo=FALSE, eval=FALSE>>=
 save(fit.hapmap, file="~/madman/Rpacks/VanillaICE/inst/testing/fit.hapmap100k.rda", compress=TRUE)
 @ 
 

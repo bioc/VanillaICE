@@ -3,6 +3,7 @@ setMethod("calculateDistance", "SnpLevelSet",
 		  d <- (position(object)[2:nrow(object)] - position(object)[1:(nrow(object)-1)])##/(100*1e6)
           })
 
+
 setMethod("calculateTransitionProbability", c("SnpLevelSet", "HmmOptions"),
           function(object, options, scale, ...){
             ##distance in units of 100 Mb ("~ 1cM") as in Beroukeim 2006

@@ -1,11 +1,14 @@
-\name{tau.scale}
-\alias{tau.scale}
+\name{transitionScale}
+%\alias{tau.scale}
+\alias{transitionScale}
+\alias{transitionScale<-}
 \title{Scales the transition probabilities of the hidden Markov model}
 \description{
   Scales the transition probabilities of the hidden Markov model
 }
 \usage{
-tau.scale(object)
+%tau.scale(object)
+transitionScale(object)
 }
 \arguments{
   \item{object}{ An object of class \code{HmmParameter}}
@@ -27,21 +30,6 @@ between two altered states.  The weights for epsilon are provided in the
   A matrix
 }
 \author{R. Scharpf}
-\seealso{ \code{\link{calculateTransitionProbability}}}
-\examples{
-
-data(chromosome1)
-chromosome1 <- chromosome1[1:50, ]
-params <- new("HmmParameter", snpset=chromosome1)
-
-##By default we are twice as likely to transition to a normal state
-##than between two altered states
-tau.scale(params)
-
-##To make it 10 times as likely to transition from an altered state to
-##a normal state
-params <- new("HmmParameter", snpset=chromosome1, SCALE=10)
-
-}
+%\seealso{ \code{\link{calculateTransitionProbability}}}
 \keyword{methods}
 

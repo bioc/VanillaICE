@@ -5,12 +5,11 @@ setReplaceMethod("breakpoints", c("HmmPredict", "ANY"),
 			 object
 		 })
 setMethod("states", "HmmPredict", function(object) object@states)
-setMethod("SnpClass", "HmmPredict", function(object) object@SnpClass)
+##setMethod("SnpClass", "HmmPredict", function(object) object@SnpClass)
 
 setMethod("show", "HmmPredict", function(object){
-	##	cat("Instance of class HmmPredict \n")	
 	callNextMethod(object)
-	cat("\n SnpClass:", SnpClass(object), "\n")
+##	cat("\n SnpClass:", SnpClass(object), "\n")
 	cat("hidden states: ", states(object), "\n")
 	cat("breakpoints: \n")
 	str(breakpoints(object))
