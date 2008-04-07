@@ -1,5 +1,5 @@
-\name{cn.location}
-\alias{cn.location}
+\name{copyNumber.location}
+\alias{copyNumber.location}
 \title{ Accessor for the location of the hidden states for copy number}
 \description{
 The HMM assumes that conditional on the hidden state, the observed copy
@@ -8,7 +8,7 @@ for the mean of the Gaussian distribution for each of the hidden
 states.  
 }
 \usage{
-cn.location(object)
+copyNumber.location(object)
 }
 \arguments{
   \item{object}{ An object of class \code{HmmParameter}}

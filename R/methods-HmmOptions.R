@@ -161,23 +161,22 @@ setMethod("[", "HmmOptions",
             x
           })
 
-setMethod("gt.ICE", "HmmOptions", function(object) object@calls.ICE)
-setMethod("cn.ICE", "HmmOptions", function(object) object@copyNumber.ICE)
-setReplaceMethod("cn.ICE", c("HmmOptions", "logical"),
+setMethod("calls.ICE", "HmmOptions", function(object) object@calls.ICE)
+setMethod("copyNumber.ICE", "HmmOptions", function(object) object@copyNumber.ICE)
+setReplaceMethod("copyNumber.ICE", c("HmmOptions", "logical"),
                  function(object, value){
-                   object@copyNumber.ICE <- value
-##                   object@cn.SE <- "SNP-specific"
-                   object
-                 })
-setReplaceMethod("gt.ICE", c("HmmOptions", "logical"),
+			 object@copyNumber.ICE <- value
+			 object
+		 })
+setReplaceMethod("calls.ICE", c("HmmOptions", "logical"),
                  function(object, value){
-                   object@calls.ICE <- value
-                   object
+			 object@calls.ICE <- value
+			 object
                  })
 
 ##setMethod("SnpClass", "HmmOptions", function(object) object@SnpClass)
 setMethod("states", "HmmOptions", function(object) object@states)
-setMethod("cn.location", "HmmOptions", function(object) object@copyNumber.location)
+setMethod("copyNumber.location", "HmmOptions", function(object) object@copyNumber.location)
 ##setReplaceMethod("states", "HmmOptions", function(object, value){
 ##  object@states <- value
 ##  object

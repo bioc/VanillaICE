@@ -1,6 +1,6 @@
-\name{gt.ICE}
-\alias{gt.ICE}
-\alias{gt.ICE<-}
+\name{calls.ICE}
+\alias{calls.ICE}
+\alias{calls.ICE<-}
 \title{Indicates whether to use confidence scores of the observed copy
   number estimates in the HMM}
 
@@ -8,10 +8,13 @@
   assumed to be the inverse of the standard error }
 
 \usage{
-gt.ICE(object)
+calls.ICE(object)
+calls.ICE(object) <- value
 }
 \arguments{
-  \item{object}{An object of class \code{HmmParameter}}
+  \item{object}{An object of class \code{HmmOptions}}
+  \item{value}{Logical.  If TRUE, confidence scores of the genotype
+    calls are used to calculate emission probabilities}
 }
 \value{
   Logical

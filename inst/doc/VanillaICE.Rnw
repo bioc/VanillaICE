@@ -166,11 +166,6 @@ emission(params) <- cn.emission + gt.emission ##log scale
 <<genomicDistance>>=
 genomicDistance(params) <- exp(-2 * calculateDistance(options@snpset)/(100*1e6))
 transitionScale(params) <- scaleTransitionProbability(options)
-##params <- new("HmmParameter", 
-##	      chromosome1, 
-##	      states=c("D", "N", "L", "A"),
-##              cn.location=c(1, 2, 2, 3),
-##	      gte.state=c(0.99, 0.7, 0.99, 0.7))
 class(params)
 @ 
 
@@ -178,25 +173,26 @@ We may then fit the HMM by
 
 <<fit>>=
 fit <- hmm(options, params)
-##fit <- hmm(params, chromosome1)
 fit
 breakpoints(fit)
 @ 
 
-Summary statistics for the breakpoints (more useful when multiple chromosomes and samples are in the \Robject{fit} object)
+Summary statistics for the breakpoints (more useful when multiple
+chromosomes and samples are in the \Robject{fit} object)
 
 <<summary>>=
 summary(fit)
 @ 
 
 
-See \cite{Scharpf2007a} for a more complete description of the simulated dataset and the features detected by this HMM.  We may plot the data along with the predictions as follows:
+See \cite{Scharpf2007a} for a more complete description of the
+simulated dataset and the features detected by this HMM.  We may plot
+the data along with the predictions as follows:
 
 <<vanillaPlot,fig=TRUE,width=8,height=5>>=
 gp <- plotSnp(options@snpset, fit)
 gp$abline.v <- TRUE ##plots vertical dashed lines
-gp
-##plotSnp(object=gp, snpset=chromosome1, hmmPredict=fit) 
+show(gp)
 @ 
 
 \subsection{Integrating Confidence Estimates (ICE)}
@@ -230,11 +226,11 @@ We may also incorporate the confidence scores for the genotype calls:
 <<params2, eval=FALSE>>=
 options <- new("HmmOptions", 
 	       snpset=chromosome1, 
-		  states=c("D", "N", "L", "A"), 
-                  copyNumber.ICE=TRUE, 
-		  calls.ICE=TRUE,
-		  probHomCall=c(0.99, 0.75, 0.99, 0.75),
-		  probWrongCall=numeric())
+	       states=c("D", "N", "L", "A"), 
+	       copyNumber.ICE=TRUE, 
+	       calls.ICE=TRUE,
+	       probHomCall=c(0.99, 0.75, 0.99, 0.75),
+	       probWrongCall=numeric())
 @ 
 
 

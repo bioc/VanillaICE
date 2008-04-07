@@ -123,32 +123,32 @@ copyNumber.emission <- function(object){
 ##            gtEmission(as.integer(x), options, confidence, featureNames, ...)
 ##          })
 
-setMethod("gtEmission", c("integer", "HmmOptions"),
-          function(x, options, confidence, featureNames, ...){
-            gte <- x; rm(x)
-            fn <- featureNames
-            if(options@SnpClass == "SnpCopyNumberSet") return()
-            states <- options@states
-            S <- length(states)
-            
-            ##gte: genotype estimates
-            ##gte <- as.vector(gte)
-            gte[gte == 3] <- 1
-            gte[gte == 4 | is.na(gte)] <- 3 ##Make missing genotypes have value 3
-
-            if(!options@gt.ICE) {
-              gte.state <- options@gte.state
-              gte.state <- t(cbind(gte.state, 1-gte.state, NA))
-              gt.emission <- gte.state[gte, ]
-            }  else {
-              gte <- as.integer(gte)
-              names(gte) <- fn
-              gt.emission <- .gtEmission.ICE(x=gte,
-                                             confidence=confidence,
-                                             options=options)
-            }
-            log(gt.emission)
-          })
+##setMethod("gtEmission", c("integer", "HmmOptions"),
+##          function(x, options, confidence, featureNames, ...){
+##            gte <- x; rm(x)
+##            fn <- featureNames
+##            if(options@SnpClass == "SnpCopyNumberSet") return()
+##            states <- options@states
+##            S <- length(states)
+##            
+##            ##gte: genotype estimates
+##            ##gte <- as.vector(gte)
+##            gte[gte == 3] <- 1
+##            gte[gte == 4 | is.na(gte)] <- 3 ##Make missing genotypes have value 3
+##
+##            if(!options@gt.ICE) {
+##              gte.state <- options@gte.state
+##              gte.state <- t(cbind(gte.state, 1-gte.state, NA))
+##              gt.emission <- gte.state[gte, ]
+##            }  else {
+##              gte <- as.integer(gte)
+##              names(gte) <- fn
+##              gt.emission <- .gtEmission.ICE(x=gte,
+##                                             confidence=confidence,
+##                                             options=options)
+##            }
+##            log(gt.emission)
+##          })
 
 setMethod(".gtEmission.ICE", c("integer", "HmmOptions"),
           function(x, options, confidence, ...){  ##, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1){
@@ -215,32 +215,32 @@ setMethod(".gtEmission.ICE", c("integer", "HmmOptions"),
           })
 
 ##If there is more than one sample in object, it uses only the first.
-setMethod("cnEmission", c("numeric", "HmmOptions"),
-          function(x, options, confidence, robustSE, ...){
-		  if(options@SnpClass == "SnpCallSet") return()            
-		  cne <- x; rm(x)
-		  fn <- names(cne)
-		  states <- options@states
-		  S <- length(states)
-		  cn.location <- options@cn.location
-		  cne <- matrix(cne, nrow=length(cne), ncol=S, byrow=FALSE)
-            
-		  ##assume true copy number mean is the same for all samples
-		  cn.location <- matrix(cn.location, nrow=nrow(cne), ncol=S, byrow=TRUE)
-
-		  if(!options@cn.ICE){
-			  ##Use robust estimate of standard error-- sample-specific
-			  cn.SE <- matrix(robustSE, nrow=nrow(cn.location), ncol=ncol(cn.location), byrow=TRUE)
-		  } else{
-			  ##Use SNP-specific standard errors
-			  cn.SE <- 1/confidence
-			  cn.SE <- matrix(cn.SE, nrow=nrow(cne), ncol=ncol(cne), byrow=FALSE)
-			  colnames(cn.SE) <- states
-			  if(any(is.na(cn.SE))) stop("NA's in confidence scores.  Must  exclude these SNPs or plug in values for the confidence scores")
-		  }
-		  emission.cn <- dnorm(cne, cn.location, cn.SE)
-		  ##rownames(emission.cn) <- names(cne)
-		  ##colnames(emission.cn) <- states
-		  ##length should be R*S (R = number of SNPs, S = number of states)
-		  log(emission.cn)
-          })
+##setMethod("cnEmission", c("numeric", "HmmOptions"),
+##          function(x, options, confidence, robustSE, ...){
+##		  if(options@SnpClass == "SnpCallSet") return()            
+##		  cne <- x; rm(x)
+##		  fn <- names(cne)
+##		  states <- options@states
+##		  S <- length(states)
+##		  cn.location <- options@cn.location
+##		  cne <- matrix(cne, nrow=length(cne), ncol=S, byrow=FALSE)
+##            
+##		  ##assume true copy number mean is the same for all samples
+##		  cn.location <- matrix(cn.location, nrow=nrow(cne), ncol=S, byrow=TRUE)
+##
+##		  if(!options@cn.ICE){
+##			  ##Use robust estimate of standard error-- sample-specific
+##			  cn.SE <- matrix(robustSE, nrow=nrow(cn.location), ncol=ncol(cn.location), byrow=TRUE)
+##		  } else{
+##			  ##Use SNP-specific standard errors
+##			  cn.SE <- 1/confidence
+##			  cn.SE <- matrix(cn.SE, nrow=nrow(cne), ncol=ncol(cne), byrow=FALSE)
+##			  colnames(cn.SE) <- states
+##			  if(any(is.na(cn.SE))) stop("NA's in confidence scores.  Must  exclude these SNPs or plug in values for the confidence scores")
+##		  }
+##		  emission.cn <- dnorm(cne, cn.location, cn.SE)
+##		  ##rownames(emission.cn) <- names(cne)
+##		  ##colnames(emission.cn) <- states
+##		  ##length should be R*S (R = number of SNPs, S = number of states)
+##		  log(emission.cn)
+##          })

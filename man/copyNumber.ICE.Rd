@@ -1,6 +1,6 @@
-\name{cn.ICE}
-\alias{cn.ICE}
-\alias{cn.ICE<-}
+\name{copyNumber.ICE}
+\alias{copyNumber.ICE}
+\alias{copyNumber.ICE<-}
 \title{Indicates whether to use confidence scores of the observed copy
   number estimates in the HMM}
 
@@ -8,10 +8,13 @@
   assumed to be the inverse of the standard error }
 
 \usage{
-cn.ICE(object)
+copyNumber.ICE(object)
+copyNumber.ICE(object) <- value
 }
 \arguments{
-  \item{object}{An object of class \code{HmmParameter}}
+  \item{object}{An object of class \code{HmmOptions}}
+  \item{value}{Logical. If TRUE, confidence scores of the copy number
+    estimates are used to calculate emission probabilities.}
 }
 \value{
   Logical

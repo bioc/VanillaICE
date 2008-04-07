@@ -1,5 +1,3 @@
-
-
 setMethod("initialize", "HmmParameter",
 	  function(.Object,
 		   states=character(),
