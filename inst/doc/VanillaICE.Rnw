@@ -84,7 +84,8 @@ following classes for high-throughput SNP data:
 \begin{itemize}
 \item \Robject{SnpCallSet} (genotype calls)
 \item \Robject{SnpCopyNumberSet} (copy number estimates)
-\item \Robject{oligoSnpSet} (genotype and copy number estimates)
+\item \Robject{oligoSnpSet} (genotype calls and copy number estimates)
+\item \Robject{RatioSnpSet} (genotype calls and ratios of A and B allele intensities)
 \end{itemize}
 
 When pre-processing Affymetrix SNP chips with the \R{} package
@@ -171,8 +172,15 @@ class(params)
 
 We may then fit the HMM by
 
-<<fit>>=
+<<fit, eval=FALSE>>=
 fit <- hmm(options, params)
+@ 
+
+<<load,echo=FALSE>>=
+data(fit)
+@ 
+
+<<>>=
 fit
 breakpoints(fit)
 @ 
@@ -220,17 +228,42 @@ emission(params) <- cn.emission + gt.emission
 fit.ice <- hmm(options, params)
 @ 
 
-We may also incorporate the confidence scores for the genotype calls:
-(FIXME)
+We may also incorporate the confidence scores for the genotype calls
+by specifying \Robject{calls.ICE=TRUE}. This feature is only available
+for the Affymetrix 100k and 500k platforms. The slot
+\Robject{probHomCall} stores user-specified probabilities of P(call is
+AA or BB | state is LOH) and P(call is AA or BB | state is normal).
+These probabilities must be specified in this order.  The emission
+probabilities for the genotype calls will only be calculated for the
+states LOH (LOH is defined as a stretch of homozygous genotype calls
+longer than what one would expect by chance) and Normal refers to
+typical ratios of heterozygous to homozygous genotype calls. The slot
+\Robject{term5} contains user-specified probabilities for the P(true
+genotype is HET | genotype call is AB, hidden state is Normal) and
+P(true genotype is HET | genotype call is AA or BB, hidden state is
+Normal), respectively.  Default values are provided when not
+specified, as the following example illustrates.
 
 <<params2, eval=FALSE>>=
 options <- new("HmmOptions", 
 	       snpset=chromosome1, 
 	       states=c("D", "N", "L", "A"), 
+	       copyNumber.location=c(1, 2, 2, 3),
 	       copyNumber.ICE=TRUE, 
 	       calls.ICE=TRUE,
-	       probHomCall=c(0.99, 0.75, 0.99, 0.75),
-	       probWrongCall=numeric())
+	       probHomCall=c(0.99, 0.75))
+params <- new("HmmParameter", 
+	      states=states(options),
+	      initialStateProbability=0.99)
+cn.emission <- copyNumber.emission(options)
+genomicDistance(params) <- exp(-2 * calculateDistance(options@snpset)/(100*1e6))
+transitionScale(params) <- scaleTransitionProbability(options)
+gt.emit <- calls.emission(options)
+gt.emission <- array(NA, dim(cn.emission))
+gt.emission[, , 1:2] <- gt.emit
+gt.emission[, , 3:4] <- gt.emit
+emission(params) <- cn.emission + gt.emission
+fit.ice <- hmm(options, params)
 @ 
 
 
@@ -245,7 +278,11 @@ legend(-0.05, 10, fill=gp$col.predict[c(1, 3, 4)],
 legend(0, 0.8, legend="predictions", bty="n", cex=0.8, adj=0)
 @
 
-Note that the ICE HMM correctly identifies the simulated normal segments in features B and C (the normal segments were simulated to have high confidence scores). Additionally, the ICE HMM detects the micro-amplification in region E (also simulated to have high confidence scores).
+Note that the ICE HMM correctly identifies the simulated normal
+segments in features B and C (the normal segments were simulated to
+have high confidence scores). Additionally, the ICE HMM detects the
+micro-amplification in region E (also simulated to have high
+confidence scores).
 
 \subsection{Confidence scores}\label{sec:confidenceScores}
 

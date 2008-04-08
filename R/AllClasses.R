@@ -28,16 +28,16 @@ setClass("HmmParameter",
 			genomicDistance="numeric",
 			transitionScale="matrix"))
 setClassUnion("NullOrSnpSet", c("NULL", "SnpLevelSet"))
-setClassUnion("NULLOrNumeric", c("NULL", "numeric"))
+setClassUnion("NullOrNumeric", c("NULL", "numeric"))
 setClass("HmmOptions", ##contains="SnpLevelSet",
 	 representation(states="character",
 			snpset="SnpLevelSet",
 			copyNumber.location="numeric",
-			copyNumber.scale="NULLOrNumeric",
+			copyNumber.scale="NullOrNumeric",
 			copyNumber.ICE="logical",
 			calls.ICE="logical",
 			probHomCall="numeric",
-			probWrongCall="NULLOrNumeric"))
+			term5="numeric"))
 	 
 ##If we extend SnpLevelSet, the dimensions of the predictions in
 ##assayData would probably need to match the number of samples.  Not

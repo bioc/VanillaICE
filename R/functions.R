@@ -1,102 +1,228 @@
-.getCallEmission <- function(x,  ##genotype estimates from oligo
-                             confidence, ##confidence scores from oligo
-                             hapmapP,  ##obtained from hapmap
-                             options){  ##HmmOptions object
-  ##map observed call probablilities to a nonparametric estimate of
-  ##the density using the reference p distributions when the truth is
-  ##known
-   gte <- x; rm(x)
-  i11 <- hapmapP[, 1] == 3  ##called homozygous truth homozygous
-  i12 <- hapmapP[, 1] == 4  ##called homozygous truth heterozygous
-  i21 <- hapmapP[, 1] == 1  ##called het truth hom
-  i22 <- hapmapP[, 1] == 2  ##called het truth het
-  f11 <- density(hapmapP[i11, 2], from=1/1e3, to=1, n=1e3)
-  f12 <- density(hapmapP[i12, 2], from=1/1e3, to=1, n=1e3)
-  f21 <- density(hapmapP[i21, 2], from=1/1e3, to=1, n=1e3)
-  f22 <- density(hapmapP[i22, 2], from=1/1e3, to=1, n=1e3)
-  
-  ###########################################################################
-  ##distribution of observed call probabilities when the call was homozygous
-  observedPcalledHom <- cut(as.vector(confidence[gte == 1]), breaks=f11$x, labels=FALSE) #called HOM, truth HOM w
-  ##marginal distribution of observed call probabilities for heterozygous calls  
-  observedPcalledHet <- cut(as.vector(confidence[gte == 2]), breaks=f21$x, labels=FALSE) #called HET, truth HOM
+##setMethod(".calls_ICE", c("integer", "HmmOptions"),
+.splitAnnotation <- function(object, ...){  ##, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1){
+	pkgs <- strsplit(annotation(object), ",")[[1]]	
+	fn <- featureNames(object)
+	if(length(pkgs) > 1){
+		require(RSQLite) || stop("RSQLite package not available")
+		sql <- "SELECT man_fsetid FROM featureSet WHERE man_fsetid LIKE 'SNP%'"
+		object1 <- object2 <- object
+		annotation(object1) <- pkgs[1]
+		annotation(object2) <- pkgs[2]
+		tmp1 <- dbGetQuery(db(object1), sql)
+		tmp2 <- dbGetQuery(db(object2), sql)
 
-  ###########################################################################    
-  ##P(phat | LOH, gte=HET)  -- wrong call
-  ###########################################################################
-  ##this is approximately P(phat | HOM, gte=HET)  
-  pTruthIsLoh <- rep(NA, length(gte))  
-  pTruthIsLoh[gte == 1] <- f11$y[observedPcalledHom]
+		idx.pkg1 <- match(tmp1[["man_fsetid"]], fn)
+		idx.pkg1 <- idx.pkg1[!is.na(idx.pkg1)]
 
-  ###########################################################################    
-  ##Calculate P(phat | LOH, gte=HOM) 
-  ###########################################################################
-  ##this is approximately P(phat | HOM, gte=HOM)  
-  pTruthIsLoh[gte == 2] <- f21$y[observedPcalledHet]
+		idx.pkg2 <- match(tmp2[["man_fsetid"]], fn)
+		idx.pkg2 <- idx.pkg2[!is.na(idx.pkg2)]
 
-  ###########################################################################
-  ##Calculate P(phat | Normal, CHET)
-  ###########################################################################  
-  ##This is approx. P(phat | HET, CHET) * P(HET | CHET) + P(phat | HOM, CHET) * P(HOM|CHET)
-  ##When the true state is normal, we need to estimate 4 things conditional on the call
-  ## P(p | CHET, normal):
-  ##chet1  P(p | HET, CHET)
-  ##chet2  P(p | HOM, CHET)
-  ##chet3  P(HET | CHET)
-  ##chet4  P(HOM | CHET)
-  pTruthIsNormal <- rep(NA, length(gte))
-  chet1 <- f22$y[cut(confidence[gte == 2], breaks=f22$x, labels=FALSE)]
-  chet2 <- f21$y[cut(confidence[gte == 2], breaks=f21$x, labels=FALSE)]
-  gt.gte <- options@gt.gte
-  pTruthIsNormal[gte == 2] <- chet1*(1-gt.gte[2]) + chet2*gt.gte[2]
-
-  ###########################################################################
-  ##Calculate P(phat | Normal, HOM)
-  ###########################################################################    
-  ##In a normal region truth can be HOM or HET
-  ##P(phat | Normal, CHOM) is approx. P(phat | HET, CHOM) * P(HET|CHOM) + P(phat | HOM, CHOM) * P(HOM | CHOM)
-  chom1 <- f12$y[cut(confidence[gte == 1], breaks=f12$x, labels=FALSE)]
-  ##chom3 <- 1-0.9999  ##P(HET|CHOM)
-  chom2 <- f11$y[cut(confidence[gte == 1], breaks=f11$x, labels=FALSE)]
-  ##chom4 <- 0.9999    ##P(HOM|CHOM)
-  ##probability that the tue state is normal when genotype call is homozygous
-  pTruthIsNormal[gte == 1] <- chom1*gt.gte[1] + chom2*(1-gt.gte[1])
-
-  ###########################################################################
-  ##the stateProbability matrix is R x 2 (R = number of rows)
-  stateProbability <- cbind(pTruthIsLoh, pTruthIsNormal)
-  colnames(stateProbability) <- c("L", "N")
-  rownames(stateProbability) <- c("P[p(CHOM)| q]", "P[p(CHET)|q]")[gte]
-  ##stateProbability is R x 2 (R rows and 2 columns)
-  gt.confidence.states <- options@gt.confidence.states
-  stateProbability <- stateProbability[, gt.confidence.states]
-  
-  ###########################################################################
-  ##Calculate P(CHET| q) and P(CHOM| q), where q is
-  ##the true state.
-  ###########################################################################  
-  ##For q = LOH, we make the following simplifying
-  ##assumptions:
-  ##1.  P(CHET | q=LOH) \approx P(CHET | HOM) 
-  ##2.  P(CHOM | q=LOH) \approx P(CHOM | HOM)
-  ##For q = Normal,
-  ##3.  P(CHET | q=Normal) \approx P(HET | q = Normal)
-  ##    estimate the latter from the data, or use a fixed number.  e.g., 0.3
-  ##4.  P(CHOM | q=Normal) \approx P(HOM | q = Normal)
-  ##    estimate the latter quantity from the data, or use a fixed number 0.7
-  ##P.CHET.LOH <- 1-P.CHOM.LOH
-  ##P.CHET.LOH <- 1-gte.state["L"]
-  ##P.CHET.Normal <- 1-P.CHOM.Normal
-  ##P.CHET.Normal <- 1-gte.state["N"]
-  gte.state <- options@gte.state
-  B <- cbind(gte.state, 1-gte.state, NA)
-  colnames(B) <- c("gte=HOM", "gte=HET", "gte=NA")
-  rownames(B) <- options@states
-  B <- t(B[, gte])
-  emission.gt <- B * stateProbability
-  rownames(emission.gt) <- names(gte)
-  emission.gt
+		featureData(object)$platform <- rep(NA, nrow(object))
+		featureData(object)$platform[idx.pkg1] <- pkgs[1]
+		featureData(object)$platform[idx.pkg2] <- pkgs[2]
+	}
+	object
 }
+	
+	
+	
+##		tmp1 <- .getCallEmission(object1)
+##		tmp1 <- .getCallEmission(x=gte[enzyme == pkgs[1]],
+##					 confidence=confidence[enzyme == pkgs[1]],
+##					 hapmapP=hapmapP[[1]],
+##					 options=options)
+##		tmp2 <- .getCallEmission(x=gte[enzyme == pkgs[2]],
+##					 confidence=confidence[enzyme == pkgs[2]],
+##					 hapmapP=hapmapP[[2]],
+##					 options=options)
+##		tmp <- rbind(tmp1, tmp2)
+##		idx <- match(fn, rownames(tmp))
+##		gt.emission <- tmp[idx, ]
+##		stopifnot(identical(rownames(gt.emission), fn))
+##	} else{
+##		gt.emission <- .getCallEmission(x=gte,
+##						confidence=confidence,
+##						hapmapP=hapmapP,
+##						options=options)
+##	} 
+##	gt.emission
+##}
+
+##.getCallEmission <- function(x,  ##genotype estimates from oligo
+##                             confidence, ##confidence scores from oligo
+##                             hapmapP,  ##obtained from hapmap
+##                             options){  ##HmmOptions object
+.getCallEmission <- function(object){
+	##load hapmap probabilities
+	probHomCall <- object@probHomCall
+	term5 <- object@term5
+	object <- object@snpset
+	
+	.hapmapProbabilities <- function(annotationPackage){
+		##require("callsConfidence") || stop("callsConfidence package not available")
+		print("callsConfidence package must be available")
+		get(switch(annotationPackage,
+			   pd.mapping50k.hind240=data(hindPhat),
+			   pd.mapping50k.xba240=data(xbaPhat),
+			   pd.mapping250k.nsp=data(nspPhat), ##need to calculate phats for 500k
+			   pd.mapping250k.sty=data(styPhat),
+			   stop("annotation package not supported")))
+	}            	
+	hapmapP <- .hapmapProbabilities(annotation(object))
+	
+	##map observed call probablilities to a nonparametric estimate of
+	##the density using the reference p distributions when the truth is
+	##known
+	gte <- array(calls(object), dim=c(nrow(object), ncol(object), 2))
+	dimnames(gte) <- list(featureNames(object), sampleNames(object), c("LOH", "Normal"))
+	
+	confidence <- callsConfidence(object)
+	i11 <- hapmapP[, 1] == 3  ##called homozygous truth homozygous
+	i12 <- hapmapP[, 1] == 4  ##called homozygous truth heterozygous
+	i21 <- hapmapP[, 1] == 1  ##called het truth hom
+	i22 <- hapmapP[, 1] == 2  ##called het truth het
+	f11 <- density(hapmapP[i11, 2], from=1/1e3, to=1, n=1e3)
+	f12 <- density(hapmapP[i12, 2], from=1/1e3, to=1, n=1e3)
+	f21 <- density(hapmapP[i21, 2], from=1/1e3, to=1, n=1e3)
+	f22 <- density(hapmapP[i22, 2], from=1/1e3, to=1, n=1e3)
+	##-------------------------------------------------------------------------
+	##distribution of observed call probabilities when the call was homozygous
+	##-------------------------------------------------------------------------	
+	pTruthIsNormal <- pTruthIsLoh <- matrix(NA, nrow=nrow(object), ncol=ncol(object))
+	for(i in 1:ncol(object)){
+		##-------------------------------------------------------------------------
+		##P(phat | LOH, gte)  
+		##-------------------------------------------------------------------------				
+		hom <- which(gte[, i, 1] == 1 | gte[, i, 1] == 3)
+		observedPcalledHom <- cut(confidence[hom, i],
+					  breaks=f11$x,
+					  labels=FALSE) #called HOM, truth HOM w
+		pTruthIsLoh[hom, i] <- f11$y[observedPcalledHom]
+		
+		het <- which(gte[, i, 1] == 2)
+		observedPcalledHet <- cut(as.vector(confidence[het, i]),
+					  breaks=f11$x,
+					  labels=FALSE)
+		pTruthIsLoh[het, i] <- f21$y[observedPcalledHet]		
+		
+		##-------------------------------------------------------------------------
+		##Calculate P(phat | Normal, HOM)
+		##-------------------------------------------------------------------------					
+		chet1 <- f22$y[cut(confidence[het, i], breaks=f22$x, labels=FALSE)] 
+		chet2 <- f21$y[cut(confidence[het, i], breaks=f21$x, labels=FALSE)]
+		##term5[1]=P(true genotype is HET | calls is AB, state is normal)
+		pTruthIsNormal[het, i] <- chet1*term5[1] + chet2*(1-term5[1])
+
+		##chom1=called homozygous truth heterozygous
+		chom1 <- f12$y[cut(confidence[hom, i], breaks=f12$x, labels=FALSE)]
+		##chom2=called homozygous truth homozygous
+		chom2 <- f11$y[cut(confidence[hom, i], breaks=f11$x, labels=FALSE)]
+		##chom4 <- 0.9999    ##P(HOM|CHOM)
+		##probability that the true state is HOM when genotype call is homozygous
+		##term5[2]=P(true genotype is HET | calls is AA or BB, state is normal)
+		pTruthIsNormal[hom, i] <- chom1*(term5[2]) + chom2*(1-term5[2])
+	}
+##		observedPcalledHom <- cut(as.vector(confidence[gte == 1]),
+##					       breaks=f11$x,
+##					       labels=FALSE) #called HOM, truth HOM w
+	##marginal distribution of observed call probabilities for heterozygous calls  
+##	observedPcalledHet <- cut(as.vector(confidence[gte == 2]), breaks=f21$x,
+##				  labels=FALSE) #called HET, truth HOM
+
+	##this is approximately P(phat | HOM, gte=HET)
+##	browser()
+	##pTruthIsLoh <- rep(NA, length(gte))
+##	pTruthIsLoh <- matrix(NA, nrow=nrow(object), ncol=ncol(object))
+##	for(i in 1:ncol(object)){
+##		hom <- which(gte[, i, 1] == "1" | gte[, i, 1] == "3")
+##		pTruthIsLoh[hom, 1] <- f11$y[observedPcalledHom]
+##	}
+
+
+	##this is approximately P(phat | HOM, gte=HOM)  
+##	pTruthIsLoh[gte == 2] <- f21$y[observedPcalledHet]
+
+	##-------------------------------------------------------------------------
+	##Calculate P(phat | Normal, CHET)
+	##-------------------------------------------------------------------------	
+	##This is approx. P(phat | HET, CHET) * P(HET | CHET) + P(phat | HOM, CHET) * P(HOM|CHET)
+	##When the true state is normal, we need to estimate 4 things conditional on the call
+	## P(p | CHET, normal):
+	##chet1  P(p | HET, CHET)
+	##chet2  P(p | HOM, CHET)
+	##chet3  P(HET | CHET)
+	##chet4  P(HOM | CHET)
+##	pTruthIsNormal <- rep(NA, length(gte))
+##	chet1 <- f22$y[cut(confidence[gte == 2], breaks=f22$x, labels=FALSE)]
+##	chet2 <- f21$y[cut(confidence[gte == 2], breaks=f21$x, labels=FALSE)]
+
+##	probWrongCall <- options@probWrongCall
+##	term5 <- options@term5
+##	gt.gte <- options@gt.gte
+##	pTruthIsNormal[gte == 2] <- chet1*(1-term5["AB", "Normal"]) + chet2*term5["AB", "Normal"]
+##	pTruthIsNormal[gte == 2] <- chet1*(1-gt.gte[2]) + chet2*gt.gte[2]
+
+	##-------------------------------------------------------------------------
+	##Calculate P(phat | Normal, HOM)
+	##-------------------------------------------------------------------------	
+	##In a normal region truth can be HOM or HET
+	##P(phat | Normal, CHOM) is approx. P(phat | HET, CHOM) * P(HET|CHOM) + P(phat | HOM, CHOM) * P(HOM | CHOM)
+##	chom1 <- f12$y[cut(confidence[gte == 1], breaks=f12$x, labels=FALSE)]
+##	##chom3 <- 1-0.9999  ##P(HET|CHOM)
+##	chom2 <- f11$y[cut(confidence[gte == 1], breaks=f11$x, labels=FALSE)]
+##	##chom4 <- 0.9999    ##P(HOM|CHOM)
+##	##probability that the true state is normal when genotype call is homozygous
+##	pTruthIsNormal[gte == 1] <- chom1*(1-term5["AAorBB", "Normal"]) + chom2*term5["AAorBB", "Normal"]	
+##	pTruthIsNormal[gte == 1] <- chom1*gt.gte[1] + chom2*(1-gt.gte[1])
+	
+	##-------------------------------------------------------------------------	
+	##the stateProbability matrix is R x 2 (R = number of SNPs)
+	##stateProbability is R x 2 (R rows and 2 columns)
+	##gt.confidence.states <- options@gt.confidence.states
+##	stateProbability <- stateProbability[, gt.confidence.states]
+	
+  	##-------------------------------------------------------------------------	
+	##Calculate P(CHET| q) and P(CHOM| q), where q is
+	##the true state.
+  	##-------------------------------------------------------------------------		
+	##For q = LOH, we make the following simplifying
+	##assumptions:
+	##1.  P(CHET | q=LOH) \approx P(CHET | HOM) 
+	##2.  P(CHOM | q=LOH) \approx P(CHOM | HOM)
+	##For q = Normal,
+	##3.  P(CHET | q=Normal) \approx P(HET | q = Normal)
+	##    estimate the latter from the data, or use a fixed number.  e.g., 0.3
+	##4.  P(CHOM | q=Normal) \approx P(HOM | q = Normal)
+	##    estimate the latter quantity from the data, or use a fixed number 0.7
+	##P.CHET.LOH <- 1-P.CHOM.LOH
+	##P.CHET.LOH <- 1-gte.state["L"]
+	##P.CHET.Normal <- 1-P.CHOM.Normal
+	##P.CHET.Normal <- 1-gte.state["N"]
+	
+	##*gte.state <- options@gte.state
+	stateProbability <- array(NA, dim=dim(gte))
+	dimnames(stateProbability) <- dimnames(gte)
+	stateProbability[, , 1] <- pTruthIsLoh
+	stateProbability[, , 2] <- pTruthIsNormal
+	B <- cbind(probHomCall, 1-probHomCall)
+	colnames(B) <- c("AAorBB", "AB")
+##	B <- cbind(gte.state, 1-gte.state, NA)
+##	colnames(B) <- c("gte=HOM", "gte=HET", "gte=NA")
+	rownames(B) <- c("LOH", "N")
+##	rownames(B) <- options@states
+	fobs <- array(NA, dim=c(nrow(object), length(sampleNames(object)), 2))
+	dimnames(fobs) <- list(featureNames(object), sampleNames(object), c("LOH", "N"))
+	for(i in 1:ncol(object)){
+		hom <- which(gte[, i, 1] == "1" | gte[, i, 1] == "3")
+		het <- which(gte[, i, 1] == "2")
+		fobs[hom, i, ] <- matrix(B[, 1], nrow=length(hom), ncol=2, byrow=TRUE)
+		fobs[het, i, ] <- matrix(B[, 2], nrow=length(het), ncol=2, byrow=TRUE)
+	}
+	emission.gt <- fobs * stateProbability
+	dimnames(emission.gt) <- dimnames(gte)
+	emission.gt
+}
+
 
 getChromosomeArm <- function(snpset){
 	data(chromosomeAnnotation, package="SNPchip", envir=environment())
@@ -385,7 +511,7 @@ viterbi <- function(beta, pi, tau, states, arm, tau.scale){
 ##this methods loops over snps for all samples, but is 15 times slower
 .viterbi2 <- function(object, params){ ##HmmOptions, HmmParameters
 	snpset <- object@snpset
-##	i <- match(featureNames(snpset(object)), dimnames(emission(params))[[1]])
+	##	i <- match(featureNames(snpset(object)), dimnames(emission(params))[[1]])
 	if(!(identical(featureNames(snpset), dimnames(emission(params))[[1]]))) stop("feature names should match")
 	arm <- paste(chromosome(snpset), featureData(snpset)$arm, sep="")
 	beta <- emission(params)
@@ -535,6 +661,7 @@ makeTable <- function(object, state, by, unit=1000, digits=3){
 	stats <- rbind(stats, overall)
 	stats
 }
+
 
 
 

@@ -57,7 +57,7 @@ setMethod("initialize", "HmmOptions",
 		   copyNumber.ICE=FALSE,
 		   calls.ICE=FALSE,
 		   probHomCall=vector("numeric", length(states)),
-		   probWrongCall=NULL){
+		   term5=c(0.999, 0.001)){
 		  if(missing(snpset)) stop("snpset must be specified")
 		  if(any(is.na(chromosome(snpset)))){
 			  snpset <- snpset[!is.na(chromosome(snpset)), ]
@@ -83,6 +83,17 @@ setMethod("initialize", "HmmOptions",
 			  featureData(snpset)$arm <- getChromosomeArm(snpset)
 			  if(any(is.na(featureData(snpset)$arm))) warning("NAs for chromosomal arm")
 		  }
+		  if(calls.ICE){
+			  if(length(term5) != 2){
+				  print("term5 must have length 2.  Using defaults")
+##				  term5 <- matrix(c(0.001, 0.999,
+##						    0.001, 0.001), nrow=2, byrow=TRUE)
+				  term5 <- c(0.999, ##P(true genotype is HET | call AB, normal)
+					     0.001) ##P(true genotype is HET | call AAorBB, normal)
+				  names(term5) <- c("AB",
+						    "AAorBB")
+			  }
+		  }
 		  .Object@snpset <- snpset[order(chrom, position(snpset)), ]
 		  .Object@states <- states
 		  .Object@copyNumber.location <- copyNumber.location
@@ -90,7 +101,7 @@ setMethod("initialize", "HmmOptions",
 		  .Object@copyNumber.ICE <- copyNumber.ICE
 		  .Object@calls.ICE <- calls.ICE
 		  .Object@probHomCall <- probHomCall
-		  .Object@probWrongCall <- probWrongCall
+		  .Object@term5 <- term5
 		  .Object
 	  })
 
@@ -122,14 +133,13 @@ setValidity("HmmOptions", function(object){
 		valid <- FALSE
 	}
 	if(object@calls.ICE) {
-		if(is.null(object@probWrongCall)){
-			msg <- c(msg, "probability of a wrong genotype call must be specified when calls.ICE is TRUE. probWrongCall must be a numeric vector of length 3. Value in interval 0, 1.  Order is for calls=1 (AA), calls=2 (AB), calls=3(BB)")
+		if(length(object@term5) != 2){
+			msg <- c(msg, "term5 must have length 2 when calls.ICE is TRUE. See HmmOptions ")
 			valid <- FALSE
-		} else{
-			if(length(object@probWrongCall) != 3){
-				msg <- c(msg, "probWrongCall must be a numeric vector of length 3 with values in the interval 0, 1.  Order is for calls=1 (AA), calls=2 (AB), calls=3(BB)")
-				valid <- FALSE
-			}
+		}
+		if(length(object@probHomCall) != 2){
+			msg <- c(msg, "when calls.ICE is TRUE, probHomCall must be a numeric vector of length 2")
+			valid <- FALSE
 		}
 	}
 	if(any(c("copyNumber", "ratio") %in% assayDataElementNames(object@snpset))){
@@ -145,9 +155,11 @@ setValidity("HmmOptions", function(object){
 		}
 	}
 	if("calls" %in% assayDataElementNames(object@snpset)){
-		if(length(object@states) != length(object@probHomCall)){
-			msg <- c(msg, "the probability of observing a homozygous call given the hidden state ('probHomCall') must be a numeric vector) must be specified for each hidden state (and in the same order).")
-			valid <- FALSE
+		if(!object@calls.ICE){
+			if(length(object@states) != length(object@probHomCall)){
+				msg <- c(msg, "the probability of observing a homozygous call given the hidden state ('probHomCall') must be a numeric vector) must be specified for each hidden state (and in the same order).")
+				valid <- FALSE
+			}
 		}
 		if(max(object@probHomCall) > 1 | min(object@probHomCall) < 0){
 			msg <- c(msg, "values of probHomCall must be in the interval 0, 1")
@@ -370,6 +382,7 @@ setMethod("initialize", "HmmPredict",
 setValidity("HmmPredict", function(object) {
   assayDataValidMembers(assayData(object), "predictions")
 })
+
 
 
 

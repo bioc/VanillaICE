@@ -11,7 +11,7 @@ setReplaceMethod("annotation", "HmmOptions", function(object, value){
 })
 
 ##setMethod("cn.robustSE", "HmmOptions", function(object) object@cn.robustSE)
-setMethod("notes", "HmmOptions", function(object) object@notes)
+##setMethod("notes", "HmmOptions", function(object) object@notes)
 setReplaceMethod("states", c("HmmOptions", "character"),
                  function(object, value){
                    object@states <- states
@@ -119,18 +119,18 @@ setMethod("calculateDistance", "HmmOptions",
 		  d <- (position(snpset)[2:nrow(snpset)] - position(snpset)[1:(nrow(snpset)-1)])##/(100*1e6)
 		  d
           })
-setMethod("snpdata", "HmmOptions", function(object) object@snpset)
+##setMethod("snpdata", "HmmOptions", function(object) object@snpset)
 
 
 setMethod("show", "HmmOptions", function(object){
-	show(snpdata(object))
+	show(object@snpset)
 	cat("\n hidden states: ", states(object))
 	cat("\n copyNumber.location: ", object@copyNumber.location)
 	cat("\n copyNumber.scale: ", object@copyNumber.scale)
 	cat("\n copyNumber.ICE: ", object@copyNumber.ICE)
 	cat("\n calls.ICE: ", object@calls.ICE)
 	cat("\n probability of a Homozygous Call: ", object@probHomCall)
-	cat("\n probability of a wrong call: ", object@probWrongCall, "\n")
+	cat("\n term5: ", object@term5, "\n")
 })
 
 setMethod("[", "HmmOptions",
@@ -144,19 +144,19 @@ setMethod("[", "HmmOptions",
               return(x)
             }
             ##number of rows (SNPs)
-            R <- nrow(snpset(x))
+            R <- nrow(x@snpset)
             ##number of states 
             S <- length(states(x))
             ##number of columns (samples)
-            C <- ncol(snpset(x))
+            C <- ncol(x@snpset)
             if(!missing(i) & !missing(j)){
-		    x@snpset <- snpset(x)[i, j]
+		    x@snpset <- x@snpset[i, j]
             }
             if(!missing(i) & missing(j)){
-		    x@snpset <- snpset(x)[i, ]
+		    x@snpset <- x@snpset[i, ]
             }
 	    if(missing(i) & !missing(j)){
-		    x@snpset <- snpset(x)[, j]
+		    x@snpset <- x@snpset[, j]
 	    }
             x
           })
@@ -171,6 +171,14 @@ setReplaceMethod("copyNumber.ICE", c("HmmOptions", "logical"),
 setReplaceMethod("calls.ICE", c("HmmOptions", "logical"),
                  function(object, value){
 			 object@calls.ICE <- value
+			 if(length(object@term5) != 2){
+				 object@term5 <- c(0.999, 0.001)
+				 print("using default values for term 5 slot. See HmmOptions help")
+			 }
+			 if(length(object@probHomCall) != 2){
+				 object@probHomCall <- c(0.99, 0.7)
+				 print("only probabilities for states LOH and Normal are allowed when calls.ICE is TRUE. Using defaults")				 
+			 }
 			 object
                  })
 

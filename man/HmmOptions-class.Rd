@@ -5,6 +5,10 @@
 \alias{annotation,HmmOptions-method}
 \alias{annotation<-,HmmOptions,ANY-method}
 \alias{calculateDistance,HmmOptions-method}
+\alias{calls.ICE,HmmOptions-method}
+\alias{calls.ICE<-,HmmOptions,logical-method}
+\alias{copyNumber.ICE,HmmOptions-method}
+\alias{copyNumber.ICE<-,HmmOptions,logical-method}
 \alias{db,HmmOptions-method}
 \alias{hmm,HmmOptions,HmmParameter-method}
 \alias{initialize,HmmOptions-method}
@@ -16,7 +20,7 @@
 \title{Class "HmmOptions"}
 \description{Options for fitting the hidden Markov model.}
 \section{Objects from the Class}{
-Objects can be created by calls of the form \code{new("HmmOptions", snpset, states, copyNumber.location, copyNumber.scale, copyNumber.ICE, calls.ICE, probHomCall, probWrongCall)}.
+Objects can be created by calls of the form \code{new("HmmOptions", snpset, states, copyNumber.location, copyNumber.scale, copyNumber.ICE, calls.ICE, probHomCall, term5)}.
 }
 \section{Slots}{
 	 \describe{
@@ -36,6 +40,10 @@ Objects can be created by calls of the form \code{new("HmmOptions", snpset, stat
     \item{annotation}{\code{signature(object = "HmmOptions")}: }
     \item{annotation<-}{\code{signature(object = "HmmOptions", value = "ANY")}: }
     \item{calculateDistance}{\code{signature(object = "HmmOptions")}: }
+    \item{calls.ICE}{\code{signature(object = "HmmOptions")}: }
+    \item{calls.ICE<-}{\code{signature(object = "HmmOptions", value="logical")}: }    
+    \item{copyNumber.ICE}{\code{signature(object = "HmmOptions")}: }
+    \item{copyNumber.ICE<-}{\code{signature(object = "HmmOptions", value="logical")}: }        
     \item{db}{\code{signature(object = "HmmOptions")}: }
     \item{hmm}{\code{signature(object = "HmmOptions", params = "HmmParameter")}:}
     \item{initialize}{\code{signature(.Object = "HmmOptions")}: }

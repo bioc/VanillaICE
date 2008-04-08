@@ -12,7 +12,7 @@ setGeneric("copyNumber.emission", function(object) standardGeneric("copyNumber.e
 setGeneric("copyNumber.location", function(object) standardGeneric("copyNumber.location"))
 ##setGeneric("cn.robustSE", function(object) standardGeneric("cn.robustSE"))
 ##setGeneric("gtEmission", function(x, options, ...) standardGeneric("gtEmission"))
-setGeneric(".gtEmission.ICE", function(x, options, ...) standardGeneric(".gtEmission.ICE"))
+##setGeneric(".gtEmission.ICE", function(x, options, ...) standardGeneric(".gtEmission.ICE"))
 setGeneric("copyNumber.ICE", function(object) standardGeneric("copyNumber.ICE"))
 setGeneric("copyNumber.ICE<-", function(object, value) standardGeneric("copyNumber.ICE<-"))
 setGeneric("calls.ICE", function(object) standardGeneric("calls.ICE"))

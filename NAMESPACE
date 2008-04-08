@@ -1,44 +1,27 @@
 import(SNPchip, Biobase, oligoClasses)
 exportClasses("HmmParameter", "HmmOptions")
-exportMethods(
-              "[",
+exportMethods("[",
               annotation,
               "annotation<-",
-##              arm,
-##              Beta,
               breakpoints,
 	      "breakpoints<-",
               calculateBreakpoints,
-##              calculateTransitionProbability,
-##              cn.ICE, "cn.ICE<-",
-##              gt.ICE, "gt.ICE<-",
-##              cn.location,
-##	      copyNumber.location,
-##              cnEmission,
-##              cn.robustSE,
-##              chromosome,
+	      calls.ICE,
+	      "calls.ICE<-",
+	      copyNumber.ICE,
+	      "copyNumber.ICE<-",
               coerce,                            
               db,
 	      emission,
 	      "emission<-",
-##              featureData,
-##              fData,
               featureNames,
-##              getPar,
-##              gtEmission,
               hmm,
-##              hmmOptions,
-##              "hmmOptions<-",
               initialize,
-              notes,
               pData,
               pi,
-  ##            plotSnp,
               position,
               predictions,
 	      "predictions<-",
-##              sampleNames,
-##              SnpClass,
               states,
               "states<-",
               show,
@@ -46,7 +29,6 @@ exportMethods(
               tau,
 	      genomicDistance,
 	      "genomicDistance<-",
-##              tau.scale,
 	      transitionScale,
 	      "transitionScale<-")
 
@@ -56,14 +38,12 @@ export(getChromosomeArm,
        calculateCnSE,
        calls.emission,
        copyNumber.emission,
-##       .getCallEmission,
-##       .calculatebreaks,
        makeTable,
        scaleTransitionProbability,
-##       plotPredictions,
        viterbi)
 
 ##Do not export in released version
+##export(.splitAnnotation, .getCallEmission)
 
 ###########################################################################
 ##classes for graphical parameters

@@ -3,14 +3,14 @@ calls.emission <- function(object){
 		warning("calls not an element of the assayData for object@snpset.")
 		return()
 	}
-	if(object@calls.ICE) stop("need to fix this option.  Must specify calls.ICE=FALSE for now")	
-	##function(x, options, confidence, featureNames, ...){
+	if(!validObject(object)){
+		stop("HmmOptions object is not valid")
+	}
 	snpset <- object@snpset
 	states <- object@states
 	S <- length(states)	
 	gte <- array(calls(snpset), c(nrow(snpset), ncol(snpset), S))
 	dimnames(gte) <- list(featureNames(snpset), sampleNames(snpset), states)
-	
 	if(!object@calls.ICE) {
 		##for algorithms that produce bi-allelic calls, only 3
 		##calls are possible.  The emission probability for
@@ -33,8 +33,21 @@ calls.emission <- function(object){
 		emission.gt[c(i, j)] <- log(emission.gt[c(i, j)])
 		emission.gt <- array(emission.gt, dim=dim(gte))
 	}  else {
-		browser()
-		stop("need to fix this option.  Must specify calls.ICE=FALSE for now")
+		pkgs <- strsplit(annotation(object@snpset), ",")[[1]]
+		if(length(pkgs) > 1){
+			object@snpset <- .splitAnnotation(snpset)
+		} else{
+			featureData(object@snpset)$platform <- NA
+			featureData(object@snpset)$platform <- annotation(snpset)
+		}
+		emission.gt <- array(NA, dim=c(nrow(object@snpset), ncol(object@snpset), 2))
+		dimnames(emission.gt) <- list(featureNames(object@snpset), sampleNames(object@snpset), c("LOH", "N"))
+		for(i in 1:length(pkgs)){
+			j <- which(fData(object@snpset)$platform == pkgs[i])
+			annotation(object@snpset) <- pkgs[1]
+			emission.gt[j, , ] <- .getCallEmission(object[j, ])
+		}
+		emission.gt <- log(emission.gt)
 	}
 	return(emission.gt)##log scale
 }
@@ -117,6 +130,7 @@ copyNumber.emission <- function(object){
 	##length should be R*S (R = number of SNPs, S = number of states)
 	return(emission.cn) ##log scale
 }
+				    
 
 ##setMethod("gtEmission", c("numeric", "HmmOptions"),
 ##          function(x, options, confidence, featureNames, ...){
@@ -150,69 +164,7 @@ copyNumber.emission <- function(object){
 ##            log(gt.emission)
 ##          })
 
-setMethod(".gtEmission.ICE", c("integer", "HmmOptions"),
-          function(x, options, confidence, ...){  ##, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1){
-		  gte <- x; rm(x)
-		  hapmapP <- list()
-		  pkgs <- strsplit(options@annotation, ",")[[1]]
-		  fn <- names(gte)
 
-		  .hapmapProbabilities <- function(annotationPackage){
-			  require("callsConfidence") || stop("callsConfidence package not available")
-			  get(switch(annotationPackage,
-				     pd.mapping50k.hind240=data(hindPhat),
-				     pd.mapping50k.xba240=data(xbaPhat),
-				     pd.mapping250k.nsp=data(nspPhat), ##need to calculate phats for 500k
-				     pd.mapping250k.sty=data(styPhat)))
-		  }            
-  
-		  if(length(pkgs) > 1){
-			  hapmapP[[1]] <- .hapmapProbabilities(pkgs[1])
-			  hapmapP[[2]] <- .hapmapProbabilities(pkgs[2])
-		  } else {
-			  hapmapP <- .hapmapProbabilities(pkgs)
-		  }
-		  names(hapmapP) <- pkgs
-		  if(length(pkgs) > 1){
-			  require(RSQLite) || stop("RSQLite package not available")
-			  sql <- "SELECT man_fsetid FROM featureSet WHERE man_fsetid LIKE 'SNP%'"
-			  object1 <- object2 <- options
-			  annotation(object1) <- pkgs[1]
-			  annotation(object2) <- pkgs[2]
-			  tmp1 <- dbGetQuery(db(object1), sql)
-			  tmp2 <- dbGetQuery(db(object2), sql)
-
-			  idx.pkg1 <- match(tmp1[["man_fsetid"]], fn)
-			  idx.pkg1 <- idx.pkg1[!is.na(idx.pkg1)]
-
-			  enzyme <- rep(NA, length(gte))
-			  names(enzyme) <- fn
-			  enzyme[idx.pkg1] <- pkgs[1]
-			  
-			  idx.pkg2 <- match(tmp2[["man_fsetid"]], fn)
-			  idx.pkg2 <- idx.pkg2[!is.na(idx.pkg2)]
-			  enzyme[idx.pkg2] <- pkgs[2]
-			  
-			  tmp1 <- .getCallEmission(x=gte[enzyme == pkgs[1]],
-						   confidence=confidence[enzyme == pkgs[1]],
-						   hapmapP=hapmapP[[1]],
-						   options=options)
-			  tmp2 <- .getCallEmission(x=gte[enzyme == pkgs[2]],
-						   confidence=confidence[enzyme == pkgs[2]],
-						   hapmapP=hapmapP[[2]],
-						   options=options)
-			  tmp <- rbind(tmp1, tmp2)
-			  idx <- match(fn, rownames(tmp))
-			  gt.emission <- tmp[idx, ]
-			  stopifnot(identical(rownames(gt.emission), fn))
-		  } else{
-			  gt.emission <- .getCallEmission(x=gte,
-							  confidence=confidence,
-							  hapmapP=hapmapP,
-							  options=options)
-		  } 
-		  gt.emission
-          })
 
 ##If there is more than one sample in object, it uses only the first.
 ##setMethod("cnEmission", c("numeric", "HmmOptions"),
