@@ -45,10 +45,4 @@ export(getChromosomeArm,
 ##Do not export in released version
 ##export(.splitAnnotation, .getCallEmission)
 
-###########################################################################
-##classes for graphical parameters
-###########################################################################
-##exportClasses("ParHSet", "ParHmmSnpSet", "ParHmmSnpCallSet", "ParHmmSnpCopyNumberSet")
-
-
 

@@ -92,8 +92,8 @@ When pre-processing Affymetrix SNP chips with the \R{} package
 \Rpackage{oligo}, an object of one of the above classes is created and
 can be used directly with the HMMs described in this vignette.  These
 classes can also be created from Illumina data as described in the
-IlluminaHowTo vignette.  The simulated data provided with this package is
-an instance of class \Robject{oligoSnpSet}
+IlluminaHowTo vignette.  The simulated data provided with this package
+is an instance of class \Robject{oligoSnpSet}
 
 <<data>>=
 data(chromosome1)

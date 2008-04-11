@@ -16,6 +16,20 @@ copyNumber.ICE(object) <- value
   \item{value}{Logical. If TRUE, confidence scores of the copy number
     estimates are used to calculate emission probabilities.}
 }
+
+
+\details{
+
+   If TRUE, the confidence scores (assumed to be inverse standard
+      errors) are used by the hidden Markov model.  This has the
+      desirable consequence of providing more local smmoothing for
+      precise estimates of copy number and more global smoothing for
+      copy number estimates with higher standard errors. When FALSE, a
+      robust estimate of the chip variability is calculated across all
+      of the autosomes.
+      
+}
+
 \value{
   Logical
 }

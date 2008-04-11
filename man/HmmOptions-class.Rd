@@ -24,14 +24,31 @@ Objects can be created by calls of the form \code{new("HmmOptions", snpset, stat
 }
 \section{Slots}{
 	 \describe{
-    \item{\code{states}:}{Object of class \code{"character"} }
-    \item{\code{snpset}:}{Object of class \code{"SnpLevelSet"} }
-    \item{\code{copyNumber.location}:}{Object of class \code{"numeric"}}
-    \item{\code{copyNumber.scale}:}{Object of class \code{"NULLOrNumeric"}}
-    \item{\code{copyNumber.ICE}:}{Object of class \code{"logical"}}
-    \item{\code{calls.ICE}:}{Object of class \code{"logical"}}
-    \item{\code{probHomCall}:}{Object of class \code{"numeric"}}
-    \item{\code{probWrongCall}:}{Object of class \code{"NULLOrNumeric"}}
+    \item{\code{states}:}{Object of class \code{"character"}.  Hidden
+      states of the HMM.}
+    \item{\code{snpset}:}{\code{"SnpLevelSet"} instance. }
+    \item{\code{copyNumber.location}:}{Object of class
+      \code{"numeric"}.  Ignored when snpset is an instance of
+      \code{SnpCallSet}. See \code{\link{copyNumber.location}}}
+    
+    \item{\code{copyNumber.scale}:}{Object of class
+      \code{"NULLOrNumeric"}.  This slot is not currently used.  If one
+      has standard errors for the copy number estimates, the inverse of
+      the standard errors should be stored in the \code{cnConfidence}
+      \code{assayData} element of the snpset object.}
+    
+    \item{\code{copyNumber.ICE}:}{Object of class \code{"logical"}. See \code{\link{copyNumber.ICE}}.  }
+    
+    \item{\code{calls.ICE}:}{Object of class \code{"logical"}.  See \code{\link{calls.ICE}}}
+    \item{\code{probHomCall}:}{Object of class \code{"numeric"}. The
+    probability of a homozygous genotype call corresponding to each of
+    the states. When \code{calls.ICE} is TRUE, only the first two
+    elements will be used.}
+    \item{\code{term5}:}{Object of class
+    \code{"NULLOrNumeric"}. User-specified probabilities of f(HOM |
+    genotype call, state).  Ignored when
+    \code{calls.ICE} is \code{FALSE}.  For more details, see Equation
+    2.7 in the manuscript that this package references.}
   }
 }
 \section{Methods}{
