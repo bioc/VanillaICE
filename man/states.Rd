@@ -7,8 +7,8 @@
   The latent states for the hidden Markov model.
 }
 \usage{
-states(object)
-states(object) <- value
+        states(object)
+        states(object) <- value
 }
 
 \arguments{

@@ -57,9 +57,8 @@ copyNumber.emission <- function(object){
 		warning("'copyNumber' or 'ratio' must be elements of the assayData for object@snpset.")
 		return()
 	}
-	snpset <- object@snpset
+	snpset <- snpset(object)
 	cne <- copyNumber(snpset)
-
 	if(all(cne > 0, na.rm=TRUE)){
 		print("Calculating emission probabilities on the log(copy number)")
 		i <- which(!is.na(as.vector(cne)))
@@ -87,6 +86,7 @@ copyNumber.emission <- function(object){
 	##assume true copy number mean is the same for all samples
 	##Easiest to keep everything the same dimension, even if not needed at this point
 	cn.location <- aperm(array(cn.location, dim=c(S, ncol(snpset), nrow(snpset))))
+	
 	if(!object@copyNumber.ICE){
 		##Use robust estimate of standard error-- sample-specific
 		i <- which(chromosome(snpset) %in% as.character(1:22))
@@ -104,8 +104,8 @@ copyNumber.emission <- function(object){
 		i <- which(!is.na(as.vector(cne)))
 	} else{
 		##Use SNP-specific standard errors
-		i <- which(!is.na(as.vector(cnConfidence(snpset))) & !is.na(as.vector(cne)))
-		if(all(cnConfidence(snpset) > 0)){
+		i <- which(!(is.na(as.vector(cnConfidence(snpset)))) & !is.na(as.vector(cne)))
+		if(all(cnConfidence(snpset) > 0, na.rm=TRUE)){
 			print("Using 1/cnConfidence(object) as standard errors for the copy number")
 			copyNumber.scale <- array(1/cnConfidence(snpset), dim=dim(cne))
 		} else{
@@ -113,21 +113,12 @@ copyNumber.emission <- function(object){
 		}
 		
 	}
-	k <- which(is.na(as.vector(cne)))
+	k <- which(!is.na(as.vector(cne)))
 	if(!identical(dim(cne), dim(cn.location))) stop("dimensions must be the same")
-	emission.cn <- vector("numeric", length=length(as.vector(cn.location)))
-	emission.cn[i] <- log(dnorm(as.vector(cne)[i], as.vector(cn.location)[i], as.vector(copyNumber.scale)[i]))
-	emission.cn[k] <- NA
+	emission.cn <- rep(NA, length(as.vector(cn.location)))
+	emission.cn[k] <- log(dnorm(as.vector(cne)[k], as.vector(cn.location)[k], as.vector(copyNumber.scale)[k]))
 	emission.cn <- array(emission.cn, dim=dim(cne))
 	dimnames(emission.cn) <- dimnames(cne)
-	##this checks that the coercion from array to vector to array works
-	##tmp <- array(as.vector(cne), dim=dim(cne))
-	##dimnames(tmp) <- dimnames(cne)
-	##identical(tmp, cne)  ##is TRUE
-	##dnorm(cne[1:5, 1:5, 1], cn.location[1:5, 1:5, 1], copyNumber.scale[1:5, 1:5, 1])
-	##rownames(emission.cn) <- names(cne)
-	##colnames(emission.cn) <- states
-	##length should be R*S (R = number of SNPs, S = number of states)
 	return(emission.cn) ##log scale
 }
 				    

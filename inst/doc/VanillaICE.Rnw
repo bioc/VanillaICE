@@ -165,7 +165,7 @@ emission(params) <- cn.emission + gt.emission ##log scale
 @ 
 
 <<genomicDistance>>=
-genomicDistance(params) <- exp(-2 * calculateDistance(options@snpset)/(100*1e6))
+genomicDistance(params) <- exp(-2 * physicalDistance(options)/(100*1e6))
 transitionScale(params) <- scaleTransitionProbability(options)
 class(params)
 @ 
@@ -198,7 +198,7 @@ simulated dataset and the features detected by this HMM.  We may plot
 the data along with the predictions as follows:
 
 <<vanillaPlot,fig=TRUE,width=8,height=5>>=
-gp <- plotSnp(options@snpset, fit)
+gp <- plotSnp(snpset(options), fit)
 gp$abline.v <- TRUE ##plots vertical dashed lines
 show(gp)
 @ 
@@ -256,7 +256,7 @@ params <- new("HmmParameter",
 	      states=states(options),
 	      initialStateProbability=0.99)
 cn.emission <- copyNumber.emission(options)
-genomicDistance(params) <- exp(-2 * calculateDistance(options@snpset)/(100*1e6))
+genomicDistance(params) <- exp(-2 * physicalDistance(options)/(100*1e6))
 transitionScale(params) <- scaleTransitionProbability(options)
 gt.emit <- calls.emission(options)
 gt.emission <- array(NA, dim(cn.emission))
@@ -268,7 +268,7 @@ fit.ice <- hmm(options, params)
 
 
 <<icePlot, fig=TRUE, width=8, height=5>>=
-gp <- plotSnp(options@snpset, fit.ice)
+gp <- plotSnp(snpset(options), fit.ice)
 gp$abline.v <- TRUE
 gp$col.predict <- c("darkblue", "white", "yellow", "orange")
 show(gp)
@@ -449,15 +449,15 @@ params.cn <- new("HmmParameter",
 		 states=c("D", "N", "A"))
 emission(params.cn) <- copyNumber.emission(options)
 transitionScale(params.cn) <- scaleTransitionProbability(options)
-genomicDistance(params.cn) <- exp(-2*calculateDistance(options)/(100*1e6))
+genomicDistance(params.cn) <- exp(-2*physicalDistance(options)/(100*1e6))
 fit.cn <- hmm(options, params.cn)
 breakpoints(fit.cn)
-graph.par <- plotSnp(options@snpset, fit.cn)
+graph.par <- plotSnp(snpset(options), fit.cn)
 graph.par$abline.v <- FALSE
 @ 
 
 <<copyNumberFigure, fig=TRUE, include=TRUE>>=
-show(graph.par)
+print(graph.par)
 legend(0, 0.8, fill=graph.par$col.predict[c(1, 3)], 
        legend=c("< 2 copes", "> 2 copies"),
        bty="n", cex=0.8)
@@ -488,12 +488,13 @@ options <- new("HmmOptions",
 params.calls <- new("HmmParameter", 
 		    states=states(options))
 transitionScale(params.calls) <- scaleTransitionProbability(options)
-genomicDistance(params.calls) <- exp(-2*calculateDistance(options)/(100*1e6))
+genomicDistance(params.calls) <- exp(-2*physicalDistance(options)/(100*1e6))
 emission(params.calls) <- calls.emission(options)
 
 fit.calls <- hmm(options, params.calls)
 breakpoints(fit.calls)
-gp <- plotSnp(options@snpset, fit.calls, col.predict=c("black", "white"))
+gp <- plotSnp(snpset(options), fit.calls)
+gp$col.predict <- c("black", "white")
 gp$ylim <- c(-0.5, 1)
 gp$add.centromere <- FALSE
 gp$abline.v <- TRUE

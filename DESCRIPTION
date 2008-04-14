@@ -1,5 +1,5 @@
 Package: VanillaICE
-Version: 1.1.20
+Version: 1.1.21
 Title: Methods for fitting Hidden Markov Models to SNP chip data
 Author: Robert Scharpf <rscharpf@jhsph.edu> and  Ingo Ruczinski <ingo@jhsph.edu>
 Maintainer: Robert Scharpf <rscharpf@jhsph.edu> 

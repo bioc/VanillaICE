@@ -1,22 +1,30 @@
 \name{HmmOptions-class}
-\docType{class}
-\alias{HmmOptions-class}
 \alias{[,HmmOptions-method}
 \alias{annotation,HmmOptions-method}
 \alias{annotation<-,HmmOptions,ANY-method}
-\alias{calculateDistance,HmmOptions-method}
-\alias{calls.ICE,HmmOptions-method}
-\alias{calls.ICE<-,HmmOptions,logical-method}
-\alias{copyNumber.ICE,HmmOptions-method}
-\alias{copyNumber.ICE<-,HmmOptions,logical-method}
 \alias{db,HmmOptions-method}
 \alias{hmm,HmmOptions,HmmParameter-method}
 \alias{initialize,HmmOptions-method}
 \alias{notes,HmmOptions-method}
 \alias{show,HmmOptions-method}
+\alias{calculateDistance,HmmOptions-method}
+\alias{physicalDistance,HmmOptions-method}
+\alias{calls.ICE,HmmOptions-method}
+\alias{calls.ICE<-,HmmOptions,logical-method}
+\alias{copyNumber.ICE,HmmOptions-method}
+\alias{copyNumber.ICE<-,HmmOptions,logical-method}
+\alias{copyNumber.location,HmmOptions-method}
+\alias{copyNumber.location,HmmOptions,numeric-method}
+\alias{probHomCall,HmmOptions-method}
+\alias{probHomCall<-,HmmOptions,numeric-method}
+\alias{snpset,HmmOptions-method}
+\alias{snpset<-,HmmOptions,SnpLevelSet-method}
 \alias{states,HmmOptions-method}
 \alias{states<-,HmmOptions,character-method}
-
+\alias{term5,HmmOptions-method}
+\alias{term5<-,HmmOptions,numeric-method}
+\docType{class}
+\alias{HmmOptions-class}
 \title{Class "HmmOptions"}
 \description{Options for fitting the hidden Markov model.}
 \section{Objects from the Class}{
@@ -53,6 +61,7 @@ Objects can be created by calls of the form \code{new("HmmOptions", snpset, stat
 }
 \section{Methods}{
   \describe{
+
     \item{[}{\code{signature(x = "HmmOptions")}: }
     \item{annotation}{\code{signature(object = "HmmOptions")}: }
     \item{annotation<-}{\code{signature(object = "HmmOptions", value = "ANY")}: }

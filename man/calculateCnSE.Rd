@@ -11,7 +11,8 @@ calculateCnSE(object, referenceSet, epsilon = 0.1)
   \item{object}{ An object of class \code{SnpCopyNumberSet} or
     \code{oligoSnpSet}.  }
   \item{referenceSet}{ An object of class \code{SnpCopyNumberSet} or
-    \code{oligoSnpSet}.  }
+    \code{oligoSnpSet}. If missing, this function uses the samples in
+    the \code{object} to estimate across sample standard deviations }
   \item{epsilon}{minimum standard error}
 }
 \details{

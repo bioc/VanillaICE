@@ -119,6 +119,8 @@ setMethod("calculateDistance", "HmmOptions",
 		  d <- (position(snpset)[2:nrow(snpset)] - position(snpset)[1:(nrow(snpset)-1)])##/(100*1e6)
 		  d
           })
+setMethod("physicalDistance", "HmmOptions", function(object) calculateDistance(object))
+
 ##setMethod("snpdata", "HmmOptions", function(object) object@snpset)
 
 
@@ -182,9 +184,38 @@ setReplaceMethod("calls.ICE", c("HmmOptions", "logical"),
 			 object
                  })
 
+setMethod("probHomCall", "HmmOptions", function(object) object@probHomCall)
+setReplaceMethod("probHomCall", signature(object="HmmOptions", value="numeric"),
+		 function(object, value){
+			 object@probHomCall <- value
+			 object
+		 })
+setMethod("snpset", "HmmOptions", function(object) object@snpset)
+setReplaceMethod("snpset", signature(object="HmmOptions", value="SnpLevelSet"),
+		 function(object, value){
+			 object@snpset <- value
+			 object
+		 })
+setMethod("term5", "HmmOptions", function(object) object@term5)
+setReplaceMethod("term5", signature(object="HmmOptions", value="numeric"),
+		 function(object, value){
+			 object@term5 <- value
+			 object
+		 })
+
 ##setMethod("SnpClass", "HmmOptions", function(object) object@SnpClass)
 setMethod("states", "HmmOptions", function(object) object@states)
 setMethod("copyNumber.location", "HmmOptions", function(object) object@copyNumber.location)
+setReplaceMethod("copyNumber.location", signature(object="HmmOptions", value="numeric"),
+		 function(object, value){
+			 object@copyNumber.location <- value
+			 object
+		 })
+
+setMethod("calculateDistance", "HmmOptions",
+	  function(object){
+		  calculateDistance(snpset(object))
+	  })
 ##setReplaceMethod("states", "HmmOptions", function(object, value){
 ##  object@states <- value
 ##  object

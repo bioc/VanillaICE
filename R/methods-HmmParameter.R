@@ -6,8 +6,11 @@ setMethod("hmm", c("HmmOptions", "HmmParameter"),
 		  if(!validObject(params)){
 			  stop("the object of class HmmParameter must be valid. See validObject()")
 		  }
-		  snpset <- object@snpset
-		  if("copyNumber" %in% assayDataElementNames(snpset)){		  
+		  ##harmonize the two objects (can't do this without featureData in params)
+		  ##i <- match(featureNames(object), featureNames(params))
+		  ##j <- match(sampleNames(object), sampleNames(hmmPredict))
+		  snpset <- snpset(object)
+		  if("copyNumber" %in% assayDataElementNames(snpset) | "ratio" %in% assayDataElementNames(snpset)){		  
 			  if(min(copyNumber(snpset), na.rm=TRUE) > 0){
 				  print("Transforming copy number to log2 scale.")
 				  copyNumber(snpset) <- log2(copyNumber(snpset))
@@ -19,7 +22,6 @@ setMethod("hmm", c("HmmOptions", "HmmParameter"),
 		  beta <- emission(params)
 		  predictions <- matrix(NA, nrow=nrow(snpset), ncol=(dim(beta)[2]))
 		  for(i in 1:(dim(beta)[2])){
-##			  if(verbose){
 			  if(i == 1){
 				  print(paste("Fitting HMM to sample", i))
 			  } else {cat(i, "\n")}
@@ -31,12 +33,10 @@ setMethod("hmm", c("HmmOptions", "HmmParameter"),
 						      tau.scale=transitionScale(params))
 		  }
 		  rownames(predictions) <- featureNames(snpset)
-##		  if(missing(sn)) sn <- sampleNames(snpset)
 		  colnames(predictions) <- sampleNames(snpset)
 		  hmmOut <- new("HmmPredict",
 				states=states(object),
 				predictions=predictions,
-				##				SnpClass=SnpClass(snpset),
 				featureData=featureData(snpset),
 				experimentData=experimentData(snpset),
 				phenoData=phenoData(snpset),

@@ -2,6 +2,10 @@ setMethod("calculateDistance", "SnpLevelSet",
           function(object){
 		  d <- (position(object)[2:nrow(object)] - position(object)[1:(nrow(object)-1)])##/(100*1e6)
           })
+setMethod("physicalDistance", "SnpLevelSet",
+          function(object){
+		  calculateDistance(object)
+          })
 
 ##setMethod("calculateTransitionProbability", c("SnpLevelSet", "HmmOptions"),
 ##          function(object, options, scale, ...){

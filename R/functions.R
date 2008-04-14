@@ -399,8 +399,7 @@ addFeatureData <- function(snpset){
 calculateCnSE <- function(object,
                           referenceSet,
                           epsilon=0.1){
-
-	if(min(copyNumber(snpset), na.rm=TRUE) > 0){
+	if(min(copyNumber(object), na.rm=TRUE) > 0){
 		print("Robust estimates of the standard error are on the log2 scale.")
 		print("Transforming copy number in object to log2 scale")
 		copyNumber(object) <- log2(copyNumber(object))
