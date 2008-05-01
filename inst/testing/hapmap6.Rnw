@@ -48,13 +48,10 @@ The objective of this vignette is to start from a fairly large batch
 of unprocessed CEL files, process the CEL files using
 \Rpackage{oligo}, and smooth the data to identify chromosomal
 alterations using the \Rpackage{VanillaICE}.  We will keep track of
-bottlenecks in computation and memory size and work.  While this
-vignette is focused on the Affymetrix 100k platform, corresponding
-vignettes for other Affymetrix and Illumina platforms will be posted
-in the near future.  Warning: this vignette illustrates a work flow
-for handling a large set of CEL files -- the code here is not
-reproducible because the files used in this example are not provided
-as part of the \Rpackage{VanillaICE} package.
+bottlenecks in computation and memory size and work. Warning: this
+vignette illustrates a work flow for handling a large set of CEL files
+-- the code here is not reproducible because the files used in this
+example are not provided as part of the \Rpackage{VanillaICE} package.
 
 Perhaps a figure here showing the relationship of classes that we will
 be generating.
@@ -101,7 +98,8 @@ controlled. AFAIK, gender = 1 for male and 2 for female is always
 required.
 
 <<eval=TRUE>>=
-celfiles <- list.celfiles()
+celfiles <- list.celfiles(pathToCel)
+fullFilenames <- list.celfiles(pathToCel, full.names=TRUE)
 createHapmapInfo <- function(files, point){
 	ids <- sapply(strsplit(files, "\\."), function(x) x[point])
 	ids <- sapply(strsplit(ids, "_"), function(x) x[point])
@@ -121,16 +119,16 @@ varMetadata(pd)$labelDescription <- c("family pedigree id (empty for unrelated)"
 				      "cel file names")
 @ 
 
-I am going to make the set of files analyzed slightly smaller by only
-considering the samples that are independent--those with founder id
-(fid) value of zero.
+%I am going to make the set of files analyzed slightly smaller by only
+%considering the samples that are independent--those with founder id
+%(fid) value of zero.
 
 <<independentSamples, eval=TRUE>>=
-which <- pd$fid == 0
-pd <- pd[which, ]
-celfiles <- celfiles[which]
+##which <- pd$fid == 0
+##pd <- pd[which, ]
+##celfiles <- celfiles[which]
 sampleNames(pd) <- pd$hapmap
-fullFilenames <- file.path(getwd(), celfiles)
+stopifnot(identical(sampleNames(pd), as.character(sapply(celfiles, function(x) strsplit(x, "_GW6")[[1]][1]))))
 @ 
 
 Now we use the function \Robject{justCRLMM} to preprocess.  This
@@ -141,29 +139,30 @@ and antisense strands.  We will later demonstrate a quick way to get a
 first approximation of copy number using these intensities.
 
 <<justCrlmmPartial, eval=FALSE, echo=FALSE>>=
-fullFilenames <- fullFilenames[1:3]
-pd <- pd[1:3, ]
+testNames <- fullFilenames[1:3]
+pd.test <- pd[1:3, ]
 @ 
 
-In the devel version of \Rpackage{oligo}, several intermediate files are produced from
-the \Robject{crlmm} function and nothing is returned.
+In the devel version of \Rpackage{oligo}, several intermediate files
+are produced from the \Robject{crlmm} function and nothing is
+returned.
 
 <<crlmm, eval=TRUE>>=
 stopifnot(all(sapply(fullFilenames, file.exists)))
-outdir <- file.path(pathTo, "tmp")
+##outdir <- file.path(pathTo, "tmp")
 if(file.exists(outdir)){
 	unlink(outdir, recursive=TRUE)
 }
+crlmm(fullFilenames[1:3], pathTo, verbose=TRUE) #phenoData=pd, verbose=FALSE)
+@ 
 
-
-crlmm(fullFilenames, outdir=outdir) #phenoData=pd, verbose=FALSE)
+<<eval=FALSE>>=
 calls.file <- file.path(outdir, "crlmm-calls.txt")
 conf.file <- file.path(outdir, "crlmm-conf.txt")
 calls <- as(read.delim(calls.file), "matrix")
 conf <- as(read.delim(conf.file), "matrix")
 alleleA <- readSummaries("alleleA", outdir)##[1:5,]
 alleleB <- readSummaries("alleleB", outdir)
-
 ##Save by chromosome or by sample?  Might be easiest (downstream) to save by sample.
 callsetplus <- new("SnpCnvCallSetPlus",
 		   calls=calls,
@@ -173,15 +172,12 @@ callsetplus <- new("SnpCnvCallSetPlus",
 		   phenoData=pd)
 callset <- strsplit(callsetplus, sampleNames(callsetplus))
 for(i in 1:length(callset)){
-	
 }
-
-
 save(callsetplus, file=file.path(pathTo, "callsetplus.rda"), compress=TRUE)
 @ 
 
-<<clean, eval=TRUE>>=
-unlink(outdir, recursive=TRUE)
+<<clean, eval=FALSE>>=
+unlink(pathTo, recursive=TRUE)
 @ 
 
 <<eval=FALSE>>=
@@ -236,165 +232,7 @@ save(callset, file=paste(pathTo, "callset.rda", sep="/"), compress=TRUE)
 load(paste(pathTo, "callset.rda", sep="/"))
 @ 
 
-\subsection{Estimating copy number}
-
-We expect that the averaged intensities for the A and B alleles will
-be proportional to the total copy number.  Because the fluorescence at
-a SNP is very much SNP-dependent, we'll center each SNP at the median
-value and then recenter at the 'normal' copy number.  Here, we define
-normal copy number to be two for autosomes, one for the male X, and
-two for the female X. Because we've noticed that homozygous genotype
-calls appear to have overall less fluorescence than the heterozygous
-genotype calls, we'll center the homozygous and heterozygous genotype
-calls at their respective medians.
-
-<<A, eval=FALSE>>=
-log2cn <- getA(callset)
-dim(log2cn)
-@ 
-
-%We then average the sense and antisense values:
-
-%<<avgA, eval=FALSE>>=
-%log2cn <- rowMeans(A, dims=2, na.rm=TRUE)
-%dim(log2cn)
-%@ 
-
-We center the homozygous and heterozygous genotypes separately (since
-the average intensities differs by call):
-
-<<centerByGenotype, eval=FALSE>>=
-chr.matrix <- matrix(chromosome(callset), ncol=ncol(log2cn), nrow=nrow(log2cn))
-median.hom <- median(log2cn[(calls(callset) == 1 | calls(callset) == 3) & chr.matrix != "X"], na.rm=TRUE)
-median.het <- median(log2cn[calls(callset) == 2 & chr.matrix != "X"], na.rm=TRUE)
-recenterByGenotype <- function(x, callset, recenter.hom, recenter.het){
-	calls <- as.vector(calls(callset))
-	x[calls == 1 | calls == 3] <- x[calls ==1 | calls == 3] - recenter.hom
-	x[calls == 2] <- x[calls == 2] - recenter.het
-	x
-}
-for(j in 1:ncol(log2cn)){
-	log2cn[, j] <- recenterByGenotype(log2cn[, j], callset[, j], recenter.hom=median.hom, recenter.het=median.het)
-}
-@ 
-
-Next, we sweep out a robust estimate of the median from the samples
-(tries to put fluorescence intensities on a similar scale for each of
-the samples)
-
-<<bySample, eval=FALSE>>=
-f <- function(x, chromosome){
-	tmp2 <- split(x, chromosome)
-	if(length(tmp2) > 15){
-		idx <- order(sapply(tmp2, "median"))
-		tmp2 <- tmp2[idx]
-		tmp3 <- tmp2[-c(1:5, (length(tmp2)-4):length(tmp2))]
-		med <- median(unlist(tmp3))
-	} else {
-		med <- median(sapply(tmp2, "median"))
-	}
-	return(med)
-}
-robust.median <- apply(log2cn, 2, f, chromosome(callset))
-log2cn <- sweep(log2cn, 2, robust.median)
-@ 
-
-Next, we sweep out the SNP-specific median intensities and recenter
-(centering depends on chromosome):
-
-<<sweepMedian, eval=FALSE>>=
-rowSweep <- function(callset, X, value, recenter, j){
-	if(length(value) == 1){
-		i <- chromosome(callset) == value
-	} else {
-		i <- chromosome(callset) %in% value
-	}
-	i[is.na(i)] <- FALSE
-	if(sum(i) > 1){
-		if(!missing(j)){
-			if(sum(j) < 5) warning("very few samples for calculating a robust average")
-			avg <- rowMedians(X[i, j], na.rm=TRUE)
-			X[i, j] <- sweep(X[i, j], 1, avg) + recenter
-		} else{
-			avg <- rowMedians(X[i, ], na.rm=TRUE)
-			X[i, ] <- sweep(X[i, ], 1, avg) + recenter
-		}
-	}
-	X
-}
-if(!("gender" %in% varLabels(callset)) & any(chromosome(callset) %in% c("X", "Y", "XY"))){
-	stop("gender must be specified")
-}
-male <- callset$gender == 1
-female <- callset$gender == 2
-chromosome(callset)[is.na(chromosome(callset))] <- "NA"		  
-log2cn <- rowSweep(callset, log2cn,  "NA", log2(2))
-log2cn <- rowSweep(callset, log2cn,  "M", log2(2))		  
-log2cn <- rowSweep(callset, log2cn,  "X", log2(1), male)
-log2cn <- rowSweep(callset, log2cn,  "X", log2(2), female)
-log2cn <- rowSweep(callset, log2cn,  "Y", log2(1), male)
-log2cn <- rowSweep(callset, log2cn,  "Y", log2(0.5), female)		  
-log2cn <- rowSweep(callset, log2cn,  as.character(1:22), log2(2))
-chromosome(callset)[chromosome(callset) == "NA"] <- NA
-copyNumber <- 2^log2cn
-@ 
-
-The preceding codechunks may be replaced by the function
-\Robject{calculateCopyNumber}.
-
-<<calculateCopyNumber, eval=FALSE>>=
-system.time(cn <- calculateCopyNumber(callset, 
-				      center.autosomes=2,
-				      center.X.male=1,
-				      center.X.female=2,
-				      center.Y.male=1,
-				      center.Y.female=0.4))
-identical(cn, copyNumber)
-@ 
-
-<<echo=FALSE, results=hide, eval=FALSE>>=
-rm(cn); gc()
-@ 
-			  
-We may now create an object of class \Robject{oligoSnpSet} that
-contains \Robject{assayData} elements for SNP-level summaries of
-genotype calls and copy number.  For now, we will assign a matrix of
-missing values for copy number confidence estimates.
-
-<<createSnpSet, eval=FALSE>>=
-cnConfidence <- matrix(NA, nrow=nrow(callset), ncol=ncol(callset))
-rownames(cnConfidence) <- featureNames(callset)
-colnames(cnConfidence) <- sampleNames(callset)
-if(identical(rownames(copyNumber), featureNames(callset))){
-	snpset <- new("oligoSnpSet",
-		      copyNumber=copyNumber,
-		      cnConfidence=cnConfidence,
-		      calls=calls(callset),
-		      callsConfidence=callsConfidence(callset),
-		      experimentData=experimentData(callset),
-		      featureData=featureData(callset),
-		      phenoData=phenoData(callset),
-		      annotation=annotation(callset))
-}
-@ 
-
-<<echo=FALSE, results=hide>>=
-rm(cnConfidence); gc()
-@ 
-
-Estimating copy number from a \Robject{SnpCallSetPlus} object and
-creating an instance of the class \Robject{oligoSnpSet} are
-encapsulated in the method for coercing an object between the two
-classes:
-
-<<coerce, eval=FALSE>>=
-snpset <- as(callset, "oligoSnpSet")
-@ 
-
-<<echo=FALSE, results=hide, eval=FALSE>>=
-rm(callset); gc()
-@ 
-
+\section{Estimating copy number}
 
 \section{\Rpackage{VanillaICE}: Identifying chromosomal alterations}
 
@@ -463,11 +301,11 @@ if(identical(rownames(cn.se), featureNames(snpset))){
 
 Here we save a \Robject{sample.snpset} object that is used in the \Rpackage{SNPchip} vignette.
 
-<<sample.snpset>>=
+<<sample.snpset, eval=FALSE>>=
 sample.snpset <- snpset[sample(1:nrow(sample.snpset), 40000), 1:4]
 @ 
 
-<<echo=FALSE>>=
+<<echo=FALSE, eval=FALSE>>=
 save(sample.snpset, file="~/madman/Rpacks/SNPchip/data/sample.snpset.RData", compress=TRUE)
 notes(sample.snpset) <- "This R object was created using the hapmap100k vignette in the R package VanillaICE. Look in the inst/testing subdirectory of VanillaICE for additional details"
 @ 

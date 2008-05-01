@@ -476,6 +476,16 @@ viterbi <- function(beta, pi, tau, states, arm, tau.scale){
 	colnames(delta) <- colnames(psi) <- states
 	delta[1, ] <- pi + beta[1, ]
 	psi[1, ] <- rep(0, S)
+	i <- which(is.na(beta[, 1]))
+
+	##-----------------------------------------------------------
+	##missing values do not influence the predictions
+	##Might want to change this at somepoint--often informative
+	##-----------------------------------------------------------
+	if(any(i)){
+		print("missing values in the emission probabilities do not influence the predictions...might want to change this")
+	}
+	beta[i, ] <- 0
 	for(t in 2:T){
 		if(arm[t] != arm[t-1]){
 			##SNP t is on a different chromosome/chromosome arm
