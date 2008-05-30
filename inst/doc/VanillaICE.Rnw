@@ -504,7 +504,7 @@ gp$hmm.ycoords <- c(-0.2, -0.05)
 @ 
 
 <<callsFigure, fig=TRUE, include=TRUE>>=
-show(gp)
+print(gp)
 legend(0, -0.1, legend="LOH", fill="black", 
        title="predictions", bty="o", cex=0.8)
 @ 
