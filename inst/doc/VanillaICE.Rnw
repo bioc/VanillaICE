@@ -144,7 +144,6 @@ options <- new("HmmOptions",
 	       states=c("D", "N", "L", "A"),
 	       snpset=chromosome1,
 	       copyNumber.location=c(1, 2, 2, 3),
-	       copyNumber.scale=c(0.3, 0.3, 0.5, 0.2),
 	       probHomCall=c(0.99, 0.7, 0.99, 0.7))
 validObject(options)
 @ 
