@@ -98,9 +98,18 @@ copyNumber.emission <- function(object){
 		if(takelog) {
 			cne.auto <- log2(cne.auto)
 		}
-		cn.robustSE <- apply(cne.auto, 2, f)
-		copyNumber.scale <- array(matrix(cn.robustSE, nrow=nrow(snpset), ncol=ncol(snpset), byrow=TRUE), dim=dim(cne))
-		dimnames(copyNumber.scale) <- dimnames(cne)
+
+		if(is.null(object@copyNumber.scale)){
+			cn.robustSE <- apply(cne.auto, 2, f)			
+			copyNumber.scale <- array(matrix(cn.robustSE,
+							 nrow=nrow(snpset),
+							 ncol=ncol(snpset),
+							 byrow=TRUE), dim=dim(cne))
+		} else{
+			copyNumber.scale <- aperm(array(object@copyNumber.scale, dim=c(S, ncol(snpset), nrow(snpset))))
+			if(takelog) print("User-supplied copyNumber.scale should be a standard deviation of the log2 CN")
+		} 
+		dimnames(copyNumber.scale) <- dimnames(cne)		
 		i <- which(!is.na(as.vector(cne)))
 	} else{
 		##Use SNP-specific standard errors

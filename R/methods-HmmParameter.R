@@ -1,5 +1,5 @@
 setMethod("hmm", c("HmmOptions", "HmmParameter"),
-          function(object, params){##snpset, sn, verbose=FALSE, ...){
+          function(object, params){
 		  if(!validObject(object)){
 			  stop("the object of class HmmOptions must be valid. See validObject()")
 		  }
@@ -18,6 +18,17 @@ setMethod("hmm", c("HmmOptions", "HmmParameter"),
 				  print("Negative values in the copy number.  Assume that copy number has been suitably transformed and is approximately Gaussian")
 			  }
 		  }
+
+		  ##Useful for trios, but otherwise should be ignored
+		  if(dim(emission(params))[2] != length(sampleNames(snpset))){
+			  sn <- dimnames(emission(params))[[2]]
+			  if(is.null(sn)){
+				  warning("dimnames not provided for emission probabilities")
+				  sn <- "sample1"
+			  }
+		  } else{
+			  sn <- sampleNames(snpset)
+		  }
 		  arm <- paste(chromosome(snpset), featureData(snpset)$arm, sep="")
 		  beta <- emission(params)
 		  predictions <- matrix(NA, nrow=nrow(snpset), ncol=(dim(beta)[2]))
@@ -33,13 +44,14 @@ setMethod("hmm", c("HmmOptions", "HmmParameter"),
 						      tau.scale=transitionScale(params))
 		  }
 		  rownames(predictions) <- featureNames(snpset)
-		  colnames(predictions) <- sampleNames(snpset)
+		  colnames(predictions) <- sn
+		  i <- match(sn, sampleNames(snpset))
 		  hmmOut <- new("HmmPredict",
 				states=states(object),
 				predictions=predictions,
 				featureData=featureData(snpset),
 				experimentData=experimentData(snpset),
-				phenoData=phenoData(snpset),
+				phenoData=phenoData(snpset[, i]),
 				annotation=annotation(snpset))
 		  breakpoints(hmmOut) <- calculateBreakpoints(hmmOut)
 		  return(hmmOut)
