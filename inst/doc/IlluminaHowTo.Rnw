@@ -107,7 +107,7 @@ gp$abline <- TRUE; gp$abline.h <- c(0.5, 1, 3/2); gp$abline.col <- "grey20"
 gp$abline.lty <- c(2, 1, 2)
 @ 
 
-<<plotSnp, fig=TRUE, width=8, height=5>>=
+<<plotSnp, fig=TRUE, width=8, height=5, eval=FALSE>>=
 print(gp)
 @ 
 
