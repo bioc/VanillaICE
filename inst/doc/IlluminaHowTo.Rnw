@@ -71,7 +71,7 @@ gt[gt == "BB"] <- 3
 gt[gt == "AB"] <- 2
 gt[gt == "NC"] <- 4
 gt <- as.matrix(as.integer(gt[[1]]))
-ratio <- 2^as.matrix(as.numeric(illuminaEx[, "S1135.Log.R.Ratio"]))
+ratio <- 2*2^as.matrix(as.numeric(illuminaEx[, "S1135.Log.R.Ratio"]))
 colnames(gt) <- colnames(ratio) <- "S1135"
 rownames(ratio) <- rownames(gt) <- illuminaEx[, "Name"]
 fd <- new("AnnotatedDataFrame",
@@ -119,7 +119,7 @@ featureData(snpset)$arm <- getChromosomeArm(snpset)
 options <- new("HmmOptions", 
 	      snpset=snpset, 
 	      states=c("D", "N", "L", "A"),
-              copyNumber.location=c(1/2, 1, 1, 3/2),
+              copyNumber.location=c(1, 2, 2, 3),
 	      probHomCall=c(0.99, 0.75, 0.99, 0.75))
 params <- new("HmmParameter",
 	     states=states(options))
