@@ -47,14 +47,16 @@ setMethod("[", "HmmPredict",
 
 setMethod("calculateBreakpoints", "HmmPredict",
 	  function(object, ...){
-		  breaks <- list()
-		  for(i in 1:ncol(object)){
-			  x <- split(object[, i], chromosome(object))
-			  breaks[[i]] <- lapply(x, .calculatebreaks)
-			  breaks[[i]] <- do.call("rbind", breaks[[i]])
+		  regions <- list()
+		  for(j in 1:ncol(object)){
+			  regions[[j]] <- findBreaks(x=predictions(object)[, j],
+						     states=states(object),
+						     position=position(object),
+						     chromosome=chromosome(object),
+						     sample=sampleNames(object)[j])
 		  }
-		  breaks <- do.call("rbind", breaks)
-		  return(as.data.frame(breaks))
+		  regions <- do.call("rbind", regions)
+		  return(regions)
 	  })
 
 setMethod("summary", "HmmPredict",

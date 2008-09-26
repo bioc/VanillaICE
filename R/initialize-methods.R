@@ -66,7 +66,7 @@ setMethod("initialize", "HmmOptions",
 			  print("Excluding SNPs that are not on chromosomes 1-22 or X")
 			  snpset <- snpset[chromosome(snpset) %in% c(1:22, "X"), ]
 		  }
-		  chrom <- chromosome2numeric(chromosome(snpset))
+		  chrom <- chromosome2integer(chromosome(snpset))
 		  if(class(snpset) == "RatioSnpSet"){
 			  featureAnn <- which(!c("chromosome", "position", "arm") %in% fvarLabels(snpset))
 			  if(length(featureAnn) > 0){
@@ -126,7 +126,7 @@ setValidity("HmmOptions", function(object){
 		msg <- c(msg, "Object contains chromosomes that are not currently supported for the HMM.  Supported chromosomes are 1-22 and X.")
 		valid <- object
 	}
-	chrom <- chromosome2numeric(chromosome(object@snpset))
+	chrom <- chromosome2integer(chromosome(object@snpset))
 	tmp <- object@snpset[order(chrom, position(object@snpset)), ]
 	if(!identical(featureNames(tmp), featureNames(object@snpset))){
 		msg <- c(msg, "SNPs must be ordered by chromosome and physical position")
@@ -189,7 +189,7 @@ setValidity("HmmOptions", function(object){
 ##			  snpset <- snpset[!(is.na(chromosome(snpset))), ]			  
 ##		  }
 ##
-##		  chrom <- chromosome2numeric(chromosome(snpset))
+##		  chrom <- chromosome2integer(chromosome(snpset))
 ##		  tmp <- snpset[order(chrom, position(snpset)), ]
 ##		  if(!identical(featureNames(tmp), featureNames(snpset))){
 ##			  warning("snpset object ordered by chromosome and physical position.  Results will be returned in this order")

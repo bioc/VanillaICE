@@ -71,28 +71,34 @@ gt[gt == "BB"] <- 3
 gt[gt == "AB"] <- 2
 gt[gt == "NC"] <- 4
 gt <- as.matrix(as.integer(gt[[1]]))
-ratio <- 2*2^as.matrix(as.numeric(illuminaEx[, "S1135.Log.R.Ratio"]))
-colnames(gt) <- colnames(ratio) <- "S1135"
-rownames(ratio) <- rownames(gt) <- illuminaEx[, "Name"]
+logR <- as.matrix(as.numeric(illuminaEx[, "S1135.Log.R.Ratio"]))
+colnames(gt) <- colnames(logR) <- "S1135"
+rownames(logR) <- rownames(gt) <- illuminaEx[, "Name"]
 fd <- new("AnnotatedDataFrame",
           data=data.frame(position=illuminaEx[, "Position"],
-            chromosome=illuminaEx[, "Chr"],
-            stringsAsFactors=FALSE),
+	  chromosome=integer2chromosome(illuminaEx[, "Chr"]),
+	  stringsAsFactors=FALSE),
           varMetadata=data.frame(labelDescription=c("position", "chromosome")))
 featureNames(fd) <- illuminaEx[, "Name"]
-callsConfidence <- ratioConfidence <- matrix(NA, nrow=nrow(ratio), ncol=ncol(ratio))
-rownames(callsConfidence) <- rownames(ratioConfidence) <- rownames(ratio)
-colnames(callsConfidence) <- colnames(ratioConfidence) <- colnames(ratio)
-snpset <- new("RatioSnpSet",
-              ratio=ratio,
-	      ratioConfidence=ratioConfidence,
-              calls=gt,
-	      callsConfidence=callsConfidence,
-              featureData=fd,
-	      phenoData=annotatedDataFrameFrom(ratio, byrow=FALSE),
-              annotation="Illumina550k")  
-chrom <- chromosome2numeric(chromosome(snpset))
-snpset <- snpset[order(chrom, position(snpset)), ]
+##callsConfidence <- ratioConfidence <- matrix(NA, nrow=nrow(ratio), ncol=ncol(ratio))
+##rownames(callsConfidence) <- rownames(ratioConfidence) <- rownames(ratio)
+##colnames(callsConfidence) <- colnames(ratioConfidence) <- colnames(ratio)
+##snpset <- new("RatioSnpSet",
+##              ratio=ratio,
+##	      ratioConfidence=ratioConfidence,
+##              calls=gt,
+##	      callsConfidence=callsConfidence,
+##              featureData=fd,
+##	      
+##              annotation="Illumina550k")  
+snpset <- new("oligoSnpSet",
+	      copyNumber=logR,
+	      calls=gt,
+	      phenoData=annotatedDataFrameFrom(logR, byrow=FALSE),
+	      featureData=fd,
+	      annotation="Illumina550k") ##no annotation package as yet
+chrom <- chromosome2integer(fd$chromosome)
+snpset <- snpset[order(chrom, fd$position), ]
 stopifnot(validObject(snpset))
 @ 
 
@@ -124,8 +130,8 @@ options <- new("HmmOptions",
 params <- new("HmmParameter",
 	     states=states(options))
 emission(params) <- copyNumber.emission(options)
-genomicDistance(params) <- exp(-2*physicalDistance(options)/(100*1e6))
-transitionScale(params) <- scaleTransitionProbability(options)
+genomicDistance(params) <- exp(-2*diff(position(snpset))/(100*1e6))
+transitionScale(params) <- scaleTransitionProbability(states(options))
 @ 
 
 %To fit the HMM,

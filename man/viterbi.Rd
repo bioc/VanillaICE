@@ -9,38 +9,34 @@
 
 }
 \usage{
-viterbi(beta, pi, tau, states, arm, tau.scale)
+viterbi(initialStateProbs, emission, tau, arm, tau.scale, verbose = TRUE, returnLikelihood = FALSE)
 }
 
 \arguments{
-  \item{beta}{emission probabilities (log scale)}
-  \item{pi}{initial state probabilities (log scale)}
-  \item{tau}{transition probabilities (log scale)}
-  \item{states}{character string of hidden states}
-  \item{arm}{character string of chromosomal arm}
-  \item{tau.scale}{scales the probability of transitioning between an
-  altered state to a normal state relative to the probability of
-  transitioning between two altered states.}
+    \item{initialStateProbs}{initial state probabilities (log scale)}
+  \item{emission}{matrix of log emission probabilities (one sample is a matrix)}
+  \item{tau}{transition probabilities (original scale)}
+  \item{arm}{numeric or character string indicating chromosomal arm}  
+  \item{tau.scale}{matrix to scale the probability of transitioning
+    between states.}
+  \item{verbose}{Logical}
+  \item{returnLikelihood}{whether to return the 'loglikelihood'}
 }
 \details{
 
-  The Viterbi algorithm is fit independently to each chromosomal arm.
+  The Viterbi algorithm is fit independently to each chromosomal arm if
+  arm is specified.
 
   Argument \code{tau.scale} is a matrix that scales the probability of
   transitioning from an altered state to a normal state to the
-  probability of transitioning between two altered states.
+  probability of transitioning between two altered states.  If missing,
+  tau.scale is 1 (no scaling)
 
-  When initializing an object of class \code{HmmParameter}, the default
-  is to make the probability of transitioning from an altered state to a
-  normal state twice the probability of transitioning between two
-  altered states. Further flexibility could be obtained by replacing the
-  tau.scale matrix in an instance of the \code{HmmParameter} class with
-  your own matrix.  The dimension of this matrix must be S x S, where S
-  is the number of hidden states.
+  returnLikelihood is experimental
 
 }
 \value{
-  vector of integers
+  \item{matrix}{predicted states}
 }
 \author{R. Scharpf}
 \keyword{models}

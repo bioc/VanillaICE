@@ -1,3 +1,5 @@
+
+
 ##setMethod(".calls_ICE", c("integer", "HmmOptions"),
 .splitAnnotation <- function(object, ...){  ##, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1){
 	pkgs <- strsplit(annotation(object), ",")[[1]]	
@@ -25,203 +27,44 @@
 }
 	
 	
-	
-##		tmp1 <- .getCallEmission(object1)
-##		tmp1 <- .getCallEmission(x=gte[enzyme == pkgs[1]],
-##					 confidence=confidence[enzyme == pkgs[1]],
-##					 hapmapP=hapmapP[[1]],
-##					 options=options)
-##		tmp2 <- .getCallEmission(x=gte[enzyme == pkgs[2]],
-##					 confidence=confidence[enzyme == pkgs[2]],
-##					 hapmapP=hapmapP[[2]],
-##					 options=options)
-##		tmp <- rbind(tmp1, tmp2)
-##		idx <- match(fn, rownames(tmp))
-##		gt.emission <- tmp[idx, ]
-##		stopifnot(identical(rownames(gt.emission), fn))
-##	} else{
-##		gt.emission <- .getCallEmission(x=gte,
-##						confidence=confidence,
-##						hapmapP=hapmapP,
-##						options=options)
-##	} 
-##	gt.emission
-##}
-
-##.getCallEmission <- function(x,  ##genotype estimates from oligo
-##                             confidence, ##confidence scores from oligo
-##                             hapmapP,  ##obtained from hapmap
-##                             options){  ##HmmOptions object
-.getCallEmission <- function(object){
-	##load hapmap probabilities
-	probHomCall <- object@probHomCall
-	term5 <- object@term5
-	object <- object@snpset
-	
-	.hapmapProbabilities <- function(annotationPackage){
-		##require("callsConfidence") || stop("callsConfidence package not available")
-		print("callsConfidence package must be available")
-		get(switch(annotationPackage,
-			   pd.mapping50k.hind240=data(hindPhat),
-			   pd.mapping50k.xba240=data(xbaPhat),
-			   pd.mapping250k.nsp=data(nspPhat), ##need to calculate phats for 500k
-			   pd.mapping250k.sty=data(styPhat),
-			   stop("annotation package not supported")))
-	}            	
-	hapmapP <- .hapmapProbabilities(annotation(object))
-	
-	##map observed call probablilities to a nonparametric estimate of
-	##the density using the reference p distributions when the truth is
-	##known
-	gte <- array(calls(object), dim=c(nrow(object), ncol(object), 2))
-	dimnames(gte) <- list(featureNames(object), sampleNames(object), c("LOH", "Normal"))
-	
-	confidence <- callsConfidence(object)
-	i11 <- hapmapP[, 1] == 3  ##called homozygous truth homozygous
-	i12 <- hapmapP[, 1] == 4  ##called homozygous truth heterozygous
-	i21 <- hapmapP[, 1] == 1  ##called het truth hom
-	i22 <- hapmapP[, 1] == 2  ##called het truth het
-	f11 <- density(hapmapP[i11, 2], from=1/1e3, to=1, n=1e3)
-	f12 <- density(hapmapP[i12, 2], from=1/1e3, to=1, n=1e3)
-	f21 <- density(hapmapP[i21, 2], from=1/1e3, to=1, n=1e3)
-	f22 <- density(hapmapP[i22, 2], from=1/1e3, to=1, n=1e3)
-	##-------------------------------------------------------------------------
-	##distribution of observed call probabilities when the call was homozygous
-	##-------------------------------------------------------------------------	
-	pTruthIsNormal <- pTruthIsLoh <- matrix(NA, nrow=nrow(object), ncol=ncol(object))
-	for(i in 1:ncol(object)){
-		##-------------------------------------------------------------------------
-		##P(phat | LOH, gte)  
-		##-------------------------------------------------------------------------				
-		hom <- which(gte[, i, 1] == 1 | gte[, i, 1] == 3)
-		observedPcalledHom <- cut(confidence[hom, i],
-					  breaks=f11$x,
-					  labels=FALSE) #called HOM, truth HOM w
-		pTruthIsLoh[hom, i] <- f11$y[observedPcalledHom]
-		
-		het <- which(gte[, i, 1] == 2)
-		observedPcalledHet <- cut(as.vector(confidence[het, i]),
-					  breaks=f11$x,
-					  labels=FALSE)
-		pTruthIsLoh[het, i] <- f21$y[observedPcalledHet]		
-		
-		##-------------------------------------------------------------------------
-		##Calculate P(phat | Normal, HOM)
-		##-------------------------------------------------------------------------					
-		chet1 <- f22$y[cut(confidence[het, i], breaks=f22$x, labels=FALSE)] 
-		chet2 <- f21$y[cut(confidence[het, i], breaks=f21$x, labels=FALSE)]
-		##term5[1]=P(true genotype is HET | calls is AB, state is normal)
-		pTruthIsNormal[het, i] <- chet1*term5[1] + chet2*(1-term5[1])
-
-		##chom1=called homozygous truth heterozygous
-		chom1 <- f12$y[cut(confidence[hom, i], breaks=f12$x, labels=FALSE)]
-		##chom2=called homozygous truth homozygous
-		chom2 <- f11$y[cut(confidence[hom, i], breaks=f11$x, labels=FALSE)]
-		##chom4 <- 0.9999    ##P(HOM|CHOM)
-		##probability that the true state is HOM when genotype call is homozygous
-		##term5[2]=P(true genotype is HET | calls is AA or BB, state is normal)
-		pTruthIsNormal[hom, i] <- chom1*(term5[2]) + chom2*(1-term5[2])
+findBreaks <- function(x, states, position, chromosome, sample,
+		       lik1, lik2){
+	if(length(chromosome)==1) chromosome <- rep(chromosome, length(position))
+	splitby <- factor(cumsum(c(1, diff(x) != 0)))
+	indices <- split(1:length(x), splitby)
+	len <- sapply(indices, length)
+	S <- states[sapply(split(x, splitby), unique)]
+	pos <- t(sapply(split(position, splitby), range))
+	size <- apply(t(sapply(split(position, splitby), range)), 1, diff)
+	chr <- sapply(split(chromosome, splitby), unique)
+	breaks <- data.frame(matrix(NA, length(chr), 7))
+	colnames(breaks) <- c("sample", "chr", "start", "end", "nbases", "nprobes", "state")
+	breaks$sample <- rep(sample, length(chr))
+	breaks$chr <- chr
+	breaks$start <- pos[, 1]
+	breaks$end <- pos[, 2]
+	breaks$nbases <- size
+	breaks$nprobes <- len
+	breaks$state <- S
+	if(!missing(lik1) & !missing(lik2)){
+		likdiff <- function(index, lik1, lik2, state){
+			state <- unique(state[index])
+			i <- range(index)
+##			if(min(i) > 1) i[1] <- i[1]-1
+##			if(max(x) < nrow(lik1)) i[2] <- i[2]+1
+			##the more positive the better
+			d1 <- diff(lik1[i, state])
+			d2 <- diff(lik2[i, "N"])
+			LR <- d1-d2
+			return(LR)
+		}
+		LR <- as.numeric(sapply(indices, likdiff, lik1=lik1, lik2=lik2, state=x))
 	}
-##		observedPcalledHom <- cut(as.vector(confidence[gte == 1]),
-##					       breaks=f11$x,
-##					       labels=FALSE) #called HOM, truth HOM w
-	##marginal distribution of observed call probabilities for heterozygous calls  
-##	observedPcalledHet <- cut(as.vector(confidence[gte == 2]), breaks=f21$x,
-##				  labels=FALSE) #called HET, truth HOM
-
-	##this is approximately P(phat | HOM, gte=HET)
-##	browser()
-	##pTruthIsLoh <- rep(NA, length(gte))
-##	pTruthIsLoh <- matrix(NA, nrow=nrow(object), ncol=ncol(object))
-##	for(i in 1:ncol(object)){
-##		hom <- which(gte[, i, 1] == "1" | gte[, i, 1] == "3")
-##		pTruthIsLoh[hom, 1] <- f11$y[observedPcalledHom]
-##	}
-
-
-	##this is approximately P(phat | HOM, gte=HOM)  
-##	pTruthIsLoh[gte == 2] <- f21$y[observedPcalledHet]
-
-	##-------------------------------------------------------------------------
-	##Calculate P(phat | Normal, CHET)
-	##-------------------------------------------------------------------------	
-	##This is approx. P(phat | HET, CHET) * P(HET | CHET) + P(phat | HOM, CHET) * P(HOM|CHET)
-	##When the true state is normal, we need to estimate 4 things conditional on the call
-	## P(p | CHET, normal):
-	##chet1  P(p | HET, CHET)
-	##chet2  P(p | HOM, CHET)
-	##chet3  P(HET | CHET)
-	##chet4  P(HOM | CHET)
-##	pTruthIsNormal <- rep(NA, length(gte))
-##	chet1 <- f22$y[cut(confidence[gte == 2], breaks=f22$x, labels=FALSE)]
-##	chet2 <- f21$y[cut(confidence[gte == 2], breaks=f21$x, labels=FALSE)]
-
-##	probWrongCall <- options@probWrongCall
-##	term5 <- options@term5
-##	gt.gte <- options@gt.gte
-##	pTruthIsNormal[gte == 2] <- chet1*(1-term5["AB", "Normal"]) + chet2*term5["AB", "Normal"]
-##	pTruthIsNormal[gte == 2] <- chet1*(1-gt.gte[2]) + chet2*gt.gte[2]
-
-	##-------------------------------------------------------------------------
-	##Calculate P(phat | Normal, HOM)
-	##-------------------------------------------------------------------------	
-	##In a normal region truth can be HOM or HET
-	##P(phat | Normal, CHOM) is approx. P(phat | HET, CHOM) * P(HET|CHOM) + P(phat | HOM, CHOM) * P(HOM | CHOM)
-##	chom1 <- f12$y[cut(confidence[gte == 1], breaks=f12$x, labels=FALSE)]
-##	##chom3 <- 1-0.9999  ##P(HET|CHOM)
-##	chom2 <- f11$y[cut(confidence[gte == 1], breaks=f11$x, labels=FALSE)]
-##	##chom4 <- 0.9999    ##P(HOM|CHOM)
-##	##probability that the true state is normal when genotype call is homozygous
-##	pTruthIsNormal[gte == 1] <- chom1*(1-term5["AAorBB", "Normal"]) + chom2*term5["AAorBB", "Normal"]	
-##	pTruthIsNormal[gte == 1] <- chom1*gt.gte[1] + chom2*(1-gt.gte[1])
-	
-	##-------------------------------------------------------------------------	
-	##the stateProbability matrix is R x 2 (R = number of SNPs)
-	##stateProbability is R x 2 (R rows and 2 columns)
-	##gt.confidence.states <- options@gt.confidence.states
-##	stateProbability <- stateProbability[, gt.confidence.states]
-	
-  	##-------------------------------------------------------------------------	
-	##Calculate P(CHET| q) and P(CHOM| q), where q is
-	##the true state.
-  	##-------------------------------------------------------------------------		
-	##For q = LOH, we make the following simplifying
-	##assumptions:
-	##1.  P(CHET | q=LOH) \approx P(CHET | HOM) 
-	##2.  P(CHOM | q=LOH) \approx P(CHOM | HOM)
-	##For q = Normal,
-	##3.  P(CHET | q=Normal) \approx P(HET | q = Normal)
-	##    estimate the latter from the data, or use a fixed number.  e.g., 0.3
-	##4.  P(CHOM | q=Normal) \approx P(HOM | q = Normal)
-	##    estimate the latter quantity from the data, or use a fixed number 0.7
-	##P.CHET.LOH <- 1-P.CHOM.LOH
-	##P.CHET.LOH <- 1-gte.state["L"]
-	##P.CHET.Normal <- 1-P.CHOM.Normal
-	##P.CHET.Normal <- 1-gte.state["N"]
-	
-	##*gte.state <- options@gte.state
-	stateProbability <- array(NA, dim=dim(gte))
-	dimnames(stateProbability) <- dimnames(gte)
-	stateProbability[, , 1] <- pTruthIsLoh
-	stateProbability[, , 2] <- pTruthIsNormal
-	B <- cbind(probHomCall, 1-probHomCall)
-	colnames(B) <- c("AAorBB", "AB")
-##	B <- cbind(gte.state, 1-gte.state, NA)
-##	colnames(B) <- c("gte=HOM", "gte=HET", "gte=NA")
-	rownames(B) <- c("LOH", "N")
-##	rownames(B) <- options@states
-	fobs <- array(NA, dim=c(nrow(object), length(sampleNames(object)), 2))
-	dimnames(fobs) <- list(featureNames(object), sampleNames(object), c("LOH", "N"))
-	for(i in 1:ncol(object)){
-		hom <- which(gte[, i, 1] == "1" | gte[, i, 1] == "3")
-		het <- which(gte[, i, 1] == "2")
-		fobs[hom, i, ] <- matrix(B[, 1], nrow=length(hom), ncol=2, byrow=TRUE)
-		fobs[het, i, ] <- matrix(B[, 2], nrow=length(het), ncol=2, byrow=TRUE)
-	}
-	emission.gt <- fobs * stateProbability
-	dimnames(emission.gt) <- dimnames(gte)
-	emission.gt
+	return(breaks)
 }
+
+
+
 
 
 getChromosomeArm <- function(snpset){
@@ -251,7 +94,6 @@ addFeatureData <- function(snpset){
 	featureData
 }
 	
-
 ##.calculateYlim <- function(object, op){
 ##  if("copyNumber" %in% ls(assayData(object))){
 ##    ##only print this if there is more than one sample or more than 1 chromosome to plot
@@ -274,9 +116,6 @@ addFeatureData <- function(snpset){
 ##  }
 ##  ylim
 ##}
-
-
-
 
 ##For each of the breaks in xBreak, find the cytoband(s)
 .locateCytoband <- function(breaks, cytoband){
@@ -411,8 +250,11 @@ calculateCnSE <- function(object,
 			print("Transforming copy number in referenceSet to log2 scale")
 			copyNumber(referenceSet) <- log2(copyNumber(referenceSet))
 		} else{
+
 			warning("Negative values in the copy number.  Calculations assume that data in the copyNumber element of assayData has been suitably transformed and is approximately Gaussian")
+			
 		}
+		
 	}
 	if(missing(referenceSet)){
 		print("using object to compute across sample standard deviations...assumes reasonable sample size")
@@ -438,170 +280,130 @@ calculateCnSE <- function(object,
 	SE
 }
 
-scaleTransitionProbability <- function(object, SCALE=2, normalLabel="N"){##HmmOptions
-	if(!(normalLabel %in% object@states)) stop("must supply the label for the normal (baseline) state")
-	states <- object@states
-	S <- length(states)
-	if(S > 2){
+scaleTransitionProbability <- function(states, SCALE=2, normalLabel="N"){##HmmOptions
+	matrix(1, length(states), length(states))
+}
+
+viterbi <- function(initialStateProbs,
+		    emission,
+		    tau,
+		    arm,
+		    tau.scale,
+		    verbose=TRUE,
+		    returnLikelihood=FALSE){
+	if(class(emission) == "data.frame")
+		emission <- as.matrix(emission)
+	S <- ncol(emission)
+	T <- nrow(emission)
+	if(length(initialStateProbs) != S){
+		stop("initialStateProbs (the initial state probabilities, should be a numeric vector of length S, where S is the number of hidden states")
+	}		
+	if(any(is.na(emission))){
+		message("Converting missing values in the emission matrix to 0")
+		emission[is.na(emission)] <- 0
+	}
+	if(any(is.nan(emission))){
+		if(verbose) message("some of the log emission probabilities are NaN.  Replacing with 0") 		
+		emission[is.nan(emission)] <- 0
+	}
+	if(any(is.infinite(emission))){
+		if(verbose) message("some of the log emission probabilities are infinite.  Replacing with 0's") 		
+		emission[is.infinite(emission)] <- 0
+	}
+	if(missing(arm)) arm <- rep(as.integer(0), T)
+	if(length(arm) != T) {
+		if(verbose) message("arm not the right length.  assuming all values on same chromosomal arm")
+		arm <- rep(as.integer(0), T)
+	}
+	if(missing(tau.scale)){
+		if(verbose) message("tau.scale not specified.  not scaling the genomic distance")
 		tau.scale <- matrix(1, S, S)
-		rownames(tau.scale) <- colnames(tau.scale) <- states
-		x <- seq(1, (S-1), by=0.01)
-		y <- rep(NA, length(x))
-		for(i in 1:length(x)){
-			y[i] <- ((S-1)-x[i])/(S-2) 
-		}
-		z <- abs(x/y - SCALE)
-		z <- z == min(z)
-		x <- x[z]
-		y <- y[z]
-		tau.scale[upper.tri(tau.scale)] <- y
-		tau.scale[lower.tri(tau.scale)] <- y
-		i <- match(normalLabel, states)
-		tau.scale[, i] <- x
-		##by default, do not tau.scale the probabilities of leaving the normal state
-		tau.scale[i, ] <- 1
-		diag(tau.scale) <- 1
+	}
+	if(any(!(dim(tau.scale) == S))){
+		if(verbose) message("tau.scale not the right dimension.  not scaling the genomic distance")
+		tau.scale <- matrix(1, S, S)
+	}
+	result <- vector("integer", T)
+	delta <- matrix(as.double(0), nrow=T, ncol=S)
+	tmp <- list(as.matrix(as.double(as.matrix(emission))),
+		    as.list(initialStateProbs),
+		    as.matrix(as.double(tau)),
+		    as.character(arm),
+		    as.matrix(as.double(tau.scale)),
+		    as.integer(S),
+		    as.integer(T),
+		    result,
+		    as.matrix(as.double(delta)))
+	fit <- .C("viterbi",
+		  tmp[[1]],
+		  tmp[[2]],
+		  tmp[[3]],
+		  tmp[[4]],
+		  tmp[[5]],
+		  tmp[[6]],
+		  tmp[[7]],
+		  tmp[[8]],
+		  tmp[[9]])
+	if(!returnLikelihood){
+		return(fit[[8]])
 	} else{
-		if(S == 2) tau.scale <- matrix(1, nrow=S, ncol=S)
+		tmp <- list(states=fit[[8]], likelihood=fit[[9]])
+		return(tmp)
 	}
-	return(tau.scale)
 }
 
+	
 ##Code this in C
-viterbi <- function(beta, pi, tau, states, arm, tau.scale){
-	S <- length(states)
-	T <- length(tau) + 1
-	##beta <- matrix(beta, nr=T, nc=S)
-	delta <- psi <- matrix(NA, T, S)
-	colnames(delta) <- colnames(psi) <- states
-	delta[1, ] <- pi + beta[1, ]
-	psi[1, ] <- rep(0, S)
-	i <- which(is.na(beta[, 1]))
-
-	##-----------------------------------------------------------
-	##missing values do not influence the predictions
-	##Might want to change this at somepoint--often informative
-	##-----------------------------------------------------------
-	if(any(i)){
-		print("missing values in the emission probabilities do not influence the predictions...might want to change this")
-	}
-	beta[i, ] <- 0
-	for(t in 2:T){
-		if(arm[t] != arm[t-1]){
-			##SNP t is on a different chromosome/chromosome arm
-			delta[t, ] <- pi + beta[t, ]
-			psi[t, ] <- rep(0, S)
-			next()
-		}
-		AA <- matrix(tau[t-1], nr=S, nc=S)
-		AA[upper.tri(AA)] <- AA[lower.tri(AA)] <- (1-tau[t-1])/(S-1)
-		AA <- log(AA*tau.scale)
-		for(j in 1:S){
-			##Equation 105b
-			delta[t, j] <- max(delta[t-1, ] + AA[, j]) + beta[t, j]
-			psi[t, j] <- order(delta[t-1, ] + AA[, j], decreasing=TRUE)[1]
-		}
-	}
-	Pstar <- max(delta[nrow(delta), ])
-	qhat <- rep(NA, nrow(delta))
-	T <- nrow(delta)
-	names(qhat) <- rownames(delta)  
-	qhat[T] <- order(delta[T, ], decreasing=TRUE)[1]
-	for(t in (T-1):1){
-		if(arm[t] != arm[t+1]){
-			qhat[t] <- order(delta[t, ], decreasing=TRUE)[1]
-		} else {
-			qhat[t] <- psi[t+1, qhat[t+1]]
-		}
-	}
-	qhat    
-}
-
-##this methods loops over snps for all samples, but is 15 times slower
-.viterbi2 <- function(object, params){ ##HmmOptions, HmmParameters
-	snpset <- object@snpset
-	##	i <- match(featureNames(snpset(object)), dimnames(emission(params))[[1]])
-	if(!(identical(featureNames(snpset), dimnames(emission(params))[[1]]))) stop("feature names should match")
-	arm <- paste(chromosome(snpset), featureData(snpset)$arm, sep="")
-	beta <- emission(params)
-	S <- length(object@states)
-	T <- nrow(snpset)
-	
-	tau <- genomicDistance(params)
-	pi <- log(pi(params))
-	tau.scale <- transitionScale(params)
-	if(nrow(tau.scale) == 0){
-		tau.scale <- matrix(1, S, S)
-	}
-	delta <- psi <- array(NA, dim=c(nrow(snpset), ncol(snpset), S))
-	dimnames(delta) <- dimnames(psi) <- list(featureNames(snpset),
-						 sampleNames(snpset),
-						 states(object))
-	pi <- matrix(pi, nrow=ncol(snpset), ncol=S, byrow=TRUE)
-	delta[1, , ] <- pi + beta[1, , ]
-	initial.psi <- matrix(0, nr=ncol(snpset), nc=S)
-	psi[1, , ] <- initial.psi##rep(0, S)
-
-	##handling of missing values for SNP t: the delta and psi
-	##values for SNP t are assigned the delta and psi from the
-	##previous SNP
-	
-	for(t in 2:T){
-		if(t%%1000 == 0) cat(".")
-		if(arm[t] != arm[t-1]){
-			##SNP t is on a different chromosome/chromosome arm
-			delta[t, , ] <- pi + beta[t, , ]
-			psi[t, ,  ] <- initial.psi
-			next()
-		}
-		AA <- matrix(tau[t-1], nr=S, nc=S)
-		AA[upper.tri(AA)] <- AA[lower.tri(AA)] <- (1-tau[t-1])/(S-1)
-		AA <- log(AA*tau.scale)
-##		AA <- aperm(array(AA, dim=c(S, S, ncol(snpset))))
-		##dimnames(AA) <- list(sampleNames(snpset), states(object), states(object))
-		##Loop over states
-		for(j in 1:S){
-			##Equation 105b
-			x <- matrix(delta[t-1, , ], nrow=ncol(snpset))
-			y <- matrix(AA[, j], nrow=ncol(snpset), byrow=TRUE)
-			z <- x + y
-			delta[t, , j] <- apply(z, 1, "max") + beta[t, , j]
-			f <- function(x) order(x, decreasing=TRUE)[1]
-			psi[t, , j] <- apply(z, 1, f)
-		}
-##		if(any(is.na(delta[t, , ]))){
-##			x <- matrix(delta[t, , ], nrow=dim(delta)[2])
-##			samples <- which(apply(x, 1, function(x) any(is.na(x))))
-##			delta[t, samples, ] <- delta[t-1, samples, ]
-##			psi[t, samples, ] <- psi[t-1, samples, ]
+##viterbi <- function(beta, pi, tau, arm, tau.scale, normalIndex, distance=NULL, constant=1e8){
+##	##beta: log emission probabilities
+##	##pi: log initial state probabilities (vector of length S)
+##	##tau: transition probabilities (original scale)
+##	##tau.scale: matrix on original scale
+##	S <- ncol(beta)
+##	T <- nrow(beta)  ##matrix of T rows and S columns
+##	delta <- psi <- matrix(NA, T, S)
+##	delta[1, ] <- pi + beta[1, ]
+##	psi[1, ] <- rep(0, S)
+##	i <- which(rowSums(is.na(beta)) > 0)
+##	beta[i, ] <- 0
+##	if(!is.null(distance)){
+##		tau <- exp(-2*distance/1e8)
+##		tauNormal <- exp(-2*distance/constant)		
+##	}
+##	for(t in 2:T){
+##		if(t %% 10000 == 0) cat(".")
+##		if(arm[t] != arm[t-1]){
+##			delta[t, ] <- pi + beta[t, ]
+##			psi[t, ] <- rep(0, S)
 ##			next()
 ##		}
-##		if(any(is.na(psi[t, , ]))){
-##			x <- matrix(psi[t, , ], nrow=dim(psi)[2])
-##			samples <- which(apply(x, 1, function(x) any(is.na(x))))
-##			delta[t, samples, ] <- delta[t-1, samples, ]
-##			psi[t, samples, ] <- psi[t-1, samples, ]
+##		AA <- matrix(tau[t-1], nr=S, nc=S)  ##
+##		epsilon <- (1-tau[t-1])/(S-1)
+##		eNormal <- (1-tauNormal[t-1])/(S-1)		
+##		AA[upper.tri(AA)] <- AA[lower.tri(AA)] <- epsilon
+##		AA[normalIndex, ] <- rep(eNormal, S)
+##		AA[normalIndex, normalIndex] <- tauNormal[t-1]
+##			
+##		AA <- log(AA*tau.scale)  
+##		for(j in 1:S){
+##			tmp <- delta[t-1, ] + AA[, j]
+##			delta[t, j] <- max(tmp) + beta[t, j]
+##			psi[t, j] <- order(tmp, decreasing=TRUE)[1]
 ##		}
-		if(t == T) cat("\n")
-	}
-	x <- matrix(delta[T, , ], nrow=dim(delta)[2])
-	Pstar <- apply(x, 1, "max")
-	qhat <- matrix(NA, nrow(delta), ncol(snpset))
-##	rownames(qhat) <- dimnames(delta)[[1]]
-##	colnames(qhat) <- sampleNames(snpset)
-	qhat[T, ] <- apply(x, 1, function(x) order(x, decreasing=TRUE)[1])
-	for(t in (T-1):1){
-		if(arm[t] != arm[t+1]){
-			x <- matrix(delta[t, , ], nrow=dim(delta)[2])
-			qhat[t, ] <- apply(x, 1, function(x) order(x, decreasing=TRUE)[1])
-		} else {
-			qhat[t, ] <- psi[t+1, , qhat[t+1]]
-		}
-	}
-	qhat
-}
+##	}
+##	Pstar <- max(delta[nrow(delta), ])
+##	qhat <- rep(NA, nrow(delta))
+##	qhat[T] <- order(delta[T, ], decreasing=TRUE)[1]
+##	for(t in (T-1):1){
+##		if(arm[t] != arm[t+1]){
+##			qhat[t] <- order(delta[t, ], decreasing=TRUE)[1]
+##		} else {
+##			qhat[t] <- psi[t+1, qhat[t+1]]
+##		}
+##	}
+##	return(qhat)
+##}
 
-	
 
 ##How often is a SNP altered across samples
 makeTable <- function(object, state, by, unit=1000, digits=3){
@@ -669,6 +471,124 @@ makeTable <- function(object, state, by, unit=1000, digits=3){
 	rownames(overall) <- c("median", "avg", "sd")
 	stats <- rbind(stats, overall)
 	stats
+}
+
+scaleTransitionToState <- function(cols, AA, SCALE){
+	epsilon <- AA[, cols]
+	epsilon.tilde <- epsilon/SCALE
+	AA[, cols] <- epsilon.tilde
+	d <- rowSums(epsilon-epsilon.tilde)
+	diag(AA) <- diag(AA)+d
+	AA
+}
+
+
+.copynumberEmission <- function(copynumber,
+				states,
+				mu,
+				uncertainty,
+				takeLog,
+				verbose=TRUE){
+	cne <- copynumber
+	location <- mu
+	if(missing(takeLog)) stop("must specify whether to take the log2 of the copy number matrix")
+	if(missing(uncertainty)) stop("must supply uncertainty estimates")	
+	if(takeLog){
+		if(verbose) message("Calculating emission probabilities of log(copy number)")
+		i <- which(!is.na(as.vector(cne)))
+		##Take log of hidden state
+		if(any(location < 0)){
+			if(verbose) message("negative values in copy number will be NA's")
+		}
+		tmp <- rep(NA, length(as.vector(cne)))
+		tmp[i] <- log2(cne[i])
+		cne <- matrix(tmp, nrow=nrow(snpset), ncol=ncol(snpset))		
+		location <- log2(location)
+	} else{
+		if(verbose) message("no transformation of copy number")
+	}
+	fn <- rownames(cne)
+	S <- length(states)
+	cne <- array(cne, dim=c(nrow(cne), ncol(cne), S))
+	dimnames(cne) <- list(rownames(cne), colnames(cne), states)
+	##assume true copy number mean is the same for all samples
+	##Easiest to keep everything the same dimension, even if not needed at this point
+	location <- aperm(array(location, dim=c(S, ncol(cne), nrow(cne))))
+	
+	##Use SNP-specific standard errors
+	i <- which(!(is.na(as.vector(1/uncertainty))) & !is.na(as.vector(cne)))
+	if(all(1/uncertainty > 0, na.rm=TRUE)){
+		if(verbose) message("Using uncertainty as standard deviation for the copy number")
+		scale <- array(uncertainty, dim=dim(cne))
+	} else{
+		stop("confidence scores in slot cnConfidence must be positive")
+	}
+	k <- which(!is.na(as.vector(cne)))
+	if(!identical(dim(cne), dim(location))) stop("dimensions must be the same")
+	emission.cn <- rep(NA, length(as.vector(location)))
+	emission.cn[k] <- dnorm(as.vector(cne)[k], as.vector(location)[k], as.vector(scale)[k])
+	emission.cn <- array(emission.cn, dim=dim(cne))
+	dimnames(emission.cn) <- list(rownames(cne), colnames(cne), states)
+	if(verbose) message("returning the emission probability on the log scale")
+	return(log(emission.cn))
+}
+
+.genotype.emission <- function(calls, states, ICE=FALSE, probHomCall, pkgs){
+##	if(!("calls" %in% assayDataElementNames(object@snpset))){
+##		warning("calls not an element of the assayData for object@snpset.")
+##		return()
+##	}
+##	if(!validObject(object)){
+##		stop("HmmOptions object is not valid")
+##	}
+##	snpset <- object@snpset
+##	states <- object@states
+	S <- length(states)	
+##	gte <- array(calls(snpset), c(nrow(snpset), ncol(snpset), S))
+	gte <- array(calls, c(nrow(calls), ncol(calls), S))
+##	dimnames(gte) <- list(featureNames(snpset), sampleNames(snpset), states)
+	dimnames(gte) <- list(rownames(calls), colnames(calls), states)
+##	if(!object@calls.ICE) {
+	if(!ICE){
+		##for algorithms that produce bi-allelic calls, only 3
+		##calls are possible.  The emission probability for
+		##the call is the emission probability for a
+		##homozygous call versus the emission probability for
+		##a heterozygous call
+		i <- which(as.vector(gte) == 1 | as.vector(gte) == 3)
+		j <- which(as.vector(gte) == 2)
+		k <- which(as.vector(gte) == 4 | is.na(as.vector(gte)))
+		##prob. for each state.
+		##cn.location <- aperm(array(object@copyNumber.location, dim=c(S, ncol(snpset), nrow(snpset))))
+		##probHom <-  aperm(array(object@probHomCall, dim=c(S, ncol(snpset), nrow(snpset))))
+		probHom <- aperm(array(probHomCall, dim=c(S, ncol(calls), nrow(calls))))
+		emission.gt <- vector("numeric", length=length(as.vector(gte)))
+		emission.gt[i] <- as.vector(probHom)[i]
+		emission.gt[j] <- (1-as.vector(probHom))[j]
+		emission.gt[k] <- NA
+		emission.gt[c(i, j)] <- log(emission.gt[c(i, j)])
+		emission.gt <- array(emission.gt, dim=dim(gte))
+	}  else {
+		##pkgs <- strsplit(annotation(object@snpset), ",")[[1]]
+##		if(length(pkgs) > 1){
+##			object@snpset <- .splitAnnotation(snpset)
+##		} else{
+##			featureData(object@snpset)$platform <- NA
+##			featureData(object@snpset)$platform <- annotation(snpset)
+##		}
+		##emission.gt <- array(NA, dim=c(nrow(object@snpset), ncol(object@snpset), 2))
+		emission.gt <- array(NA, dim=c(nrow(calls), ncol(calls), 2))
+		dimnames(emission.gt) <- list(rownames(calls), colnames(calls), c("LOH", "N"))
+		for(i in 1:length(pkgs)){
+			j <- which(pkgs[[i]])
+			##j <- which(fData(object@snpset)$platform == pkgs[i])
+			##annotation(object@snpset) <- pkgs[1]
+			stop("need to fix this function")
+			emission.gt[j, , ] <- .getCallEmission(object[j, ])
+		}
+		emission.gt <- log(emission.gt)
+	}
+	return(emission.gt)##log scale
 }
 
 

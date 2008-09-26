@@ -113,13 +113,17 @@ setReplaceMethod("states", c("HmmOptions", "character"),
 ##            .Object
 ##          })
 
-setMethod("calculateDistance", "HmmOptions",
-          function(object){
-		  snpset <- object@snpset
-		  d <- (position(snpset)[2:nrow(snpset)] - position(snpset)[1:(nrow(snpset)-1)])##/(100*1e6)
-		  d
-          })
-setMethod("physicalDistance", "HmmOptions", function(object) calculateDistance(object))
+##setMethod("calculateDistance", "HmmOptions",
+##          function(object){
+##		  snpset <- object@snpset
+##		  d <- diff(position(snpset))
+##		  d
+##          })
+##setMethod("calculateDistance", "integer",
+##	  function(object){
+##		  (object[2:length(object)] - object[1:(length(object)-1)])##/(100*1e6)
+##})
+setMethod("physicalDistance", "HmmOptions", function(object) diff(position(snpset(object))))
 
 ##setMethod("snpdata", "HmmOptions", function(object) object@snpset)
 

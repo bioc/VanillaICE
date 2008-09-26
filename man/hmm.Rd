@@ -49,9 +49,9 @@ params <- new("HmmParameter",
 cn.emission <- copyNumber.emission(options)
 gt.emission <- calls.emission(options)
 emission(params) <- cn.emission + gt.emission ##log scale
-genomicDistance(params) <- exp(-2 * calculateDistance(options)/(100*1e6))
-transitionScale(params) <- scaleTransitionProbability(options)
-validObject(params)
-fit <- hmm(options, params)
+genomicDistance(params) <- exp(-2 *calculateDistance(options)/(100*1e6))
+##no scaling
+transitionScale(params) <- matrix(1, length(states(options)), length(states(options)))
+if(validObject(params)) fit <- hmm(options, params)
 }
 \keyword{models}

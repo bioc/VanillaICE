@@ -73,28 +73,33 @@ data.
 \section{Simple Usage}
 \label{sec:simpleUsage}
 
-\subsection{Vanilla HMM }
+\subsection{\label{sec:locusCN} Locus-level estimates of copy number}
+
+
+To do: describe how to obtain locus-level estimates of copy number.
+
+\subsection{Hidden Markov model to smooth locus-level estimates}
 
 <<packages, results=hide>>=
 library(VanillaICE)
 @ 
 
-Before fitting the HMM, the data must be organized into one of the
-following classes for high-throughput SNP data:
+%Before fitting the HMM, the data must be organized into one of the
+%following classes for high-throughput SNP data:
 
-\begin{itemize}
-\item \Robject{SnpCallSet} (genotype calls)
-\item \Robject{SnpCopyNumberSet} (copy number estimates)
-\item \Robject{oligoSnpSet} (genotype calls and copy number estimates)
-\item \Robject{RatioSnpSet} (genotype calls and ratios of A and B allele intensities)
-\end{itemize}
+%\begin{itemize}
+%\item \Robject{SnpCallSet} (genotype calls)
+%\item \Robject{SnpCopyNumberSet} (copy number estimates)
+%\item \Robject{oligoSnpSet} (genotype calls and copy number estimates)
+%\item \Robject{RatioSnpSet} (genotype calls and ratios of A and B allele intensities)
+%\end{itemize}
 
-When pre-processing Affymetrix SNP chips with the \R{} package
-\Rpackage{oligo}, an object of one of the above classes is created and
-can be used directly with the HMMs described in this vignette.  These
-classes can also be created from Illumina data as described in the
-IlluminaHowTo vignette.  The simulated data provided with this package
-is an instance of class \Robject{oligoSnpSet}
+%When pre-processing Affymetrix SNP chips with the \R{} package
+%\Rpackage{oligo}, an object of one of the above classes is created and
+%can be used directly with the HMMs described in this vignette.  These
+%classes can also be created from Illumina data as described in the
+%IlluminaHowTo vignette.  The simulated data provided with this package
+%is an instance of class \Robject{oligoSnpSet}
 
 <<data>>=
 data(chromosome1)
@@ -102,19 +107,21 @@ annotation(chromosome1)
 chromosome1
 @ 
 
-Before deciding whether to fit a HMM, plot the data:
+A visualization of the data:
 
-<<plotSnp,fig=TRUE,width=8, height=5>>=
-gp <- plotSnp(chromosome1)
+<<plotSnp,fig=TRUE,width=8, height=5, eval=FALSE>>=
+gp <- plot(chromosome1)
 show(gp)
 @ 
 
-The HMM assumes that the copy number estimates, conditional on the
-hidden state, are approximately Gaussian.  A log transformation will
-be performed automatically provided that the copy number estimates are
-all positive.  See the documentation pages in the R package \ice{} for
-more information about the \Robject{chromosome1} example dataset.
-Fitting a hidden Markov model requires the following components:
+The HMM for total copy number assumes that the copy number estimates,
+conditional on the hidden state, are approximately Gaussian.  Fitting
+a HMM requires the following components:
+
+% A log transformation will be performed automatically provided that
+% the copy number estimates are all positive.  See the documentation
+% pages in the R package \ice{} for more information about the
+% \Robject{chromosome1} example dataset.
 
 \begin{itemize}
   \item the hidden states
@@ -122,89 +129,337 @@ Fitting a hidden Markov model requires the following components:
   \item transition probabilities
 \end{itemize}
 
-Here, we illustrate how one may specify the hidden states and
-calculate the emission and transition probabilities below.  We first
-create an instance of the class \hmmoptions{} that contains the hidden
-states and, if copy number estimates are available, the location
-parameters for the Gaussian distribution.  Though we will model the
-logarithm of the copy number estimates as approximately normally
-distributed, it is more natural to specify the location parameters on
-the original scale (e.g., 1 copy is deletion (D), 2 copies is normal
-(N), etc.).  Emission probabilities for the genotype calls are a
-homozygous genotype call (\Robject{probHomCall} argument).  Again, the
-ordering must correspond to the order of the hidden states.  computed
-from the supplied probabilities of Note that the ordering of the
-numeric vector for copyNumber.location must correspond to the ordering
-of the states.  A number of validity checks are performed on this
-object and it is a good idea to check whether the instantiated object
-is valid.
+\paragraph{Hidden states}
 
-<<options>>=
-options <- new("HmmOptions",
-	       states=c("D", "N", "L", "A"),
-	       snpset=chromosome1,
-	       copyNumber.location=c(1, 2, 2, 3),
-	       probHomCall=c(0.99, 0.7, 0.99, 0.7))
-validObject(options)
+For the hidden Markov model, it is important that the SNPs (within a
+chromosome) are ordered by physical position.
+
+<<orderingSnps>>=
+ann <- fData(chromosome1)[, c("chromosome", "position")]
+ann[, "chromosome"] <- chromosome2integer(ann[, "chromosome"])
+chromosome1 <- chromosome1[order(ann[, "chromosome"], ann[, "position"]), ]
 @ 
 
-From an object of class \hmmoptions{}, we can compute the emission
-probabilities.  The emission probabilities are returned on the log
-scale.  Conditional on the hidden state, we assume that the copy
-number and genotype are independent.  Therefore, the emission
-probabilities for an HMM that models the copy number and genotypes
-jointly are computed by adding the emission probabilities for copy
-number and genotype.
+Next we specify the hidden states and the corresponding number for
+each state.
+
+<<hiddenStates>>=
+states <- c("homozygousDeletion", "hemizygousDeletion",
+	    "normal", "LOH", "3copyAmp", "4copyAmp")
+mu <- c(0.05, 1, 2, 2, 3, 4)
+@ 
+
+SNP-specific estimates of the uncertainty of the total copy number
+will be available from methods in Section \ref{sec:locusCN} shortly.
+Below, we simply obtain a robust estimate of the copy number standard
+deviation across SNPs and use this estimate for all of the SNPs.
+Because we the log-transformed copy number estimates are more nearly
+Gaussian, we calculate a robust estimate of the standard deviation on
+the log scale, and use this estimate for all of the SNPs. This section
+will be updated.
+
+<<uncertainty>>=
+CT <- copyNumber(chromosome1)
+robustSD <- function(X) diff(quantile(X, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2 
+sample.sd <- matrix(robustSD(log2(CT)), nrow(CT), ncol(CT))
+@ 
+
+\paragraph{Emission probabilities}
+
+Locus-level estimates of copy number, when suitably transformed, are
+assumed to be approximately Gaussian-distributed.  We may obtain
+emission probabilities as follows:
+
+<<emission>>=
+logCT <- array(log2(CT), dim=c(nrow(CT), ncol(CT), length(states)))
+dimnames(logCT) <- list(rownames(CT), colnames(CT), states)
+logMu <- aperm(array(log2(mu), dim=c(length(states), ncol(CT), nrow(CT))))
+logSd <- aperm(array(sample.sd, dim=c(length(states), ncol(CT), nrow(CT))))
+dimnames(logMu) <- dimnames(logSd) <- dimnames(logCT)
+k <- which(!is.na(as.vector(logCT)))
+emission.logCT <- dnorm(as.vector(logCT)[k], as.vector(logMu)[k], as.vector(logSd)[k])
+emission.logCT <- array(emission.logCT, dim=dim(logCT))
+logemission.logCT <- log(emission.logCT)
+@ 
+
+Alternatively, one may use the function copynumberEmission (does
+nearly the same as above, but with a few additional checks).
+
+<<copynumberEmission>>=
+logemission.logCT2 <- copynumberEmission(copynumber=CT,
+					 states=states,
+					 mu=mu,
+					 uncertainty=sample.sd,
+					 takeLog=TRUE,
+					 verbose=TRUE)
+dimnames(logemission.logCT) <- dimnames(logemission.logCT2)
+identical(logemission.logCT, logemission.logCT2)
+rm(logemission.logCT2); gc()
+@ 
+
+Adding a small positive value to the log emission probabilities
+prevents breaks in the predicted states due to extreme values.  This
+step is less important if SNP-specific estimates of uncertainty are
+available.
+
+<<epsilon>>=
+logemission.logCT[logemission.logCT < -10] <- -10
+@ 
+
+Uncertainty estimates for the genotype calls can also be
+integrated. The genotype calls must be represented as integers (1 =
+AA, 2 = AB, 3 = BB, 4 = missing). We recommend using CRLMM to genotype
+-- CRLMM provides genotypes for all SNPs on the array (no missing
+values) and confidence estimates for the call that takes into
+consideration the signal to noise ratio of the sample as well as a
+SNP-specific estimate of the uncertainty.  Di-allelic genotype calls
+from CRLMM are useful, though incorrect for CNV.  In particular,
+di-allelic genotype calls can help pinpoint hemizygous deletions
+(genotype calls of AA or BB correspond to 'A' and 'B') and
+copy-neutral regions of loss of heterozygosity (LOH). For the HMM, one
+must specify the probability of a homozygous genotype call
+(\texttt{probHomCall}) for each of the hidden states.  The goal, then,
+is to have genotype emission probabilities that are informative for
+distinguishing the normal state versus hemizygous deletions or LOH,
+and somewhat agnostic for distinguishing between homozygous
+deletions/amplifications from normal regions. 
+
+To illustrate this idea, consider two scenarios where the true state
+is amplification of copy number (e.g., 3 copies) over a regions
+spanning 10 SNPs.  Scenario 1: 7 of the 10 di-allelic genotype calls
+are homozygous.  Scenario 2: all 10 of the di-allelic genotype calls
+are homozygous. For the hidden Markov model, we assume that the
+probability of a homozygous genotype call is 0.99 for normal,
+homozygous deletion and amplification. For hemizygous deletion and
+copy-neutral LOH, we specify a probability of 0.9999.  Note the
+following: 
+
+\begin{itemize}
+\item The emission probabilities for the di-allelic genotype calls in
+  scenarios 1 and 2 will be the same for normal, homozygous deletion,
+  and amplification.  The copy number emission probabilities will
+  discriminate between these states.
+  
+\item Hemizygous deletion and copy-neutral LOH are penalized severely
+  in scenario 1.  This penalization reflects our belief that the
+  probability of observing 3 genotype errors (AB must be a genotype
+  error for these states) in a small region.
+  
+\item In scenario 2, hemizgyous deletion and copy-neutral LOH have a
+  higher emission probability for the genotypes.  However, because the
+  probability of observing homozygous genotype calls for amplification
+  and normal states is also high, most of the information for
+  discriminating between and amplification containing 10 homozygous
+  genotype and a copy-neutral region of LOH will be driven by the
+  emission probability for copy number.
+  
+\end{itemize}
+
+In summary, specifiying high probabilities for observing a homozygous
+genotype call in normal and copy number alterered states (as indicated
+below) allows fairly long stretches of homozygous genotype calls to
+occur by chance in any of the states. In our experience, sequences of
+70 - 100 homozygous genotypes are fairly common and likely represent
+normal regions of the genome with fairly uniform haplotype structure.
+If any of the genotype calls are missing and missingness is not
+independent of the underlying hidden state, one may specify the
+probability of a missing genotype calls for each hidden state
+(\texttt{probMissing}).  By default, the HMM will assume that missing
+genotype calls are independent of the underlying hidden state.
+
+<<genotypeEmission>>=
+probs <- c(0.99, 0.9999, 0.99, 0.9999, 0.99, 0.99)
+probMissing <- c(0.999, rep(0.01, 5))
+names(probs) <- states
+GT <- calls(chromosome1)
+genotypeEmission <- function(genotypes, states, probHomCall, probMissing, verbose=TRUE){
+	if(!is.numeric(genotypes)) stop("genotypes must be integers (1=AA, 2=AB, 3=BB, 4=missing")
+	emissionForGenotypes <- function(probHomGenotype, genotypes){
+		isHom <- which(as.vector(genotypes) == 1 | as.vector(genotypes) == 3)
+		isHet <- which(as.vector(genotypes) == 2)
+		isMissing <- which(as.vector(genotypes) == 4 | is.na(as.vector(genotypes)))
+		emission.gt <- rep(NA, length(genotypes))
+		emission.gt[isHom] <- probHomGenotype
+		emission.gt[isHet] <- 1-probHomGenotype
+		emission.gt[isMissing] <- NA
+		emission.gt
+	}
+	emission.gt <- array(NA, dim=c(nrow(GT), ncol(GT), length(states)))
+	for(j in 1:ncol(GT)){
+		emission.gt[, j, ] <- sapply(probs, emissionForGenotypes, genotypes=GT[, j])
+		if(any(is.na(emission.gt[, j, 1]))){
+			missing <- is.na(emission.gt[, j, 1])			
+			if(!missing(probMissing)){
+				if(length(probMissing) != length(states)) stop("probMissing must be a numeric vector equal to the number of states")		
+				emission.gt[missing, j, ] <- matrix(probMissing, sum(missing), length(states), byrow=TRUE)
+			} else{
+				if(verbose) message("Argument probMissing is not specified. Assume that missing genotype calls are independent of the underling hidden state")
+				emission.gt[missing, j, ] <- 1
+			}
+		}
+	}
+	dimnames(emission.gt) <- list(rownames(genotypes), colnames(genotypes), states)
+	return(suppressWarnings(log(emission.gt)))
+}
+logemission.gt <- genotypeEmission(genotypes=calls(chromosome1), states=states, probHomCall=probs)
+@ 
+
+Conditional on the hidden state, we assume that the copy number and
+genotype are independent.  Therefore, the emission probabilities for
+an HMM that models the copy number and genotypes jointly are computed
+by adding the emission probabilities (log-scale) for copy number and
+genotype:
+<<emission>>=
+logemission <- logemission.gt + logemission.logCT
+@ 
+
+\paragraph{Transition probabilities}
+
+We transform the physical distance between adjacent loci to an
+estimate of the genomic distance.
+
+<<transitionProb>>=
+tau <- exp(-2 * diff(ann[, "position"])/(100*1e6))
+@ 
+
+
+Note that the above transition probabilities can be scaled by
+specifying a matrix of dimension S x S, where S is the number of
+hidden states.  For instance, we define loss of heterozgosity in a
+single sample as a sequence of homozygous genotypes that is longer
+than what one would expect to observe by chance. One way to control
+the size (and number) of LOH regions detected is to scale the
+probability of transitioning to and from this state.  A transition
+scale matrix of 1's would not modify the probability of transitioning
+between states.
+
+Example with the first SNP.
+
+<<transitionProbabilityMatrix>>=
+epsilon <- 1-tau[1]
+M <- matrix(epsilon/(length(states)-1), length(states), length(states))
+dimnames(M) <- list(states, states)
+diag(M) <- tau[1]
+all(rowSums(M) == 1)
+@ 
+
+Note that by default, the transition probability matrix distributes
+the epsilon equally to the remaining states.  We may alter how the
+epsilon is distributed by scaling this matrix.  For instance,
+ 
+<<scaleTransitionProbs>>=
+##Make it harder to transition to LOH
+tau.scale <- matrix(1, length(states), length(states)) 
+dimnames(tau.scale) <- list(states, states)
+tau.scale["normal", "LOH"] <- 1e-4
+@ 
+
+The other states must be rescaled (here, we rescale the other states
+by a factor \texttt{scale})
+
+<<redistribute>>=
+S <- length(states)
+scale <- (S-1)/(S-2 + 1e-4)
+tau.scale["normal", c("homozygousDeletion", "hemizygousDeletion", "3copyAmp", "4copyAmp")] <- scale
+all(round(rowSums(M*tau.scale), 5) == 1)
+@ 
+
+
+\paragraph{Initial state probabilities}
+<<initialStateProb>>=
+initialStateProb <- rep(1e-4, length(states))
+initialStateProb[states=="normal"] <- 1-(length(states)-1)*1e-4
+@ 
+
+\paragraph{Fitting the HMM}
+
+We use the Viterbi algorithm to find the sequence of hidden states
+that maximizes the probability of the observed data.
+
+<<fit>>=
+fit <- viterbi(initialStateProbs=log(initialStateProb),
+	       emission=logemission[, 1, ],
+	       tau=tau)
+fit2 <- viterbi(initialStateProbs=log(initialStateProb),
+	       emission=logemission[, 1, ],
+	       tau=tau,
+	       tau.scale=tau.scale)
+@ 
+
+Note that in the above example, scaling the transition probability
+matrix did not affect the predicted sequence of hidden states.
+
+<<breaks>>=
+table(fit)
+(results <- findBreaks(x=fit, states=states, position=ann[, "position"],
+		      chromosome=ann[, "chromosome"],
+		      sample=colnames(CT)))
+results[results$state != "normal", ]
+@ 
+
+\section{Using S4 classes/methods}
+
+The objective of developing classes is to facilitate the process of
+fitting an HMM and to more effectively keep the assaydata and metadata
+together in one object.  The following code uses classes to do pretty
+much the same as above.  We begin by reproducing the
+\Robject{chromosome1} object, an object of class
+\Robject{oligoSnpSet}, from scratch.
+
+<<createOligoSnpSet>>=
+ann[, "chromosome"] <- integer2chromosome(ann[, "chromosome"])
+fD <- new("AnnotatedDataFrame", data=ann, varMetadata=data.frame(labelDescription=colnames(ann)))
+pD <- annotatedDataFrameFrom(CT, byrow=FALSE)
+GT <- matrix(as.integer(GT), nrow(GT), ncol(GT))
+dimnames(GT) <- dimnames(CT)
+chromosome1 <- new("oligoSnpSet",
+		   copyNumber=CT,
+		   calls=GT,
+		   featureData=fD,
+		   phenoData=pD,
+		   annotation="pd.mapping50kHind.240,pd.mapping50kXba.240")
+validObject(chromosome1)
+@ 
 
 <<HmmParameters>>=
+options <- new("HmmOptions",
+	       snpset=chromosome1,
+	       states=states,
+	       copyNumber.location=mu,
+	       copyNumber.scale=sample.sd[1],
+	       probHomCall=c(0.5, 0.999, 0.7, 0.999, 0.7, 0.7))
 params <- new("HmmParameter", 
 	      states=states(options),
-	      initialStateProbability=0.99)
+	      initialStateProbability=0.999)
 cn.emission <- copyNumber.emission(options)
 gt.emission <- calls.emission(options)
 emission(params) <- cn.emission + gt.emission ##log scale
-@ 
-
-<<genomicDistance>>=
-genomicDistance(params) <- exp(-2 * physicalDistance(options)/(100*1e6))
-transitionScale(params) <- scaleTransitionProbability(options)
+genomicDistance(params) <- exp(-2 * diff(position(chromosome1))/(100*1e6))
+transitionScale(params) <- matrix(1, length(states), length(states))
 class(params)
+hmmpredict <- hmm(options, params)
+class(hmmpredict)
+findBreaks(predictions(hmmpredict), states=states, position=ann[, "position"],
+	   chromosome=ann[, "chromosome"], sample=colnames(CT))
 @ 
-
-We may then fit the HMM by
-
-<<fit, eval=FALSE>>=
-fit <- hmm(options, params)
-@ 
-
-<<load,echo=FALSE>>=
-data(fit)
-@ 
-
-<<>>=
-fit
-breakpoints(fit)
-@ 
-
-Summary statistics for the breakpoints (more useful when multiple
-chromosomes and samples are in the \Robject{fit} object)
-
-<<summary>>=
-summary(fit)
-@ 
-
 
 See \cite{Scharpf2007a} for a more complete description of the
 simulated dataset and the features detected by this HMM.  We may plot
 the data along with the predictions as follows:
 
 <<vanillaPlot,fig=TRUE,width=8,height=5>>=
-gp <- plotSnp(snpset(options), fit)
+gp <- plot(snpset(options), hmmpredict)
 gp$abline.v <- TRUE ##plots vertical dashed lines
+unlist(snpPar(gp))
+gp$col.predict[3] <- "white"
 show(gp)
 @ 
 
 \subsection{Integrating Confidence Estimates (ICE)}
+
+FIXME: integrating confidence estimates of the genotype calls, the
+probability of a missing genotype, epsilon probabiity for extreme
+observations
 
 In this section, we illustrate how one may fit an HMM that
 incorporates confidence esimates of the SNP-level summaries for
@@ -216,22 +471,28 @@ This information is incorporated into the HMM emission
 probabilities. Probably the easiest way to do that is recreate the
 options object, and then recalculate the emission probabilities.
 
-
 <<params>>=
+data(chromosome1)
+range(cnConfidence(chromosome1))
 options <- new("HmmOptions", 
 	       snpset=chromosome1, 
 	       states=c("D", "N", "L", "A"), 
 	       copyNumber.location=c(1, 2, 2, 3),
 	       copyNumber.ICE=TRUE,
 	       probHomCall=c(0.99, 0.75, 0.99, 0.75))
+params <- new("HmmParameter", 
+	      states=states(options),
+	      initialStateProbability=0.999)
 cn.emission <- copyNumber.emission(options)
+gt.emission <- calls.emission(options)
 emission(params) <- cn.emission + gt.emission
+genomicDistance(params) <- exp(-2*diff(position(chromosome1))/100*1e6)
+transitionScale(params) <- matrix(1, length(states(options)), length(states(options)))
 fit.ice <- hmm(options, params)
 @ 
 
 We may also incorporate the confidence scores for the genotype calls
-by specifying \Robject{calls.ICE=TRUE}. This feature is only available
-for the Affymetrix 100k and 500k platforms. The slot
+by specifying \Robject{calls.ICE=TRUE} (FIX ME). The slot
 \Robject{probHomCall} stores user-specified probabilities of P(call is
 AA or BB | state is LOH) and P(call is AA or BB | state is normal).
 These probabilities must be specified in this order.  The emission
@@ -258,7 +519,7 @@ params <- new("HmmParameter",
 	      initialStateProbability=0.99)
 cn.emission <- copyNumber.emission(options)
 genomicDistance(params) <- exp(-2 * physicalDistance(options)/(100*1e6))
-transitionScale(params) <- scaleTransitionProbability(options)
+transitionScale(params) <- scaleTransitionProbability(states(options))
 gt.emit <- calls.emission(options)
 gt.emission <- array(NA, dim(cn.emission))
 gt.emission[, , 1:2] <- gt.emit
@@ -268,8 +529,8 @@ fit.ice <- hmm(options, params)
 @ 
 
 
-<<icePlot, fig=TRUE, width=8, height=5>>=
-gp <- plotSnp(snpset(options), fit.ice)
+<<icePlot, fig=TRUE, width=8, height=5, eval=FALSE>>=
+gp <- plot(snpset(options), fit.ice)
 gp$abline.v <- TRUE
 gp$col.predict <- c("darkblue", "white", "yellow", "orange")
 show(gp)
@@ -381,7 +642,7 @@ altered state to a normal state 10 times as likely as the probability
 of transitioning between two altered states by the following commmand:
 
 <<>>=
-transitionScale(params) <- scaleTransitionProbability(params, SCALE=10)
+transitionScale(params) <- scaleTransitionProbability(states(params), SCALE=10)
 transitionScale(params)
 @ 
 
@@ -402,15 +663,10 @@ fit
 The breakpoints are provided as a \Robject{data.frame}:
 
 <<breaks>>=
-breaks <- breakpoints(fit)
-breaks <- breaks[breaks[, "state"] != "N", ]
-@ 
-
-One may order the altered states from biggest to smallest for each
-chromosome as follows:
-
-<<orderBreaks>>=
-breaks[order(breaks[, "chr"], breaks[, "size"], decreasing=TRUE), ]
+findBreaks(x=predictions(fit.ice), states=states(fit.ice),
+	   position=position(fit.ice), chromosome=chromosome(fit.ice), sample=sampleNames(fit.ice))
+##or
+calculateBreakpoints(fit.ice)
 @ 
 
 The \Robject{summary} method returns a list where each element in the
@@ -418,9 +674,7 @@ list provides statistics for an altered states.  For each chromosome,
 the mean, median, and standard deviation of the size of the features
 and number of SNPs involved are reported. For instance, in this HMM
 the altered states were loss of heterozygosity (L), amplification of
-copy number (A), and deletion of copy number (D). Because we only have
-one sample and one chromosome in the \Robject{fit} example, the
-\Robject{summary} method is not that useful:
+copy number (A), and deletion of copy number (D). 
 
 <<summary>>=
 summary(fit)
@@ -449,11 +703,11 @@ options <- new("HmmOptions",
 params.cn <- new("HmmParameter",  
 		 states=c("D", "N", "A"))
 emission(params.cn) <- copyNumber.emission(options)
-transitionScale(params.cn) <- scaleTransitionProbability(options)
+transitionScale(params.cn) <- scaleTransitionProbability(states=c("D", "N", "A"), normalLabel="N")
 genomicDistance(params.cn) <- exp(-2*physicalDistance(options)/(100*1e6))
 fit.cn <- hmm(options, params.cn)
 breakpoints(fit.cn)
-graph.par <- plotSnp(snpset(options), fit.cn)
+graph.par <- plot(snpset(options), fit.cn)
 graph.par$abline.v <- FALSE
 @ 
 
@@ -488,13 +742,13 @@ options <- new("HmmOptions",
 	       probHomCall=c(0.99, 0.7))
 params.calls <- new("HmmParameter", 
 		    states=states(options))
-transitionScale(params.calls) <- scaleTransitionProbability(options)
+transitionScale(params.calls) <- scaleTransitionProbability(states(options))
 genomicDistance(params.calls) <- exp(-2*physicalDistance(options)/(100*1e6))
 emission(params.calls) <- calls.emission(options)
 
 fit.calls <- hmm(options, params.calls)
 breakpoints(fit.calls)
-gp <- plotSnp(snpset(options), fit.calls)
+gp <- plot(snpset(options), fit.calls)
 gp$col.predict <- c("black", "white")
 gp$ylim <- c(-0.5, 1)
 gp$add.centromere <- FALSE
@@ -516,6 +770,7 @@ objects of class \Robject{oligoSnpSet}.
 
 More documentation about the classes can be found in the documentation
 for the R package \ice. 
+
 
 \section{Session Information}
 

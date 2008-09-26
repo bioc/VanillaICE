@@ -2,10 +2,7 @@
 \alias{calculateBreakpoints}
 \title{ Calculate breakpoints for altered states from the prediction
   matrix}
-\description{
- Calculate breakpoints for altered states from the prediction matrix in
- an object of class \code{HmmPredict}
-}
+\description{Wrapper for findBreaks}
 \usage{
 calculateBreakpoints(object, ...)
 }
@@ -21,6 +18,6 @@ calculateBreakpoints(object, ...)
   A matrix
 }
 \author{R. Scharpf}
-\seealso{\code{\link{summary}}}
+\seealso{\code{\link{findBreaks}}}
 \keyword{manip}
 \keyword{methods}

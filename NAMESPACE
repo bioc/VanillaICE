@@ -1,3 +1,4 @@
+useDynLib("VanillaICE")
 import(SNPchip, Biobase, oligoClasses)
 exportClasses("HmmParameter", "HmmOptions")
 exportMethods("[",
@@ -45,6 +46,9 @@ export(getChromosomeArm,
        calculateCnSE,
        calls.emission,
        copyNumber.emission,
+       copynumberEmission,
+       findBreaks,
+       genotypeEmission,
        makeTable,
        scaleTransitionProbability,
        viterbi)

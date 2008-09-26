@@ -1,5 +1,5 @@
 setMethod("hmm", c("HmmOptions", "HmmParameter"),
-          function(object, params){
+	  function(object, params){
 		  if(!validObject(object)){
 			  stop("the object of class HmmOptions must be valid. See validObject()")
 		  }
@@ -29,17 +29,22 @@ setMethod("hmm", c("HmmOptions", "HmmParameter"),
 		  } else{
 			  sn <- sampleNames(snpset)
 		  }
-		  arm <- paste(chromosome(snpset), featureData(snpset)$arm, sep="")
+		  ##message("converting arm to class integer")
+		  arm <- fData(snpset)$arm
+##		  arm[arm == "p"] <- 0
+##		  arm[arm == "q"] <- 1
+##		  arm <- as.integer(arm)
+		  ##arm <- paste(chromosome(snpset), featureData(snpset)$arm, sep="")
 		  beta <- emission(params)
+		  tau <- genomicDistance(params)
 		  predictions <- matrix(NA, nrow=nrow(snpset), ncol=(dim(beta)[2]))
 		  for(i in 1:(dim(beta)[2])){
 			  if(i == 1){
 				  print(paste("Fitting HMM to sample", i))
 			  } else {cat(i, "\n")}
-			  predictions[, i] <- viterbi(beta[, i, ],
-						      pi=pi(params),
-						      tau=genomicDistance(params),
-						      states=states(object),
+			  predictions[, i] <- viterbi(emission=beta[, i, ],
+						      initialStateProbs=log(pi(params)),
+						      tau=tau,
 						      arm=arm,
 						      tau.scale=transitionScale(params))
 		  }
@@ -53,9 +58,11 @@ setMethod("hmm", c("HmmOptions", "HmmParameter"),
 				experimentData=experimentData(snpset),
 				phenoData=phenoData(snpset[, i]),
 				annotation=annotation(snpset))
+		  
 		  breakpoints(hmmOut) <- calculateBreakpoints(hmmOut)
 		  return(hmmOut)
 	  })
+
 
 setMethod("emission", "HmmParameter", function(object) object@emission)
 setReplaceMethod("emission", c("HmmParameter", "array"),
@@ -161,14 +168,16 @@ setMethod("[", "HmmParameter",
             S <- length(states(x))
             if(!missing(i) & !missing(j)){
 		    emission(x) <- emission(x)[i, j, , drop=FALSE]
-		    idx <- sort(unique(c(i-1, i, i+1)))
+		    ##idx <- sort(unique(c(i-1, i, i+1)))
+		    idx <- i
 		    idx <- idx[idx != 0]
 		    idx <- idx[idx != R]
 		    genomicDistance(x) <- genomicDistance(x)[idx]
             }
             if(!missing(i) & missing(j)){
 		    emission(x) <- emission(x)[i, , drop=FALSE]
-		    idx <- sort(unique(c(i-1, i, i+1)))
+		    ##idx <- sort(unique(c(i-1, i, i+1)))
+		    idx <- i
 		    idx <- idx[idx != 0]
 		    idx <- idx[idx != R]
 		    genomicDistance(x) <- genomicDistance(x)[idx]
