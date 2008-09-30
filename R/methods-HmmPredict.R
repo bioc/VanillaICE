@@ -31,13 +31,13 @@ setMethod("[", "HmmPredict",
 			  if(nrow(breakpoints(x)) > 0){
 				  breakpoints(x) <- breakpoints(x)[breakpoints(x)$chr %in% chr, , drop=drop]
 				  id <- sampleNames(x)[j]
-				  breakpoints(x) <- breakpoints(x)[breakpoints(x)$id %in% id, , drop=drop]
+				  breakpoints(x) <- breakpoints(x)[breakpoints(x)$sample %in% id, , drop=drop]
 			  }
 		  }            
 		  if(missing(i) && !missing(j)){
 			  id <- sampleNames(x)[j]
 			  if(nrow(breakpoints(x)) > 0){
-				  breakpoints(x) <- breakpoints(x)[breakpoints(x)$id %in% id, , drop=drop]
+				  breakpoints(x) <- breakpoints(x)[breakpoints(x)$sample %in% id, , drop=drop]
 			  }
 		  }
 		  ##Now subset the i as per use
@@ -58,10 +58,25 @@ setMethod("calculateBreakpoints", "HmmPredict",
 		  regions <- do.call("rbind", regions)
 		  return(regions)
 	  })
+#setMethod("findBreaks", "HmmPredict", function(object, ...){
+#	  function(object, ...){
+#		  regions <- list()
+#		  for(j in 1:ncol(object)){
+#			  regions[[j]] <- findBreaks(x=predictions(object)[, j],
+#						     states=states(object),
+#						     position=position(object),
+#						     chromosome=chromosome(object),
+#						     sample=sampleNames(object)[j])
+#		  }
+#		  regions <- do.call("rbind", regions)
+#		  return(regions)
+#	  })	
+
 
 setMethod("summary", "HmmPredict",
 	  function(object, by="chr", distance.unit=1000, digits=3, ...){
-		  states <- unique(breakpoints(object)[, "state"])
+		  stop("summary method needs work")
+		  states <- unique(calculateBreakpoints(object)[, "state"])
 		  states <- states[states != "N"]		  
 		  tab <- list()
 		  for(i in 1:length(states)){

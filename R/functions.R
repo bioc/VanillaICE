@@ -50,8 +50,8 @@ findBreaks <- function(x, states, position, chromosome, sample,
 		likdiff <- function(index, lik1, lik2, state){
 			state <- unique(state[index])
 			i <- range(index)
-##			if(min(i) > 1) i[1] <- i[1]-1
-##			if(max(x) < nrow(lik1)) i[2] <- i[2]+1
+			if(min(i) > 1) i[1] <- i[1]-1
+			if(max(x) < nrow(lik1)) i[2] <- i[2]+1
 			##the more positive the better
 			d1 <- diff(lik1[i, state])
 			d2 <- diff(lik2[i, "N"])
@@ -326,7 +326,7 @@ viterbi <- function(initialStateProbs,
 	result <- vector("integer", T)
 	delta <- matrix(as.double(0), nrow=T, ncol=S)
 	tmp <- list(as.matrix(as.double(as.matrix(emission))),
-		    as.list(initialStateProbs),
+		    as.double(as.matrix(initialStateProbs)),
 		    as.matrix(as.double(tau)),
 		    as.character(arm),
 		    as.matrix(as.double(tau.scale)),
@@ -406,72 +406,83 @@ viterbi <- function(initialStateProbs,
 
 
 ##How often is a SNP altered across samples
-makeTable <- function(object, state, by, unit=1000, digits=3){
-	if(missing(state)) stop("must specify state")
-	if(missing(by)) by <- "chr"
-	breaks <- breakpoints(object)
-	X <- breaks[breaks[, "state"] == state, ]
-	##split by chromosome
-	X <- split(X, X[, by])
-	##Frequency of alterations of a specific type per chromosome
-	if(length(X) == 1){
-		freq <- nrow(X[[1]])
-	} else{
-		freq <- sapply(X, nrow)
-	}
-	##Length of alterations
-	med.L <- sapply(X, function(x) median(as.numeric(x[, "size"])*unit, na.rm=TRUE))
-	avg.L <- sapply(X, function(x) mean(as.numeric(x[, "size"])*unit, na.rm=TRUE))
-	sd.L <- sapply(X, function(x) sd(as.numeric(x[, "size"])*unit, na.rm=TRUE))
-	##Number of SNPs per alteration
-	med.N <- sapply(X, function(x) median(as.numeric(x[, "N"]), na.rm=TRUE))
-	avg.N <- sapply(X, function(x) mean(as.numeric(x[, "N"]), na.rm=TRUE))
-	sd.N <- sapply(X, function(x) sd(as.numeric(x[, "N"]), na.rm=TRUE))	
-	stats <- as.data.frame(cbind(freq, med.L, avg.L, sd.L, med.N, avg.N, sd.N))
-	colnames(stats) <- c("Freq", "med(length)", "avg(length)", 
-			     "sd(length)", "med(n.snp)", "avg(n.snp)", 
-			     "sd(n.snp)")
-	stats[, c(3, 4, 6, 7)] <- round(stats[, c(3, 4, 6, 7)], digits)
-	if("X" %in% rownames(stats)){
-		rownames(stats)["X"] <- 23
-	}
-	stats <- stats[order(as.numeric(rownames(stats))), ]
-	
-	##Marginal stats
-	X <- breaks[breaks[, "state"] == state, ]
-	if(nrow(stats) <= 1){
-		return(stats)
-	}
-	freq <- c(median(stats[, "Freq"]),
-		  mean(stats[, "Freq"]),
-		  sd(stats[, "Freq"]))
-	med.L <- c(median(stats[, "med(length)"]),
-		   mean(stats[, "med(length)"]),
-		   sd(stats[, "med(length)"]))
-	avg.L <- c(median(stats[, "avg(length)"]),
-		   mean(stats[, "avg(length)"]),
-		   sd(stats[, "avg(length)"]))
-	avg.L <- round(avg.L, digits)
-	sd.L <- c(median(stats[, "sd(length)"]),
-		   mean(stats[, "sd(length)"]),
-		   sd(stats[, "sd(length)"]))
-	sd.L <- round(sd.L, digits)
-	med.N <- c(median(stats[, "med(n.snp)"]),
-		   mean(stats[, "med(n.snp)"]),
-		   sd(stats[, "med(n.snp)"]))		
-	avg.N <- c(median(stats[, "avg(n.snp)"]),
-		   mean(stats[, "avg(n.snp)"]),
-		   sd(stats[, "avg(n.snp)"]))
-	avg.N <- round(avg.N, digits)
-	sd.N <- c(median(stats[, "sd(n.snp)"]),
-		   mean(stats[, "sd(n.snp)"]),
-		   sd(stats[, "sd(n.snp)"]))
-	sd.N <- round(sd.N, digits)
-	overall <- cbind(freq, med.L, avg.L, sd.L, med.N, avg.N, sd.N)
-	rownames(overall) <- c("median", "avg", "sd")
-	stats <- rbind(stats, overall)
-	stats
-}
+##makeTable <- function(object, state, by, unit=1000, digits=3){
+##	stop("function needs work")
+##	if(missing(state)) stop("must specify state")
+##	if(missing(by)) by <- "chr"
+##	breaks <- list()
+##	for(j in 1:ncol(object)){
+##		breaks[[j]] <- findBreaks(predictions(object)[, j],
+##					  chromosome=chromosome(object),
+##					  position=position(object),
+##					  states=states(object),
+##					  sample=sampleNames(object)[j])
+##		size <- breaks[[j]][, "end"]-breaks[[j]][, "start"]
+##		breaks[[j]]$size <- 
+##	}
+##	breaks <- do.call("rbind", breaks)
+##	X <- breaks[breaks[, "state"] == state, ]
+##	##split by chromosome
+##	X <- split(X, X[, by])
+##	##Frequency of alterations of a specific type per chromosome
+##	if(length(X) == 1){
+##		freq <- nrow(X[[1]])
+##	} else{
+##		freq <- sapply(X, nrow)
+##	}
+##	##Length of alterations
+##	med.L <- sapply(X, function(x) median(as.numeric(x[, "size"])*unit, na.rm=TRUE))
+##	avg.L <- sapply(X, function(x) mean(as.numeric(x[, "size"])*unit, na.rm=TRUE))
+##	sd.L <- sapply(X, function(x) sd(as.numeric(x[, "size"])*unit, na.rm=TRUE))
+##	##Number of SNPs per alteration
+##	med.N <- sapply(X, function(x) median(as.numeric(x[, "N"]), na.rm=TRUE))
+##	avg.N <- sapply(X, function(x) mean(as.numeric(x[, "N"]), na.rm=TRUE))
+##	sd.N <- sapply(X, function(x) sd(as.numeric(x[, "N"]), na.rm=TRUE))	
+##	stats <- as.data.frame(cbind(freq, med.L, avg.L, sd.L, med.N, avg.N, sd.N))
+##	colnames(stats) <- c("Freq", "med(length)", "avg(length)", 
+##			     "sd(length)", "med(n.snp)", "avg(n.snp)", 
+##			     "sd(n.snp)")
+##	stats[, c(3, 4, 6, 7)] <- round(stats[, c(3, 4, 6, 7)], digits)
+##	if("X" %in% rownames(stats)){
+##		rownames(stats)["X"] <- 23
+##	}
+##	stats <- stats[order(as.numeric(rownames(stats))), ]
+##	
+##	##Marginal stats
+##	X <- breaks[breaks[, "state"] == state, ]
+##	if(nrow(stats) <= 1){
+##		return(stats)
+##	}
+##	freq <- c(median(stats[, "Freq"]),
+##		  mean(stats[, "Freq"]),
+##		  sd(stats[, "Freq"]))
+##	med.L <- c(median(stats[, "med(length)"]),
+##		   mean(stats[, "med(length)"]),
+##		   sd(stats[, "med(length)"]))
+##	avg.L <- c(median(stats[, "avg(length)"]),
+##		   mean(stats[, "avg(length)"]),
+##		   sd(stats[, "avg(length)"]))
+##	avg.L <- round(avg.L, digits)
+##	sd.L <- c(median(stats[, "sd(length)"]),
+##		   mean(stats[, "sd(length)"]),
+##		   sd(stats[, "sd(length)"]))
+##	sd.L <- round(sd.L, digits)
+##	med.N <- c(median(stats[, "med(n.snp)"]),
+##		   mean(stats[, "med(n.snp)"]),
+##		   sd(stats[, "med(n.snp)"]))		
+##	avg.N <- c(median(stats[, "avg(n.snp)"]),
+##		   mean(stats[, "avg(n.snp)"]),
+##		   sd(stats[, "avg(n.snp)"]))
+##	avg.N <- round(avg.N, digits)
+##	sd.N <- c(median(stats[, "sd(n.snp)"]),
+##		   mean(stats[, "sd(n.snp)"]),
+##		   sd(stats[, "sd(n.snp)"]))
+##	sd.N <- round(sd.N, digits)
+##	overall <- cbind(freq, med.L, avg.L, sd.L, med.N, avg.N, sd.N)
+##	rownames(overall) <- c("median", "avg", "sd")
+##	stats <- rbind(stats, overall)
+##	stats
+##}
 
 scaleTransitionToState <- function(cols, AA, SCALE){
 	epsilon <- AA[, cols]

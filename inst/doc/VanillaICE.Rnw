@@ -159,9 +159,11 @@ the log scale, and use this estimate for all of the SNPs. This section
 will be updated.
 
 <<uncertainty>>=
+library(genefilter)
 CT <- copyNumber(chromosome1)
-robustSD <- function(X) diff(quantile(X, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2 
-sample.sd <- matrix(robustSD(log2(CT)), nrow(CT), ncol(CT))
+sample.sd <- matrix(rowSds(t(log2(CT))), nrow(CT), ncol(CT))
+##robustSD <- function(X) diff(quantile(X, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2 
+##sample.sd <- matrix(robustSD(log2(CT)), nrow(CT), ncol(CT))
 @ 
 
 \paragraph{Emission probabilities}
@@ -391,9 +393,9 @@ matrix did not affect the predicted sequence of hidden states.
 
 <<breaks>>=
 table(fit)
-(results <- findBreaks(x=fit, states=states, position=ann[, "position"],
+results <- findBreaks(x=fit, states=states, position=ann[, "position"],
 		      chromosome=ann[, "chromosome"],
-		      sample=colnames(CT)))
+		      sample=colnames(CT))
 results[results$state != "normal", ]
 @ 
 
@@ -439,8 +441,8 @@ transitionScale(params) <- matrix(1, length(states), length(states))
 class(params)
 hmmpredict <- hmm(options, params)
 class(hmmpredict)
-findBreaks(predictions(hmmpredict), states=states, position=ann[, "position"],
-	   chromosome=ann[, "chromosome"], sample=colnames(CT))
+breaks <- findBreaks(predictions(hmmpredict), states=states, position=ann[, "position"],
+		     chromosome=ann[, "chromosome"], sample=colnames(CT))
 @ 
 
 See \cite{Scharpf2007a} for a more complete description of the
@@ -450,8 +452,9 @@ the data along with the predictions as follows:
 <<vanillaPlot,fig=TRUE,width=8,height=5>>=
 gp <- plot(snpset(options), hmmpredict)
 gp$abline.v <- TRUE ##plots vertical dashed lines
-unlist(snpPar(gp))
+allParameters <- unlist(snpPar(gp))
 gp$col.predict[3] <- "white"
+gp$hmm.ycoords <- c(0.7,0.9)
 show(gp)
 @ 
 
@@ -486,9 +489,10 @@ params <- new("HmmParameter",
 cn.emission <- copyNumber.emission(options)
 gt.emission <- calls.emission(options)
 emission(params) <- cn.emission + gt.emission
-genomicDistance(params) <- exp(-2*diff(position(chromosome1))/100*1e6)
+genomicDistance(params) <- exp(-2*diff(position(chromosome1))/(100*1e6))
 transitionScale(params) <- matrix(1, length(states(options)), length(states(options)))
 fit.ice <- hmm(options, params)
+calculateBreakpoints(fit.ice)
 @ 
 
 We may also incorporate the confidence scores for the genotype calls
@@ -507,6 +511,7 @@ Normal), respectively.  Default values are provided when not
 specified, as the following example illustrates.
 
 <<params2, eval=FALSE>>=
+##FIXME
 options <- new("HmmOptions", 
 	       snpset=chromosome1, 
 	       states=c("D", "N", "L", "A"), 
@@ -529,10 +534,15 @@ fit.ice <- hmm(options, params)
 @ 
 
 
-<<icePlot, fig=TRUE, width=8, height=5, eval=FALSE>>=
+<<icePlot, fig=TRUE, width=8, height=5, eval=TRUE>>=
+##gp <- plot(snpset(options), fit.ice)
+##gp$abline.v <- TRUE ##plots vertical dashed lines
+##gp$col.predict[2] <- "white"
+##show(gp)
 gp <- plot(snpset(options), fit.ice)
 gp$abline.v <- TRUE
 gp$col.predict <- c("darkblue", "white", "yellow", "orange")
+gp$hmm.coords
 show(gp)
 legend(-0.05, 10, fill=gp$col.predict[c(1, 3, 4)],
        legend=c("< 2 copies", "copy-neutral LOH", "> 2 copies"),
@@ -625,23 +635,22 @@ The probability of remaining in the same state, $P(S_t = S_{t+1})$
 the distance (d) between SNPs: $e^{-2d(100 * 1e6)}$.  This value is
 stored in the slot \Robject{tau} of the \Robject{params} object.  The
 probability of leaving a state is $\epsilon$, where $\epsilon = 1 -
-P(S_t = S_{t+1})$.  The $\epsilon$ is split among $S-1$ states.  By
-default, the probability of transitioning from an altered state back
-to the normal state is twice as likely as the probability of
-transitioning between two altered states.  The weights for $\epsilon$
-are provided in the \texttt{tau.scale} matrix in the R object
-\Robject{params}
+P(S_t = S_{t+1})$.  The $\epsilon$ is split among $S-1$ states.  The
+SNP-specific transition probabilities can be scaled by specifying a
+matrix.  No scaling of the transition probabilities between states,
+the default, occurs when the scaling matrix is all 1's:
 
 <<tau.scale>>=
 transitionScale(params)
 @
 
-\noindent and can be adjusted by the \texttt{SCALE} argument.  For
-illustration, one could make the probability of transitioning from an
-altered state to a normal state 10 times as likely as the probability
-of transitioning between two altered states by the following commmand:
+For illustration, one could make the probability of transitioning from
+an altered state to a normal state 10 times as likely as the
+probability of transitioning between two altered states by the
+following commmand:
 
-<<>>=
+<<eval=FALSE>>=
+##FIXME
 transitionScale(params) <- scaleTransitionProbability(states(params), SCALE=10)
 transitionScale(params)
 @ 
@@ -657,30 +666,36 @@ class and contains the predicted states as well as the breakpoints for
 the different states.
 
 <<hmmOutput>>=
-fit
+fit.ice
 @ 
 
-The breakpoints are provided as a \Robject{data.frame}:
+The breakpoints are stored in slot \Robject{breakpoints} of an object
+of class \Robject{HmmPredict}.  These functions do roughly the same
+thing:
 
 <<breaks>>=
-findBreaks(x=predictions(fit.ice), states=states(fit.ice),
-	   position=position(fit.ice), chromosome=chromosome(fit.ice), sample=sampleNames(fit.ice))
-##or
-calculateBreakpoints(fit.ice)
+breaks <- breakpoints(fit.ice)
+predict <- predictions(fit.ice)
+breaks <- findBreaks(x=predict, states=states(fit.ice),
+		     position=position(fit.ice), 
+		     chromosome=chromosome(fit.ice), sample=sampleNames(fit.ice))
+breaks <- calculateBreakpoints(fit.ice)
 @ 
 
-The \Robject{summary} method returns a list where each element in the
-list provides statistics for an altered states.  For each chromosome,
-the mean, median, and standard deviation of the size of the features
-and number of SNPs involved are reported. For instance, in this HMM
-the altered states were loss of heterozygosity (L), amplification of
-copy number (A), and deletion of copy number (D). 
-
-<<summary>>=
-summary(fit)
+%The \Robject{summary} method returns a list where each element in the
+%list provides statistics for an altered states.  For each chromosome,
+%the mean, median, and standard deviation of the size of the features
+%and number of SNPs involved are reported. For instance, in this HMM
+%the altered states were loss of heterozygosity (L), amplification of
+%copy number (A), and deletion of copy number (D). 
+%
+<<summary, eval=FALSE, echo=FALSE>>=
+##FIXME
+summary(fit.ice)
 @ 
 
 \section{HMMs for different classes of data}
+
 
 \subsection{Copy number}
 
@@ -736,19 +751,18 @@ object of class \Robject{HmmSnpCallSet} and refit the HMM.
 
 <<chr1Calls>>=
 chr1.calls <- as(chromosome1, "SnpCallSet")
-options <- new("HmmOptions",
+options.calls <- new("HmmOptions",
 	       snpset=chr1.calls,
 	       states=c("L", "N"),
 	       probHomCall=c(0.99, 0.7))
 params.calls <- new("HmmParameter", 
-		    states=states(options))
-transitionScale(params.calls) <- scaleTransitionProbability(states(options))
-genomicDistance(params.calls) <- exp(-2*physicalDistance(options)/(100*1e6))
-emission(params.calls) <- calls.emission(options)
-
-fit.calls <- hmm(options, params.calls)
+		    states=states(options.calls))
+transitionScale(params.calls) <- scaleTransitionProbability(states(options.calls))
+genomicDistance(params.calls) <- exp(-2*physicalDistance(options.calls)/(100*1e6))
+emission(params.calls) <- calls.emission(options.calls)
+fit.calls <- hmm(options.calls, params.calls)
 breakpoints(fit.calls)
-gp <- plot(snpset(options), fit.calls)
+gp <- plot(snpset(options.calls), fit.calls)
 gp$col.predict <- c("black", "white")
 gp$ylim <- c(-0.5, 1)
 gp$add.centromere <- FALSE

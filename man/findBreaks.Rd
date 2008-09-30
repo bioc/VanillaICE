@@ -6,7 +6,8 @@ Identify breakpoints: physical position of breaks, number of SNPs in
 region, and the called hidden state.
 }
 \usage{
-findBreaks(x, states, position, chromosome, sample, lik1, lik2)
+%findBreaks(object, ...)
+findBreaks(object, states, position, chromosome, sample, lik1, lik2)
 }
 \arguments{
   \item{x}{matrix of predicted hidden states (integer)}

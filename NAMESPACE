@@ -49,7 +49,7 @@ export(getChromosomeArm,
        copynumberEmission,
        findBreaks,
        genotypeEmission,
-       makeTable,
+##       makeTable,
        scaleTransitionProbability,
        viterbi)
 
