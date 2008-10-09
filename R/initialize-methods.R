@@ -8,11 +8,11 @@ setMethod("initialize", "HmmParameter",
 		  .Object@states <- states
 		  S <- length(states)
 		  if(length(initialStateProbability) == 1){
-			  pi <- initialStateProbability
-			  pi.other <- (1-pi)/(length(states)-1)
-			  pi <- rep(pi, length(states))
-			  pi[states != "N"] <- pi.other
-			  initialStateProbability <- pi
+			  Pi <- initialStateProbability
+			  Pi.other <- (1-Pi)/(length(states)-1)
+			  Pi <- rep(Pi, length(states))
+			  Pi[states != "N"] <- Pi.other
+			  initialStateProbability <- Pi
 		  }
 		  .Object@initialStateProbability <- initialStateProbability
 		  .Object@emission <- emission
@@ -25,7 +25,7 @@ setValidity("HmmParameter",
 		    valid <- TRUE
 		    msg <- NULL
 		    S <- length(object@states)
-		    if(S != length(pi(object))){
+		    if(S != length(Pi(object))){
 			    msg <- c(msg, "length of states not equal to length of initial state probabilities")
 			    valid <- FALSE
 		    }

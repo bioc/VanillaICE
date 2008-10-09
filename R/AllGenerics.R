@@ -12,7 +12,7 @@ setGeneric("copyNumber.ICE<-", function(object, value) standardGeneric("copyNumb
 setGeneric("calls.ICE", function(object) standardGeneric("calls.ICE"))
 setGeneric("calls.ICE<-", function(object, value) standardGeneric("calls.ICE<-"))
 setGeneric("hmm", function(object, params) standardGeneric("hmm"))
-setGeneric("pi", function(object) standardGeneric("pi"))
+setGeneric("Pi", function(object) standardGeneric("Pi"))
 setGeneric("predictions", function(object) standardGeneric("predictions"))
 setGeneric("predictions<-", function(object, value) standardGeneric("predictions<-"))
 

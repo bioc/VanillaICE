@@ -1,5 +1,5 @@
-\name{pi}
-\alias{pi}
+\name{Pi}
+\alias{Pi}
 \title{Accessor for the initial state probabilities of the hidden Markov
 model}
 \description{
@@ -7,7 +7,7 @@ Accessor for the initial state probabilities of the hidden Markov
 model
 }
 \usage{
-pi(object)
+Pi(object)
 }
 \arguments{
   \item{object}{object of class \code{HmmParameter}}

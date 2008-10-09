@@ -43,7 +43,7 @@ setMethod("hmm", c("HmmOptions", "HmmParameter"),
 				  print(paste("Fitting HMM to sample", i))
 			  } else {cat(i, "\n")}
 			  predictions[, i] <- viterbi(emission=beta[, i, ],
-						      initialStateProbs=log(pi(params)),
+						      initialStateProbs=log(Pi(params)),
 						      tau=tau,
 						      arm=arm,
 						      tau.scale=transitionScale(params))
@@ -77,7 +77,7 @@ setReplaceMethod("genomicDistance", c("HmmParameter", "numeric"),
 			 object@genomicDistance <- value
 			 object
 			 })
-setMethod("pi", "HmmParameter", function(object) object@initialStateProbability)
+setMethod("Pi", "HmmParameter", function(object) object@initialStateProbability)
 setMethod("transitionScale", "HmmParameter", function(object) object@transitionScale)
 ##setMethod("tau.scale", "HmmParameter", function(object) object@transitionScale)
 setReplaceMethod("transitionScale", c("HmmParameter", "matrix"),
