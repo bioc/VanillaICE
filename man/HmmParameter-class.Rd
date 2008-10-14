@@ -7,7 +7,7 @@
 \alias{genomicDistance,HmmParameter-method}
 \alias{genomicDistance<-,HmmParameter,numeric-method}
 \alias{initialize,HmmParameter-method}
-\alias{pi,HmmParameter-method}
+\alias{Pi,HmmParameter-method}
 \alias{show,HmmParameter-method}
 \alias{states,HmmParameter-method}
 \alias{states<-,HmmParameter,character-method}

@@ -1,6 +1,5 @@
 \name{Pi}
 \alias{Pi}
-\alias{Pi,HmmParameter-method}
 \title{Accessor for the initial state probabilities of the hidden Markov
 model}
 \description{
