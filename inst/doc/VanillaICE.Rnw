@@ -138,6 +138,8 @@ chromosome) are ordered by physical position.
 ann <- fData(chromosome1)[, c("chromosome", "position")]
 ann[, "chromosome"] <- chromosome2integer(ann[, "chromosome"])
 chromosome1 <- chromosome1[order(ann[, "chromosome"], ann[, "position"]), ]
+ann <- ann[match(featureNames(chromosome1), rownames(ann)), ]
+stopifnot(identical(rownames(ann), featureNames(chromosome1)))
 @ 
 
 Next we specify the hidden states and the corresponding number for
@@ -153,7 +155,7 @@ SNP-specific estimates of the uncertainty of the total copy number
 will be available from methods in Section \ref{sec:locusCN} shortly.
 Below, we simply obtain a robust estimate of the copy number standard
 deviation across SNPs and use this estimate for all of the SNPs.
-Because we the log-transformed copy number estimates are more nearly
+Because the log-transformed copy number estimates are more nearly
 Gaussian, we calculate a robust estimate of the standard deviation on
 the log scale, and use this estimate for all of the SNPs. This section
 will be updated.
@@ -162,8 +164,10 @@ will be updated.
 library(genefilter)
 CT <- copyNumber(chromosome1)
 sample.sd <- matrix(rowSds(t(log2(CT))), nrow(CT), ncol(CT))
-##robustSD <- function(X) diff(quantile(X, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2 
-##sample.sd <- matrix(robustSD(log2(CT)), nrow(CT), ncol(CT))
+@ 
+
+<<uncertaintyCalls>>=
+tmp <- callsConfidence(chromosome1)
 @ 
 
 \paragraph{Emission probabilities}
@@ -324,18 +328,30 @@ estimate of the genomic distance.
 tau <- exp(-2 * diff(ann[, "position"])/(100*1e6))
 @ 
 
+To check whether the calculated transition probabilities are valid,
+the transition probabilities when split up by chromosome should have
+values between 0 and 1.
+<<validTP>>=
+(range.tau <- range(unlist(lapply(split(ann[, "position"], ann[, "chromosome"]), function(x) exp(-2*diff(x)/1e8)))))
+if(range.tau[1] <= 0 | range.tau[2] > 1) 
+	stop("Transition probabilities are not valid.  Check that the snpset object has been ordered by chromosome and physical position.")
+@ 
 
-Note that the above transition probabilities can be scaled by
-specifying a matrix of dimension S x S, where S is the number of
-hidden states.  For instance, we define loss of heterozgosity in a
-single sample as a sequence of homozygous genotypes that is longer
-than what one would expect to observe by chance. One way to control
-the size (and number) of LOH regions detected is to scale the
-probability of transitioning to and from this state.  A transition
-scale matrix of 1's would not modify the probability of transitioning
-between states.
+Note: a critical advantage of using the SnpLevelSet classes (see next
+section) is that the feature data and assay data are kept in one
+object, reducing the occurence of errors at this step.
 
-Example with the first SNP.
+The above transition probabilities can be scaled by specifying a
+matrix of dimension S x S, where S is the number of hidden states.
+For instance, we define loss of heterozgosity in a single sample as a
+sequence of homozygous genotypes that is longer than what one would
+expect to observe by chance. One way to control the size (and number)
+of LOH regions detected is to scale the probability of transitioning
+to and from this state.  A transition scale matrix of 1's would not
+modify the probability of transitioning between states.
+
+For example, the transition probability matrix for SNP$_1 \rightarrow$
+SNP$_2$:
 
 <<transitionProbabilityMatrix>>=
 epsilon <- 1-tau[1]
