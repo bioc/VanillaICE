@@ -60,6 +60,8 @@ findBreaks <- function(x, states, position, chromosome, sample,
 		}
 		LR <- as.numeric(sapply(indices, likdiff, lik1=lik1, lik2=lik2, state=x))
 	}
+	breaks <- breaks[sapply(chr, length) == 1, ]
+	breaks$chr <- unlist(breaks$chr)
 	return(breaks)
 }
 
