@@ -16,7 +16,7 @@ transitionScale(object) <- value
 \arguments{
   \item{object}{ An object of class \code{HmmParameter}}
   
-  \item{value} {A matrix of dimension STATES x STATES, where STATES is
+  \item{value}{A matrix of dimension STATES x STATES, where STATES is
     the number of hidden states.}
 
 }
