@@ -55,7 +55,7 @@ setMethod("calculateBreakpoints", "HmmPredict",
 						     chromosome=chromosome(object),
 						     sample=sampleNames(object)[j])
 		  }
-		  regions <- do.call("rbind", regions)
+		  regions <- do.call(rbind, regions)
 		  return(regions)
 	  })
 #setMethod("findBreaks", "HmmPredict", function(object, ...){
