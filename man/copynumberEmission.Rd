@@ -8,17 +8,23 @@ Emission probabilities for copy number
 copynumberEmission(copynumber, states, mu, uncertainty, takeLog, verbose = TRUE)
 }
 \arguments{
-  \item{copynumber}{class matrix}
-  \item{states}{class character}
-  \item{mu}{class numeric: mean of hidden states for Gaussian}
+  \item{copynumber}{matrix}
+  \item{states}{character string}
+  \item{mu}{numeric: mean of hidden states for Gaussian}
   \item{uncertainty}{uncertainty of copy number estimates}
-  \item{takeLog}{whether to take the log of the copy number AND the mu argument}
+  
+  \item{takeLog}{logical: if TRUE, this function takes the log of the
+    copy number AND mu arguments to this function}
+  
   \item{verbose}{logical}
 }
 \details{
 }
 \value{
-  \item{array}{Array of emission probabilities.  Dimension 1: SNPs, Dimension 2: samples, Dimension3: states}
+  
+  \item{array}{Array of emission probabilities on the log scale.
+    Dimension 1: SNPs, Dimension 2: samples, Dimension3: states}
+  
 }
 \seealso{}
 \examples{

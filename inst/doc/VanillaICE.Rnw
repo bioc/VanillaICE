@@ -42,8 +42,8 @@
 \maketitle
 
 
-<<setup, echo=FALSE, results=hide>>=
-options(width=69)
+<<setup, echo=FALSE>>=
+options(width=60)
 @ 
 
 \section{Introduction}
@@ -422,11 +422,18 @@ fitting an HMM and to more effectively keep the assaydata and metadata
 together in one object.  The following code uses classes to do pretty
 much the same as above.  We begin by reproducing the
 \Robject{chromosome1} object, an object of class
-\Robject{oligoSnpSet}, from scratch.
+\Robject{oligoSnpSet}, from scratch. Important: The object
+\Robject{ann} is a data.frame containing information on physical
+position and chromosome.  The number of rows for the \Robject{ann}
+should be the same as the number of SNPs.  The column names must be
+'position' and 'chromosome'.  If you use different column headers, the
+methods \Rfunction{position} and \Rfunction{chromosome} that extract
+this information may not work.  
 
 <<createOligoSnpSet>>=
 ann[, "chromosome"] <- integer2chromosome(ann[, "chromosome"])
-fD <- new("AnnotatedDataFrame", data=ann, varMetadata=data.frame(labelDescription=colnames(ann)))
+fD <- new("AnnotatedDataFrame", data=ann, 
+	  varMetadata=data.frame(labelDescription=colnames(ann)))
 pD <- annotatedDataFrameFrom(CT, byrow=FALSE)
 GT <- matrix(as.integer(GT), nrow(GT), ncol(GT))
 dimnames(GT) <- dimnames(CT)
