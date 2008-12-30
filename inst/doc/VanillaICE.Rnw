@@ -428,7 +428,7 @@ position and chromosome.  The number of rows for the \Robject{ann}
 should be the same as the number of SNPs.  The column names must be
 'position' and 'chromosome'.  If you use different column headers, the
 methods \Rfunction{position} and \Rfunction{chromosome} that extract
-this information may not work.  
+this information may not work.
 
 <<createOligoSnpSet>>=
 ann[, "chromosome"] <- integer2chromosome(ann[, "chromosome"])

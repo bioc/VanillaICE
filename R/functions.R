@@ -266,14 +266,14 @@ calculateCnSE <- function(object,
 	object <- object[is.autosome, ]  
 	referenceSet <- referenceSet[match(featureNames(object), featureNames(referenceSet)), ]
 	robustSD <- function(X) diff(quantile(X, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2 
-	within.sd <- apply(copyNumber(object), 2, robustSD)
+	within.sd <- diag(apply(copyNumber(object), 2, robustSD))
 	across.sd <- apply(copyNumber(referenceSet), 1, robustSD)
 	##  across.sd <- rowSds(copyNumber(referenceSet), na.rm=TRUE)
 	across.sd <- matrix(across.sd, nrow=nrow(object), ncol=ncol(object), byrow=FALSE)
 	##scale across.sd by the median sd of the sample
 	median.across.sd <- median(across.sd, na.rm=TRUE)
 	std.across.sd <- across.sd/median.across.sd
-	SE <- within.sd*std.across.sd
+	SE <- std.across.sd %*% within.sd
 	SE[SE == 0] <- epsilon
 	rownames(SE) <- featureNames(object)
 	SE
