@@ -190,7 +190,7 @@ genotypeEmissionCrlmm <- function(genotypes, conf,
 	require(callsConfidence) || stop("callsConfidence package not available")
 
 	if(cdfName == "GenomeWideSnp6"){
-		data(affy6, package="callsConfidence", envir=.callsConfidencePkgEnv)
+		data(affy6, package="callsConfidence")
 		hapmapP <- affy6
 		hapmapP[, 2] <- 1-exp(-hapmapP[, 2]/1000)
 		confidence <- 1-exp(-conf/1000)
