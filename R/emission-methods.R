@@ -190,7 +190,7 @@ genotypeEmissionCrlmm <- function(genotypes, conf,
 	require(callsConfidence) || stop("callsConfidence package not available")
 
 	if(cdfName == "GenomeWideSnp6"){
-		data(affy6)
+		data(affy6, package="callsConfidence", envir=.callsConfidencePkgEnv)
 		hapmapP <- affy6
 		hapmapP[, 2] <- 1-exp(-hapmapP[, 2]/1000)
 		confidence <- 1-exp(-conf/1000)
@@ -241,15 +241,16 @@ genotypeEmissionCrlmm <- function(genotypes, conf,
 	pTruthIsNormal[hom] <- chom1*pHetCalledHom + chom2*(1-pHetCalledHom)
 
 	fNormal <- fLoh <- rep(NA, length(GT))
-	fNormal[hom] <- pHomInNormal * pTruthIsNormal
-	fNormal[het] <- (1-pHomInNormal) * pTruthIsNormal
-	fLoh[hom] <- pHomInLoh * pTruthIsLoh
-	fLoh[het] <- (1-pHomInLoh) * pTruthIsLoh
+	fNormal[hom] <- pHomInNormal * pTruthIsNormal[hom]
+	fNormal[het] <- (1-pHomInNormal) * pTruthIsNormal[het]
+	fLoh[hom] <- pHomInLoh * pTruthIsLoh[hom]
+	fLoh[het] <- (1-pHomInLoh) * pTruthIsLoh[het]
 
 	f <- array(NA, dim=c(nrow(genotypes), ncol(genotypes), 2))
 	dimnames(f)[[3]] <- c("Normal", "LOH")
 	f[, , "Normal"] <- matrix(fNormal, nrow(genotypes), ncol(genotypes))
 	f[, , "LOH"] <- matrix(fLoh, nrow(genotypes), ncol(genotypes))
+	f[f  == 0] <- min(f[f > 0], na.rm=TRUE)
 	f <- log(f)
 	return(f)	
 }

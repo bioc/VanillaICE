@@ -35,7 +35,7 @@ hmm(object, params)
 
 }
 \examples{
-data(chromosome1)
+data(chromosome1, package="VanillaICE")
 chromosome1 <- chromosome1[1:500, ]
 options <- new("HmmOptions",
 	       states=c("D", "N", "L", "A"),

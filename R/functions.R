@@ -66,11 +66,8 @@ findBreaks <- function(x, states, position, chromosome, sample,
 }
 
 
-
-
-
 getChromosomeArm <- function(snpset){
-	data(chromosomeAnnotation, package="SNPchip", envir=environment())
+	data(chromosomeAnnotation, package="SNPchip")
 	chrAnn <- as.matrix(chromosomeAnnotation)
 	tmp <- position(snpset) <= chromosomeAnnotation[chromosome(snpset), "centromereStart"]
 	chromosomeArm <- as.character(tmp)

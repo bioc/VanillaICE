@@ -49,10 +49,8 @@ export(getChromosomeArm,
        copynumberEmission,
        findBreaks,
        genotypeEmission,
-##       makeTable,
        scaleTransitionProbability,
        viterbi)
-
 ##Do not export in released version
 ##export(.splitAnnotation, .getCallEmission)
 
