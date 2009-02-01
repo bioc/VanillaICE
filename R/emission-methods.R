@@ -133,75 +133,125 @@ copyNumber.emission <- function(object){
 copynumberEmission <- function(copynumber,
 			       states,
 			       mu,
-			       uncertainty,
+			       sds,
 			       takeLog,
 			       verbose=TRUE){
+	if(missing(sds)) stop("must supply sds estimates")		
+	if(!all(sds > 0, na.rm=TRUE)) stop("sds not positive")
 	cne <- copynumber
-	location <- mu
 	if(missing(takeLog)) stop("must specify whether to take the log2 of the copy number matrix")
-	if(missing(uncertainty)) stop("must supply uncertainty estimates")	
 	if(takeLog){
 		cne <- log2(cne)
-		location <- log2(location)
-	} else{
-		if(verbose) message("no transformation of copy number")
-	}
+		mu <- log2(mu)
+	} 
 	fn <- rownames(cne)
 	S <- length(states)
 	cne <- array(cne, dim=c(nrow(cne), ncol(cne), S))
-	dimnames(cne) <- list(rownames(copynumber), colnames(copynumber), states)
-	location <- aperm(array(location, dim=c(S, ncol(cne), nrow(cne))))
-	
+	scale <- aperm(array(sds, dim=c(S, ncol(cne), nrow(cne))))
+	##dimnames(cne) <- list(rownames(copynumber), colnames(copynumber), states)
+	mu <- aperm(array(mu, dim=c(S, ncol(cne), nrow(cne))))
 	##Use SNP-specific standard errors
-	i <- which(!(is.na(as.vector(1/uncertainty))) & !is.na(as.vector(cne)))
-	if(all(1/uncertainty > 0, na.rm=TRUE)){
-		if(verbose) message("Using uncertainty as standard deviation for the copy number")
-		scale <- array(uncertainty, dim=dim(cne))
-	} else{
-		stop("confidence scores in slot cnConfidence must be positive")
-	}
+	##i <- which(!(is.na(as.vector(1/sds))) & !is.na(as.vector(cne)))
 	k <- which(!is.na(as.vector(cne)))
-	if(!identical(dim(cne), dim(location))) stop("dimensions must be the same")
-	emission.cn <- rep(NA, length(as.vector(location)))
-	emission.cn[k] <- dnorm(as.vector(cne)[k], as.vector(location)[k], as.vector(scale)[k])
+	if(!identical(dim(cne), dim(mu))) stop("dimensions must be the same")
+	emission.cn <- rep(NA, length(as.vector(mu)))
+	emission.cn[k] <- dnorm(as.vector(cne)[k], as.vector(mu)[k], as.vector(scale)[k])
 	emission.cn <- array(emission.cn, dim=dim(cne))
-	dimnames(emission.cn) <- list(rownames(cne), colnames(cne), states)
+	##dimnames(emission.cn) <- list(rownames(cne), colnames(cne), states)
 	if(verbose) message("returning the emission probability on the log scale")
 	return(log(emission.cn))
 }
 
-genotypeEmission <- function(genotypes, states, probHomCall, probMissing, verbose=TRUE){
+genotypeEmission <- function(genotypes, conf, states, probHomCall, probMissing, verbose=TRUE){
+	##function to replace .getCallEmission
 	if(!is.numeric(genotypes)) stop("genotypes must be integers (1=AA, 2=AB, 3=BB, 4=missing")
-	emissionForGenotypes <- function(probHomGenotype, genotypes){
-		isHom <- which(as.vector(genotypes) == 1 | as.vector(genotypes) == 3)
-		isHet <- which(as.vector(genotypes) == 2)
-		isMissing <- which(as.vector(genotypes) == 4 | is.na(as.vector(genotypes)))
-		emission.gt <- rep(NA, length(genotypes))
-		emission.gt[isHom] <- probHomGenotype
-		emission.gt[isHet] <- 1-probHomGenotype
-		emission.gt[isMissing] <- NA
-		emission.gt
+	emission <- array(genotypes, dim=c(nrow(genotypes), ncol(genotypes), length(states)))
+	for(s in seq(along=states)){
+		tmp <- genotypes
+		tmp[tmp == 1 | tmp == 3] <- probHomCall[s]
+		tmp[tmp == 2] <- 1-probHomCall[s]
+		if(!missing(probMissing)) tmp[tmp == 4 | is.na(tmp)] <- probMissing[s]
+		emission[, , s] <- tmp
 	}
-	emission.gt <- array(NA, dim=c(nrow(GT), ncol(GT), length(states)))
-	for(j in 1:ncol(GT)){
-		emission.gt[, j, ] <- sapply(probs, emissionForGenotypes, genotypes=GT[, j])
-		if(any(is.na(emission.gt[, j, 1]))){
-			missing <- is.na(emission.gt[, j, 1])			
-			if(!missing(probMissing)){
-				if(length(probMissing) != length(states)) stop("probMissing must be a numeric vector equal to the number of states")		
-				emission.gt[missing, j, ] <- matrix(probMissing, sum(missing), length(states), byrow=TRUE)
-			} else{
-				if(verbose) message("Argument probMissing is not specified. Assume that missing genotype calls are independent of the underling hidden state")
-				emission.gt[missing, j, ] <- 1
-			}
-		}
-	}
-	dimnames(emission.gt) <- list(rownames(genotypes), colnames(genotypes), states)
-	return(suppressWarnings(log(emission.gt)))
+	dimnames(emission)[[3]] <- states
+	logemit <- log(emission)
+	return(logemit)
 }
 
-.genotypeEmissionWithCrlmmConfidence <- function(pkgname, genotypes, probHomGenotype){
+genotypeEmissionCrlmm <- function(genotypes, conf,
+				  pHetCalledHom=0.001,
+				  pHetCalledHet=0.995,
+				  pHomInNormal=0.99,
+				  pHomInLoh=0.999,
+				  cdfName){
 	##function to replace .getCallEmission
+	if(missing(cdfName)) stop("must provide cdfName")
+	if(cdfName != "GenomeWideSnp6") stop("currently this function only works for Affy 6.0")
+	require(callsConfidence) || stop("callsConfidence package not available")
+
+	if(cdfName == "GenomeWideSnp6"){
+		data(affy6)
+		hapmapP <- affy6
+		hapmapP[, 2] <- 1-exp(-hapmapP[, 2]/1000)
+		confidence <- 1-exp(-conf/1000)
+	}
+	i11 <- hapmapP[, 1] == 3  ##called homozygous truth homozygous
+	i12 <- hapmapP[, 1] == 4  ##called homozygous truth heterozygous
+	i21 <- hapmapP[, 1] == 1  ##called het truth hom
+	i22 <- hapmapP[, 1] == 2  ##called het truth het
+	f11 <- density(hapmapP[i11, 2], from=0, to=1, n=1e3)
+	f12 <- density(hapmapP[i12, 2], from=0, to=1, n=1e3)
+	f21 <- density(hapmapP[i21, 2], from=0, to=1, n=1e3)
+	f22 <- density(hapmapP[i22, 2], from=0, to=1, n=1e3)
+
+	##-------------------------------------------------------------------------
+	##distribution of observed call probabilities when the call is homozygous
+	##-------------------------------------------------------------------------
+
+	##-------------------------------------------------------------------------
+	##P(phat | LOH, gte)  
+	##-------------------------------------------------------------------------	
+	GT <- as.integer(genotypes)
+	pTruthIsNormal <- pTruthIsLoh <- rep(NA, length(GT))	
+	confidence <- as.numeric(confidence)
+	confidence[confidence==0] <- 0.01 ##Otherwise, NA's result
+	
+	hom <- which(GT == 1 | GT == 3)
+	observedPcalledHom <- cut(confidence[hom], breaks=f11$x, labels=FALSE)
+	pTruthIsLoh[hom] <- f11$y[observedPcalledHom]
+
+	het <- which(GT == 2)
+	observedPcalledHet <- cut(confidence[het], breaks=f11$x, labels=FALSE)
+	pTruthIsLoh[het] <- f21$y[observedPcalledHet]
+
+	##-------------------------------------------------------------------------
+	##Calculate P(phat | Normal, HOM)
+	##-------------------------------------------------------------------------					
+	chet1 <- f22$y[cut(confidence[het], breaks=f22$x, labels=FALSE)] 
+	chet2 <- f21$y[cut(confidence[het], breaks=f21$x, labels=FALSE)]
+	##term5[1]=P(true genotype is HET | genotype call is AB, state is normal)
+	pTruthIsNormal[het] <- chet1*pHetCalledHet + chet2*(1-pHetCalledHet)
+	##chom1=called homozygous truth heterozygous
+	chom1 <- f12$y[cut(confidence[hom], breaks=f12$x, labels=FALSE)]
+	##chom2=called homozygous truth homozygous
+	chom2 <- f11$y[cut(confidence[hom], breaks=f11$x, labels=FALSE)]
+	##chom4 <- 0.9999    ##P(HOM|CHOM)
+	##probability that the true state is HOM when genotype call is homozygous
+	##pHetCalledHom = P(true genotype is HET | calls is AA or BB, state is normal)
+	pTruthIsNormal[hom] <- chom1*pHetCalledHom + chom2*(1-pHetCalledHom)
+
+	fNormal <- fLoh <- rep(NA, length(GT))
+	fNormal[hom] <- pHomInNormal * pTruthIsNormal
+	fNormal[het] <- (1-pHomInNormal) * pTruthIsNormal
+	fLoh[hom] <- pHomInLoh * pTruthIsLoh
+	fLoh[het] <- (1-pHomInLoh) * pTruthIsLoh
+
+	f <- array(NA, dim=c(nrow(genotypes), ncol(genotypes), 2))
+	dimnames(f)[[3]] <- c("Normal", "LOH")
+	f[, , "Normal"] <- matrix(fNormal, nrow(genotypes), ncol(genotypes))
+	f[, , "LOH"] <- matrix(fLoh, nrow(genotypes), ncol(genotypes))
+	f <- log(f)
+	return(f)	
 }
 
 .getCallEmission <- function(object){

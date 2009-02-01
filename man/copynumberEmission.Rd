@@ -5,17 +5,15 @@
 Emission probabilities for copy number
 }
 \usage{
-copynumberEmission(copynumber, states, mu, uncertainty, takeLog, verbose = TRUE)
+copynumberEmission(copynumber, states, mu, sds, takeLog, verbose = TRUE)
 }
 \arguments{
   \item{copynumber}{matrix}
   \item{states}{character string}
   \item{mu}{numeric: mean of hidden states for Gaussian}
-  \item{uncertainty}{uncertainty of copy number estimates}
-  
+  \item{sds}{standard deviations of copy number estimates}
   \item{takeLog}{logical: if TRUE, this function takes the log of the
     copy number AND mu arguments to this function}
-  
   \item{verbose}{logical}
 }
 \details{

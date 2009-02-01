@@ -195,7 +195,7 @@ nearly the same as above, but with a few additional checks).
 logemission.logCT2 <- copynumberEmission(copynumber=CT,
 					 states=states,
 					 mu=mu,
-					 uncertainty=sample.sd,
+					 sds=sample.sd,
 					 takeLog=TRUE,
 					 verbose=TRUE)
 dimnames(logemission.logCT) <- dimnames(logemission.logCT2)
@@ -228,17 +228,17 @@ must specify the probability of a homozygous genotype call
 is to have genotype emission probabilities that are informative for
 distinguishing the normal state versus hemizygous deletions or LOH,
 and somewhat agnostic for distinguishing between homozygous
-deletions/amplifications from normal regions. 
+deletions/amplifications from normal regions.
 
 To illustrate this idea, consider two scenarios where the true state
-is amplification of copy number (e.g., 3 copies) over a regions
+is amplification of copy number (e.g., 3 copies) over a region
 spanning 10 SNPs.  Scenario 1: 7 of the 10 di-allelic genotype calls
 are homozygous.  Scenario 2: all 10 of the di-allelic genotype calls
 are homozygous. For the hidden Markov model, we assume that the
 probability of a homozygous genotype call is 0.99 for normal,
 homozygous deletion and amplification. For hemizygous deletion and
 copy-neutral LOH, we specify a probability of 0.9999.  Note the
-following: 
+following:
 
 \begin{itemize}
 \item The emission probabilities for the di-allelic genotype calls in
@@ -255,58 +255,27 @@ following:
   higher emission probability for the genotypes.  However, because the
   probability of observing homozygous genotype calls for amplification
   and normal states is also high, most of the information for
-  discriminating between and amplification containing 10 homozygous
-  genotype and a copy-neutral region of LOH will be driven by the
+  discriminating between an amplification containing 10 homozygous
+  genotypes and a copy-neutral region of LOH will be driven by the
   emission probability for copy number.
   
 \end{itemize}
 
-In summary, specifiying high probabilities for observing a homozygous
-genotype call in normal and copy number alterered states (as indicated
-below) allows fairly long stretches of homozygous genotype calls to
-occur by chance in any of the states. In our experience, sequences of
-70 - 100 homozygous genotypes are fairly common and likely represent
-normal regions of the genome with fairly uniform haplotype structure.
-If any of the genotype calls are missing and missingness is not
-independent of the underlying hidden state, one may specify the
-probability of a missing genotype calls for each hidden state
-(\texttt{probMissing}).  By default, the HMM will assume that missing
-genotype calls are independent of the underlying hidden state.
+In our experience, sequences of 70 - 100 homozygous genotypes are
+fairly common and likely represent normal regions of the genome with
+fairly uniform haplotype structure.  If any of the genotype calls are
+missing and missingness is not independent of the underlying hidden
+state, one may specify the probability of a missing genotype calls for
+each hidden state (\texttt{probMissing}).  By default, the HMM will
+assume that missing genotype calls are independent of the underlying
+hidden state.
 
 <<genotypeEmission>>=
 probs <- c(0.99, 0.9999, 0.99, 0.9999, 0.99, 0.99)
 probMissing <- c(0.999, rep(0.01, 5))
 names(probs) <- states
 GT <- calls(chromosome1)
-genotypeEmission <- function(genotypes, states, probHomCall, probMissing, verbose=TRUE){
-	if(!is.numeric(genotypes)) stop("genotypes must be integers (1=AA, 2=AB, 3=BB, 4=missing")
-	emissionForGenotypes <- function(probHomGenotype, genotypes){
-		isHom <- which(as.vector(genotypes) == 1 | as.vector(genotypes) == 3)
-		isHet <- which(as.vector(genotypes) == 2)
-		isMissing <- which(as.vector(genotypes) == 4 | is.na(as.vector(genotypes)))
-		emission.gt <- rep(NA, length(genotypes))
-		emission.gt[isHom] <- probHomGenotype
-		emission.gt[isHet] <- 1-probHomGenotype
-		emission.gt[isMissing] <- NA
-		emission.gt
-	}
-	emission.gt <- array(NA, dim=c(nrow(GT), ncol(GT), length(states)))
-	for(j in 1:ncol(GT)){
-		emission.gt[, j, ] <- sapply(probs, emissionForGenotypes, genotypes=GT[, j])
-		if(any(is.na(emission.gt[, j, 1]))){
-			missing <- is.na(emission.gt[, j, 1])			
-			if(!missing(probMissing)){
-				if(length(probMissing) != length(states)) stop("probMissing must be a numeric vector equal to the number of states")		
-				emission.gt[missing, j, ] <- matrix(probMissing, sum(missing), length(states), byrow=TRUE)
-			} else{
-				if(verbose) message("Argument probMissing is not specified. Assume that missing genotype calls are independent of the underling hidden state")
-				emission.gt[missing, j, ] <- 1
-			}
-		}
-	}
-	dimnames(emission.gt) <- list(rownames(genotypes), colnames(genotypes), states)
-	return(suppressWarnings(log(emission.gt)))
-}
+##trace(genotypeEmission, browser)
 logemission.gt <- genotypeEmission(genotypes=calls(chromosome1), states=states, probHomCall=probs)
 @ 
 

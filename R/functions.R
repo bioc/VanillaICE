@@ -298,7 +298,7 @@ viterbi <- function(initialStateProbs,
 		stop("initialStateProbs (the initial state probabilities, should be a numeric vector of length S, where S is the number of hidden states")
 	}		
 	if(any(is.na(emission))){
-		if(verbose) message("Converting missing values in the emission matrix to 0")
+		##if(verbose) message("Converting missing values in the emission matrix to 0")
 		emission[is.na(emission)] <- 0
 	}
 	if(any(is.nan(emission))){
@@ -315,7 +315,7 @@ viterbi <- function(initialStateProbs,
 		arm <- rep(as.integer(0), T)
 	}
 	if(missing(tau.scale)){
-		if(verbose) message("tau.scale not specified.  not scaling the genomic distance")
+		##if(verbose) message("tau.scale not specified.  not scaling the genomic distance")
 		tau.scale <- matrix(1, S, S)
 	}
 	if(any(!(dim(tau.scale) == S))){
