@@ -49,6 +49,7 @@ export(getChromosomeArm,
        copynumberEmission,
        findBreaks,
        genotypeEmission,
+       genotypeEmissionCrlmm,
        scaleTransitionProbability,
        viterbi)
 ##Do not export in released version

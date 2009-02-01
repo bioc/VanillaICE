@@ -188,7 +188,6 @@ genotypeEmissionCrlmm <- function(genotypes, conf,
 	if(missing(cdfName)) stop("must provide cdfName")
 	if(cdfName != "GenomeWideSnp6") stop("currently this function only works for Affy 6.0")
 	require(callsConfidence) || stop("callsConfidence package not available")
-
 	if(cdfName == "GenomeWideSnp6"){
 		data(affy6, package="callsConfidence")
 		hapmapP <- affy6
@@ -215,11 +214,9 @@ genotypeEmissionCrlmm <- function(genotypes, conf,
 	pTruthIsNormal <- pTruthIsLoh <- rep(NA, length(GT))	
 	confidence <- as.numeric(confidence)
 	confidence[confidence==0] <- 0.01 ##Otherwise, NA's result
-	
 	hom <- which(GT == 1 | GT == 3)
 	observedPcalledHom <- cut(confidence[hom], breaks=f11$x, labels=FALSE)
 	pTruthIsLoh[hom] <- f11$y[observedPcalledHom]
-
 	het <- which(GT == 2)
 	observedPcalledHet <- cut(confidence[het], breaks=f11$x, labels=FALSE)
 	pTruthIsLoh[het] <- f21$y[observedPcalledHet]
