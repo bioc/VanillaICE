@@ -65,8 +65,16 @@ findBreaks <- function(x, states, position, chromosome, sample,
 	return(breaks)
 }
 
+isLoaded <- function(dataset, environ=.vanillaIcePkgEnv)
+	exists(dataset, envir=environ)
+getVarInEnv <- function(dataset, environ=.vanillaIcePkgEnv){
+if (!isLoaded(dataset))
+	stop("Variable ", dataset, " not found in .vanillaIcePkgEnv")
+	environ[[dataset]]
+}
 
 getChromosomeArm <- function(snpset){
+	##getVarInEnv("chromosomeAnnotation")
 	data(chromosomeAnnotation, package="SNPchip")
 	chrAnn <- as.matrix(chromosomeAnnotation)
 	tmp <- position(snpset) <= chromosomeAnnotation[chromosome(snpset), "centromereStart"]
@@ -75,6 +83,8 @@ getChromosomeArm <- function(snpset){
 	chromosomeArm[chromosomeArm == "FALSE"] <- "q"
 	chromosomeArm
 }
+
+
 
 
 addFeatureData <- function(snpset){

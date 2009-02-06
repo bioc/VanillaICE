@@ -1,6 +1,7 @@
 useDynLib("VanillaICE")
 import(SNPchip, Biobase, oligoClasses)
 exportClasses("HmmParameter", "HmmOptions")
+##exportPattern("^[^\\.]")
 exportMethods("[",
               annotation,
               "annotation<-",
@@ -40,7 +41,6 @@ exportMethods("[",
 	      "term5<-",
 	      transitionScale,
 	      "transitionScale<-")
-
 export(getChromosomeArm,
        addFeatureData,
        calculateCnSE,

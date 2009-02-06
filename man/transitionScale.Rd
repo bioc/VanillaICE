@@ -23,15 +23,10 @@ transitionScale(object) <- value
 
 \details{
 
-  The probability of remaining in the same state, $P(S_t = S_{t+1})$
-(the diagonal of the transition probability matrix) is a function of the
-distance between SNPs.  The probability of transitioning to some other
-state is epsilon, where epsilon = 1 - $P(S_t = S_{t+1})$.  The epsilon
-is split among STATES-1 states.  By default, the probability of
-transitioning from an altered state back to the normal state is twice as
-likely as the probability of transitioning between two altered states.
-The weights for epsilon are provided in the \code{transitionScale}
-matrix in objects of class \code{HmmParameter}.
+  The probability of remaining in the same state, tau, is a function of
+the distance between SNPs.  The probability of transitioning to some
+other state is epsilon, where the epsilon is split among STATES-1
+states.
   
 }
 

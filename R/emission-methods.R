@@ -187,7 +187,8 @@ genotypeEmissionCrlmm <- function(genotypes, conf,
 	##function to replace .getCallEmission
 	if(missing(cdfName)) stop("must provide cdfName")
 	if(cdfName != "GenomeWideSnp6") stop("currently this function only works for Affy 6.0")
-	require(callsConfidence) || stop("callsConfidence package not available")
+	##require(callsConfidence) || stop("callsConfidence package not available")
+	data(affy6, package="VanillaICE")
 	if(cdfName == "GenomeWideSnp6"){
 		data(affy6, package="callsConfidence")
 		hapmapP <- affy6
