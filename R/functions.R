@@ -1,36 +1,54 @@
-
-
-##setMethod(".calls_ICE", c("integer", "HmmOptions"),
-.splitAnnotation <- function(object, ...){  ##, P.CHOM.Normal, P.CHOM.LOH, SAMPLE=1){
-	pkgs <- strsplit(annotation(object), ",")[[1]]	
-	fn <- featureNames(object)
-	if(length(pkgs) > 1){
-		require(RSQLite) || stop("RSQLite package not available")
-		sql <- "SELECT man_fsetid FROM featureSet WHERE man_fsetid LIKE 'SNP%'"
-		object1 <- object2 <- object
-		annotation(object1) <- pkgs[1]
-		annotation(object2) <- pkgs[2]
-		tmp1 <- dbGetQuery(db(object1), sql)
-		tmp2 <- dbGetQuery(db(object2), sql)
-
-		idx.pkg1 <- match(tmp1[["man_fsetid"]], fn)
-		idx.pkg1 <- idx.pkg1[!is.na(idx.pkg1)]
-
-		idx.pkg2 <- match(tmp2[["man_fsetid"]], fn)
-		idx.pkg2 <- idx.pkg2[!is.na(idx.pkg2)]
-
-		featureData(object)$platform <- rep(NA, nrow(object))
-		featureData(object)$platform[idx.pkg1] <- pkgs[1]
-		featureData(object)$platform[idx.pkg2] <- pkgs[2]
+breaks <- function(x, states, position, chromosome, sampleNames, chromosomeAnnotation=NULL, verbose=FALSE){
+	x <- as.matrix(x)
+	if(missing(states)) stop("must specify labels for the hidden states")
+	if(missing(position)) stop("must provide physical position of loci")
+	if(missing(chromosome)) stop("must indicate chromosome")
+	if(missing(sampleNames)) stop("must provide sample labels")
+	results <- vector("list", ncol(x))
+	for(j in 1:ncol(x)){
+		results[[j]] <- findBreaks(x[, j], states=states,
+					   position=position,
+					   chromosome=chromosome,
+					   sample=sampleNames[j],
+					   chromosomeAnnotation=chromosomeAnnotation,
+					   verbose=verbose)
 	}
-	object
+	if(length(results) == 1){
+		results <- results[[1]]
+	} else  results <- do.call("rbind", results)
+	return(results)
 }
-	
-	
-findBreaks <- function(x, states, position, chromosome, sample,
-		       lik1, lik2){
+findBreaks <- function(x, states, position, chromosome, sample, chromosomeAnnotation=NULL, verbose=FALSE){
+	if(is.null(chromosomeAnnotation)){
+		data(chromosomeAnnotation, package="SNPchip", envir=environment())
+		chrAnn <- as.matrix(chromosomeAnnotation)
+	}			
+	chrAnn <- chromosomeAnnotation
+	if(is.matrix(x)) if(ncol(x) > 1) stop("x should be a vector or matrix with 1 column")	
+	if(!is.integer(chromosome)) {
+		chromosome <- chromosome2integer(chromosome)
+	}
+	if(!all(chromosome %in% 1:24)){
+			warning("Chromosome annotation is currently available for chromosomes 1-22, X and Y")
+			message("Please add/modify data(chromosomeAnnotation, package='SNPchip') to accomodate special chromosomes")
+			stop()
+	}
+	if(!is.integer(position)) {
+		if(verbose) message("Coerced position to an integer.")
+		position <- as.integer(position)
+	}	
+	##ensure that the reported breaks do not span the centromere
+	chromosome <- integer2chromosome(chromosome)
+	uchrom <- unique(chromosome)
+	positionList <- split(position, chromosome)
+	positionList <- positionList[match(uchrom, names(positionList))]
+	arm <- list()
+	for(i in seq(along=uchrom)){
+		arm[[i]] <- as.integer(ifelse(positionList[[i]] <= chrAnn[uchrom[i], "centromereStart"], 0, 1))	
+	}		
+	arm <- unlist(arm)
 	if(length(chromosome)==1) chromosome <- rep(chromosome, length(position))
-	splitby <- factor(cumsum(c(1, diff(x) != 0)))
+	splitby <- factor(cumsum(c(1, diff(x) != 0 | diff(arm) != 0)))
 	indices <- split(1:length(x), splitby)
 	len <- sapply(indices, length)
 	S <- states[sapply(split(x, splitby), unique)]
@@ -43,267 +61,215 @@ findBreaks <- function(x, states, position, chromosome, sample,
 	breaks$chr <- chr
 	breaks$start <- pos[, 1]
 	breaks$end <- pos[, 2]
-	breaks$nbases <- size
+	breaks$nbases <- size+1
 	breaks$nprobes <- len
 	breaks$state <- S
-	if(!missing(lik1) & !missing(lik2)){
-		likdiff <- function(index, lik1, lik2, state){
-			state <- unique(state[index])
-			i <- range(index)
-			if(min(i) > 1) i[1] <- i[1]-1
-			if(max(x) < nrow(lik1)) i[2] <- i[2]+1
-			##the more positive the better
-			d1 <- diff(lik1[i, state])
-			d2 <- diff(lik2[i, "N"])
-			LR <- d1-d2
-			return(LR)
-		}
-		LR <- as.numeric(sapply(indices, likdiff, lik1=lik1, lik2=lik2, state=x))
-	}
+##	if(!missing(lik1) & !missing(lik2)){
+##		likdiff <- function(index, lik1, lik2, state){
+##			state <- unique(state[index])
+##			i <- range(index)
+##			if(min(i) > 1) i[1] <- i[1]-1
+##			if(max(x) < nrow(lik1)) i[2] <- i[2]+1
+##			##the more positive the better
+##			d1 <- diff(lik1[i, state])
+##			d2 <- diff(lik2[i, "N"])
+##			LR <- d1-d2
+##			return(LR)
+##		}
+##		LR <- as.numeric(sapply(indices, likdiff, lik1=lik1, lik2=lik2, state=x))
+##	}
 	breaks <- breaks[sapply(chr, length) == 1, ]
 	breaks$chr <- unlist(breaks$chr)
 	return(breaks)
 }
 
-isLoaded <- function(dataset, environ=.vanillaIcePkgEnv)
-	exists(dataset, envir=environ)
-getVarInEnv <- function(dataset, environ=.vanillaIcePkgEnv){
-if (!isLoaded(dataset))
-	stop("Variable ", dataset, " not found in .vanillaIcePkgEnv")
-	environ[[dataset]]
+
+genotypeEmission <- function(genotypes, conf, states, probHomCall,
+			     probMissing, verbose=TRUE){
+	##function to replace .getCallEmission
+	##message("Use genotypeEmissionCrlmm if using crlmm-processed data on affy250k or affy 6.0")
+	if(!is.numeric(genotypes)) stop("genotypes must be integers (1=AA, 2=AB, 3=BB, 4=missing")
+	emission <- array(genotypes, dim=c(nrow(genotypes), ncol(genotypes), length(states)))
+	for(s in seq(along=states)){
+		tmp <- genotypes
+		tmp[tmp == 1 | tmp == 3] <- probHomCall[s]
+		tmp[tmp == 2] <- 1-probHomCall[s]
+		if(!missing(probMissing)) tmp[tmp == 4 | is.na(tmp)] <- probMissing[s]
+		emission[, , s] <- tmp
+	}
+	dimnames(emission)[[3]] <- states
+	logemit <- log(emission)
+	return(logemit)
 }
 
-getChromosomeArm <- function(snpset){
-	##getVarInEnv("chromosomeAnnotation")
-	data(chromosomeAnnotation, package="SNPchip")
-	chrAnn <- as.matrix(chromosomeAnnotation)
-	tmp <- position(snpset) <= chromosomeAnnotation[chromosome(snpset), "centromereStart"]
-	chromosomeArm <- as.character(tmp)
-	chromosomeArm[chromosomeArm == "TRUE"] <- "p"
-	chromosomeArm[chromosomeArm == "FALSE"] <- "q"
-	chromosomeArm
+genotypeEmissionCrlmm <- function(genotypes, conf,
+				  pHetCalledHom=0.001,
+				  pHetCalledHet=0.995,
+				  pHomInNormal=0.99,
+				  pHomInRoh=0.999,  ##Pr(AA or BB | region of homozygosity)
+				  annotation){
+	if(missing(annotation)) stop("must specify annotation")
+	##data(list=paste(annotation, "Conf", sep=""), package="VanillaICE", envir=environment())
+	if(length(pHomInNormal) == nrow(conf)){  ##convert to vector
+		pHomInNormal <- as.numeric(matrix(pHomInNormal, nrow(conf), ncol(conf), byrow=FALSE))
+	} else pHomInNormal <-  rep(pHomInNormal, length(as.integer(genotypes)))
+	loader(paste(annotation, "Conf.rda", sep=""), .vanillaIcePkgEnv, "VanillaICE")
+	hapmapP <- getVarInEnv("reference")
+	hapmapP[, 2] <- 1-exp(-hapmapP[, 2]/1000)
+	##p = 1-exp(-X/1000)
+	##1000*log(1-p)=X
+	confidence <- 1-exp(-conf/1000)	
+	i11 <- hapmapP[, 1] == 3  ##called homozygous truth homozygous
+	i12 <- hapmapP[, 1] == 4  ##called homozygous truth heterozygous
+	i21 <- hapmapP[, 1] == 1  ##called het truth hom
+	i22 <- hapmapP[, 1] == 2  ##called het truth het
+	f11 <- density(hapmapP[i11, 2], from=0, to=1, n=1e3)
+	f12 <- density(hapmapP[i12, 2], from=0, to=1, n=1e3)
+	f21 <- density(hapmapP[i21, 2], from=0, to=1, n=1e3)
+	f22 <- density(hapmapP[i22, 2], from=0, to=1, n=1e3)
+
+	##-------------------------------------------------------------------------
+	##distribution of observed call probabilities when the call is homozygous
+	##-------------------------------------------------------------------------
+
+	##-------------------------------------------------------------------------
+	##P(phat | LOH, gte)  
+	##-------------------------------------------------------------------------	
+	GT <- as.integer(genotypes)
+	confidence <- as.numeric(confidence)
+	pTruthIsNormal <- pTruthIsRoh <- rep(NA, length(GT))	
+	confidence[confidence==0] <- 0.01 ##Otherwise, NA's result
+	hom <- which(GT == 1 | GT == 3)
+	observedPcalledHom <- cut(confidence[hom], breaks=f11$x, labels=FALSE)
+	pTruthIsRoh[hom] <- f11$y[observedPcalledHom]
+	het <- which(GT == 2)
+	observedPcalledHet <- cut(confidence[het], breaks=f11$x, labels=FALSE)
+	pTruthIsRoh[het] <- f21$y[observedPcalledHet]
+
+	##-------------------------------------------------------------------------
+	##Calculate P(phat | Normal, HOM)
+	##-------------------------------------------------------------------------					
+	chet1 <- f22$y[cut(confidence[het], breaks=f22$x, labels=FALSE)] 
+	chet2 <- f21$y[cut(confidence[het], breaks=f21$x, labels=FALSE)]
+	##term5[1]=P(true genotype is HET | genotype call is AB, state is normal)
+	pTruthIsNormal[het] <- chet1*pHetCalledHet + chet2*(1-pHetCalledHet)
+	##chom1=called homozygous truth heterozygous
+	chom1 <- f12$y[cut(confidence[hom], breaks=f12$x, labels=FALSE)]
+	##chom2=called homozygous truth homozygous
+	chom2 <- f11$y[cut(confidence[hom], breaks=f11$x, labels=FALSE)]
+	##chom4 <- 0.9999    ##P(HOM|CHOM)
+	##probability that the true state is HOM when genotype call is homozygous
+	##pHetCalledHom = P(true genotype is HET | calls is AA or BB, state is normal)
+	pTruthIsNormal[hom] <- chom1*pHetCalledHom + chom2*(1-pHetCalledHom)
+	fNormal <- fLoh <- rep(NA, length(GT))
+	fNormal[hom] <- pHomInNormal[hom] * pTruthIsNormal[hom]
+	fNormal[het] <- (1-pHomInNormal[het]) * pTruthIsNormal[het]
+	fLoh[hom] <- pHomInRoh * pTruthIsRoh[hom]
+	fLoh[het] <- (1-pHomInRoh) * pTruthIsRoh[het]
+
+	f <- array(NA, dim=c(nrow(genotypes), ncol(genotypes), 2))
+	dimnames(f)[[3]] <- c("norm", "ROH")
+	f[, , "norm"] <- matrix(fNormal, nrow(genotypes), ncol(genotypes))
+	f[, , "ROH"] <- matrix(fLoh, nrow(genotypes), ncol(genotypes))
+	f[f  == 0] <- min(f[f > 0], na.rm=TRUE)
+	f <- log(f)
+	return(f)	
 }
 
-
-
-
-addFeatureData <- function(snpset){
-	featureNames <- featureNames(snpset)
-
-	if(!("arm" %in% fvarLabels(snpset))){
-		arm <- getChromosomeArm(snpset)
+copynumberEmission <- function(copynumber,
+			       states,
+			       mu,
+			       sds,
+			       takeLog,
+			       verbose=TRUE, na.rm=TRUE){
+	if(!is.matrix(mu)) mu <- matrix(mu, nrow(copynumber), length(states), byrow=TRUE)
+	if(missing(takeLog)) stop("must specify whether to take the log2 of the copy number matrix")	
+	if(!missing(sds)){
+		if(!is.matrix(sds)) sds <- matrix(sds, nrow(copynumber), ncol(copynumber), byrow=TRUE)
+	} else {
+		if(missing(sds)) sds <- robustSds(copynumber, takeLog=takeLog, na.rm=na.rm)
 	}
-	fD <- data.frame(cbind(chromosome(snpset), arm=chromosomeArm), row.names=featureNames,
-			 stringsAsFactors=FALSE)
-	fD$position <- position(snpset) 
-	colnames(fD) <- c("chromosome", "arm", "position")
-	varMetadata <- data.frame(labelDescription=c("chromosome", "chromosomal arm", "physical position"), row.names=colnames(fD))
-	featureData <- new("AnnotatedDataFrame", data=fD, varMetadata=varMetadata)
-	featureData
-}
-	
-##.calculateYlim <- function(object, op){
-##  if("copyNumber" %in% ls(assayData(object))){
-##    ##only print this if there is more than one sample or more than 1 chromosome to plot
-##    if(length(unique(chromosome(object))) > 1 || ncol(object) > 1){
-##      print("one.ylim is FALSE. Calculating ylim based on the percentiles of the copy number distribution")
-##    }
-##    if(op$log == "y"){
-##      ylim <- range(copyNumber(object), na.rm=TRUE)
-##    } else{
-##      ##use 1 and 99 quantiles to avoid outliers
-##      ylim <- c(quantile(copyNumber(object), prob=0.001, na.rm=TRUE),
-##                quantile(copyNumber(object), prob=0.999, na.rm=TRUE))
-##    }
-##  } else{
-##    ##ylimits for genotypes??
-##    y <- .getY(object)
-##    ##jitter the genotype calls
-##    y <- jitter(y, amount=0.05)
-##    ylim <- range(y)
-##  }
-##  ylim
-##}
-
-##For each of the breaks in xBreak, find the cytoband(s)
-.locateCytoband <- function(breaks, cytoband){
-  cytoband <- cytoband[cytoband[, "chrom"] == breaks["chromosome"], ]
-  ##include cytobands that begin before the break and end in the break or after the break
-  bands <- cytoband[cytoband[, "chromEnd"] > as.numeric(breaks["start"]) & cytoband[, "chromStart"] < as.numeric(breaks["last"]), "name"]
-  bands <- paste(bands, collapse=", ")
+	if(!all(sds > 0, na.rm=TRUE)) stop("sds not positive")
+	cne <- copynumber
+	if(takeLog){
+		cne <- log2(cne)
+		mu <- log2(mu)
+	} 
+	fn <- rownames(cne)
+	S <- length(states)
+	cne <- array(cne, dim=c(nrow(cne), ncol(cne), S))
+	scale <- array(sds, dim=c(nrow(cne), ncol(cne), S))
+ 	##scale <- aperm(array(t(sds), dim=c(S, ncol(cne), nrow(cne))))
+	##dimnames(cne) <- list(rownames(copynumber), colnames(copynumber), states)
+	##mu <- aperm(array(t(mu), dim=c(S, ncol(cne), nrow(cne))))
+	mu <- array(mu, dim=c(nrow(cne), ncol(cne), S))
+	##Use SNP-specific standard errors
+	##i <- which(!(is.na(as.vector(1/sds))) & !is.na(as.vector(cne)))
+	k <- which(!is.na(as.vector(cne)))
+	if(!identical(dim(cne), dim(mu))) stop("dimensions must be the same")
+	emission.cn <- rep(NA, length(as.vector(mu)))
+	emission.cn[k] <- dnorm(as.vector(cne)[k], as.vector(mu)[k], as.vector(scale)[k])
+	emission.cn <- array(emission.cn, dim=dim(cne))
+	##dimnames(emission.cn) <- list(rownames(cne), colnames(cne), states)
+	if(verbose) message("returning the emission probability on the log scale")
+	return(log(emission.cn))
 }
 
-##setMethod("calculateBreakpoints", "HmmParameter",
-##          function(object, x, position, chromosome, states, digits=2, sampleNames, ...){
-.calculatebreaks <- function(object, digits=2){
-	if(class(object) != "HmmPredict") stop("arg object in .calcualtebreaks should be an object of class HmmPredict")
-	position <- position(object)
-	chromosome <- unique(chromosome(object))
-	if(length(chromosome) > 1) stop("only 1 chromosome at a time")
-	states <- states(object)
-	sampleNames <- sampleNames(object)
-	if(length(sampleNames) > 1) stop("only 1 sample at a time")
-	x <- predictions(object)
-	if(any(is.na(x))){
-		Nmissing <- sum(is.na(x))
-	} else Nmissing <- 0
-	N <- length(x)
-	colnames <- c("id", "chr", "state", "size", 
-		      "N", "start", "last", "prev", "next")
-	
-	if(length(unique(x)) == 1){
-		breaks <- data.frame(sampleNames,
-				     chromosome,
-				     states[unique(x)],
-				     (max(position) - min(position))/1e6,
-				     length(position),
-				     min(position)/1e6,
-				     max(position)/1e6,
-				     NA,
-				     NA)
-		colnames(breaks) <- colnames
-		return(breaks)
-	}
-	
-	d <- diff(x)
-	if(sum(abs(d), na.rm=TRUE) < 1){
-		breaks <- data.frame(sampleNames,
-				     chromosome,
-				     states[unique(x)],
-				     (max(position) - min(position))/1e6,
-				     length(position),
-				     min(position)/1e6,
-				     max(position)/1e6,
-				     NA, NA)
-		colnames(breaks) <- colnames
-		return(breaks)		    
-	}
-	index <- c(1, (2:N)[d != 0 & !is.na(d)])
-	index <- cbind(index[-length(index)], index[2:length(index)])
-	index[, 2] <- index[, 2] - 1
-	lastBreak <- index[nrow(index), 2]
-	index <- rbind(index, c(lastBreak+1, N))  
-
-	##index is a matrix of indices in object where breaks occured.
-	##Replace by physical position.
-	physical.positions <- matrix(position[as.vector(index)], nrow(index), ncol(index))
-	physical.positions <- physical.positions/1e6
-	colnames(physical.positions) <- c("start", "last")
-	size <- (physical.positions[, "last"] - physical.positions[, "start"])
-	N <- index[, 2] - index[, 1] + 1
-	physical.positions <- cbind(physical.positions, size, N)
-	colnames(physical.positions)[3:4] <- c("size", "N")
-	predictedState <- function(i, x){
-		if(any(is.na(i))){
-			stop("missing values")
-		}
-		pred <- x[(i[1]:i[2])]
-		pred <- pred[!is.na(pred)]
-		pred <- unique(pred)
-		if(length(pred) > 1) {
-			stop("predictions not unique")
-		}
-		pred
-	}
-	##The vector of predicted states (integer)
-	ps <- t(apply(index, 1, predictedState, x))
-	states <- states[as.numeric(ps)]
-	breaks <- data.frame(physical.positions)
-	breaks$state <- states
-	breaks$chrom <- chromosome
-	##breaks$id <- rep(sampleNames(object), nrow(breaks))
-	
-	##---------------------------------------------------------------------------
-	##Find positions of adjacent SNPs
-	##---------------------------------------------------------------------------	
-	adjacentSnps <- function(x, position, chromosome, digits){
-		start <- as.numeric(x["start"])*1e6
-		last <- as.numeric(x["last"])*1e6
-		chrom <- x["chrom"]
-		if(any(position < start & chromosome == chrom)){
-			prevSnp <- max(position[position < start & chromosome == chrom])
-		} else prevSnp <- NA
-		if(any(position > last & chromosome == chrom)){                 
-			nextSnp <- min(position[position > last & chromosome == chrom])
-		} else nextSnp <- NA
-		if(!is.na(prevSnp)) prevSnp <- prevSnp/1e6
-		if(!is.na(nextSnp)) nextSnp <- nextSnp/1e6
-		adj <- c(prevSnp, nextSnp)
-		adj
-	}
-	adjacent <- t(apply(breaks, 1, adjacentSnps, position=position,
-			    chromosome=chromosome, digits=digits))
-	colnames(adjacent) <- c("prev", "next")
-	breaks <- cbind(breaks, adjacent)
-	breaks$id <- rep(sampleNames, nrow(breaks))
-	colnames(breaks) <- c("start", "last", "size", "N", "state", "chr", "prev", "next", "id")
-	##Add columns for the name of the first SNP and the name of the last SNP
-	breaks <- breaks[, colnames]
-	breaks
+rowMAD <- function(x, y, ...){
+	notna <- !is.na(x)
+	sds <- 1.4826*rowMedians(abs(x-rowMedians(x, ...)), ...)
+	return(sds)
 }
+
 	
 
-calculateCnSE <- function(object,
-                          referenceSet,
-                          epsilon=0.1){
-	if(min(copyNumber(object), na.rm=TRUE) > 0){
-		print("Robust estimates of the standard error are on the log2 scale.")
-		print("Transforming copy number in object to log2 scale")
-		copyNumber(object) <- log2(copyNumber(object))
-	} else{
-		warning("Negative values in the copy number.  Assume that data in the copyNumber element of assayData has been suitably transformed and is approximately Gaussian")
-	}
-	if(!missing(referenceSet)){
-		if(min(copyNumber(referenceSet), na.rm=TRUE) > 0){
-			print("Transforming copy number in referenceSet to log2 scale")
-			copyNumber(referenceSet) <- log2(copyNumber(referenceSet))
-		} else{
 
-			warning("Negative values in the copy number.  Calculations assume that data in the copyNumber element of assayData has been suitably transformed and is approximately Gaussian")
-			
-		}
-		
+robustSds <- function(x, takeLog=FALSE, ...){
+	if(!is.matrix(x)) stop("the copy number estimates should be provided as a matrix")
+	if(takeLog) x <- log2(x)
+	if(ncol(x) > 3){
+		sds1 <- rowMAD(x, ...)
+		sds1 <- matrix(sds1, nrow(x), ncol(x))
+		sds2 <- apply(x, 2, "mad", ...)
+		sds2 <- sds2/median(sds2)
+		sds <- t(t(sds1) * sds2)
+	} else {
+		sds <- apply(x, 2, "mad", ...)
+		sds <- matrix(sds, nrow(x), ncol(x), byrow=TRUE)
 	}
-	if(missing(referenceSet)){
-		print("using object to compute across sample standard deviations...assumes reasonable sample size")
-		referenceSet <- object
-	}
-	require(genefilter) || stop("genefilter not available")
-	is.autosome <- chromosome(object) %in% as.character(1:22) 
-	object <- object[is.autosome, ]  
-	referenceSet <- referenceSet[match(featureNames(object), featureNames(referenceSet)), ]
-	robustSD <- function(X) diff(quantile(X, probs=c(0.16, (1-0.16)), na.rm=TRUE))/2 
-	within.sd <- diag(apply(copyNumber(object), 2, robustSD))
-	across.sd <- apply(copyNumber(referenceSet), 1, robustSD)
-	##  across.sd <- rowSds(copyNumber(referenceSet), na.rm=TRUE)
-	across.sd <- matrix(across.sd, nrow=nrow(object), ncol=ncol(object), byrow=FALSE)
-	##scale across.sd by the median sd of the sample
-	median.across.sd <- median(across.sd, na.rm=TRUE)
-	std.across.sd <- across.sd/median.across.sd
-	SE <- std.across.sd %*% within.sd
-	SE[SE == 0] <- epsilon
-	rownames(SE) <- featureNames(object)
-	SE
+	return(sds)
 }
 
-scaleTransitionProbability <- function(states, SCALE=2, normalLabel="N"){##HmmOptions
-	matrix(1, length(states), length(states))
-}
 
 viterbi <- function(initialStateProbs,
 		    emission,
 		    tau,
 		    arm,
 		    tau.scale,
-		    verbose=TRUE,
+		    verbose=FALSE,
+		    chromosome,
+		    position,
+		    sampleNames,
+		    locusNames,
+		    normalIndex,
 		    returnLikelihood=FALSE){
-	if(class(emission) == "data.frame")
-		emission <- as.matrix(emission)
-	S <- ncol(emission)
+	if(returnLikelihood){
+		if(missing(normalIndex)) stop("Must specify index for 'normal' state")
+	}
+	if(!is.array(emission)){
+		stop("the emission probabilities should be an array")
+	}
+	results <- matrix(NA, nrow(emission), ncol(emission))
+	S <- dim(emission)[3]
 	T <- nrow(emission)
 	if(length(initialStateProbs) != S){
 		stop("initialStateProbs (the initial state probabilities, should be a numeric vector of length S, where S is the number of hidden states")
-	}		
+	}
+	if(!all(initialStateProbs <= 0)){
+		if(all(initialStateProbs >= 0 & initialStateProbs <= 1)){
+			initialStateProbs <- log(initialStateProbs)
+		} else stop("initial state probabilities should be a probability or a log probability")
+	}
 	if(any(is.na(emission))){
 		##if(verbose) message("Converting missing values in the emission matrix to 0")
 		emission[is.na(emission)] <- 0
@@ -316,7 +282,10 @@ viterbi <- function(initialStateProbs,
 		if(verbose) message("some of the log emission probabilities are infinite.  Replacing with 0's") 		
 		emission[is.infinite(emission)] <- 0
 	}
-	if(missing(arm)) arm <- rep(as.integer(0), T)
+	if(missing(arm)){
+		if(verbose) message("chromosome arm not specified...HMM is not fit separately to each chromosomal arm")
+		arm <- rep(as.integer(0), T)
+	}
 	if(length(arm) != T) {
 		if(verbose) message("arm not the right length.  assuming all values on same chromosomal arm")
 		arm <- rep(as.integer(0), T)
@@ -329,86 +298,151 @@ viterbi <- function(initialStateProbs,
 		if(verbose) message("tau.scale not the right dimension.  not scaling the genomic distance")
 		tau.scale <- matrix(1, S, S)
 	}
-	result <- vector("integer", T)
-	delta <- matrix(as.double(0), nrow=T, ncol=S)
-	tmp <- list(as.matrix(as.double(as.matrix(emission))),
-		    as.double(as.matrix(initialStateProbs)),
-		    as.matrix(as.double(tau)),
-		    as.character(arm),
-		    as.matrix(as.double(tau.scale)),
-		    as.integer(S),
-		    as.integer(T),
-		    result,
-		    as.matrix(as.double(delta)))
-	fit <- .C("viterbi",
-		  tmp[[1]],
-		  tmp[[2]],
-		  tmp[[3]],
-		  tmp[[4]],
-		  tmp[[5]],
-		  tmp[[6]],
-		  tmp[[7]],
-		  tmp[[8]],
-		  tmp[[9]])
-	if(!returnLikelihood){
-		return(fit[[8]])
-	} else{
-		tmp <- list(states=fit[[8]], likelihood=fit[[9]])
-		return(tmp)
+	if(missing(tau)){
+		stop("transition probabilities not specified")
 	}
+	if(length(tau) != T) stop("tau must have length T")
+	delta <- matrix(as.double(0), nrow=T, ncol=S)
+	lik <- array(NA, dim=c(T, ncol(results), S))
+	for(j in 1:ncol(results)){
+		result <- rep(as.integer(0), T)		
+		tmp <- list(as.matrix(as.double(as.matrix(emission[, j, ]))),
+			    as.double(as.matrix(initialStateProbs)),
+			    as.matrix(as.double(tau)),
+			    as.integer(arm),
+			    as.matrix(as.double(tau.scale)),
+			    as.integer(S),
+			    as.integer(T),
+			    result,
+			    as.matrix(as.double(delta)))
+		tmp2 <- .C("viterbi",		
+			   tmp[[1]],
+			   tmp[[2]],
+			   tmp[[3]],
+			   tmp[[4]],
+			   tmp[[5]],
+			   tmp[[6]],
+			   tmp[[7]],
+			   tmp[[8]],
+			   tmp[[9]])
+		results[, j] <- tmp2[[8]]
+		lik[, j, ] <- matrix(tmp2[[9]], nrow(results))
+	}
+	if(returnLikelihood){
+		lrdiff <- vector("list", ncol(results))
+		for(j in 1:ncol(results)){
+			indices <- c(0, cumsum(diff(results[, j]) != 0 | diff(arm) != 0))
+			startLoc <- which(c(0, diff(arm)) != 0)
+			stopLoc <- c(startLoc -1, nrow(results))
+			lr <- rep(NA, length(table(indices)))
+			for(k in seq(along=table(indices))){
+				index <- range(which(indices == (k-1)))
+				thisState <- unique(results[index, j])
+				##if(thisState == normalIndex) next()
+				tmp <- lik[index, j, thisState] - lik[index, j, normalIndex]
+				lr[k] <- sum(tmp)
+			}
+			lrdiff[[j]] <- lr
+		}
+		results <- list(results, lrdiff)
+	}
+	return(results)		
+}
+
+
+transitionProbability <- function(chromosome, position, TAUP=1e8, chromosomeAnnotation, verbose=FALSE){
+	if(!is.integer(chromosome)) {
+		chromosome <- chromosome2integer(chromosome)
+	}
+	if(!all(chromosome %in% c(1:24))){
+			warning("Chromosome annotation is currently available for chromosomes 1-22, X and Y")
+			message("Please add/modify data(chromosomeAnnotation, package='SNPchip') to accomodate special chromosomes")
+			stop()
+	}
+	if(!is.integer(position)) {
+		if(verbose) message("Coerced position to an integer.")
+		position <- as.integer(position)
+	}
+	if(length(chromosome) != length(position)) stop("chromosome and position arguments must be the same length")
+	if(missing(chromosomeAnnotation)){
+		if(verbose) message("chromosomeAnnotation not specified... using centromere locations from SNPchip")
+		data(chromosomeAnnotation, package="SNPchip", envir=environment())
+		chromosomeAnnotation <- as.matrix(chromosomeAnnotation)		
+	}
+	chrAnn <- chromosomeAnnotation
+	uchrom <- unique(integer2chromosome(chromosome))
+	if(!all(chromosome %in% 1:24)){
+		warning("Chromosome annotation is currently available for chromosomes 1-22, X and Y")
+		message("Please add/modify data(chromosomeAnnotation, package='SNPchip') to accomodate special chromosomes")
+		stop()
+	}	
+	chromosomeArm <- tau <- vector("list", length(uchrom))
+	positionList <- split(position, chromosome)
+	positionList <- positionList[match(uchrom, names(positionList))]
+	for(i in seq(along=uchrom)){
+		chromosomeArm[[i]] <- as.integer(ifelse(positionList[[i]] <= chrAnn[uchrom[i], "centromereStart"], 0, 1))	
+##		tau[[i]] <- c(exp(-2 * diff(positionList[[i]])/TAUP), 0)	
+	}
+	tau <- c(exp(-2*diff(position)/TAUP), 0)
+	##tau <- tau[tau < 0 | tau > 1] <- NA
+	tau[tau < 0 | tau > 1] <- 0
+	chromosomeArm <- unlist(chromosomeArm)
+	chromosomeArm <- cumsum(c(0, diff(chromosomeArm) != 0 | diff(chromosome) != 0))
+	tau <- unlist(tau)
+	annotation <- cbind(chromosome, position, chromosomeArm, tau)
+	colnames(annotation) <- c("chromosome", "position", "arm", "transitionPr")
+	range.tau <- range(annotation[, "transitionPr"])
+	if(range.tau[1] < 0 | range.tau[2] > 1) stop("Transition probabilities are not valid.  Check that the snpset object has been ordered by chromosome and physical position.")
+	return(annotation)
 }
 
 	
 ##Code this in C
-##viterbi <- function(beta, pi, tau, arm, tau.scale, normalIndex, distance=NULL, constant=1e8){
-##	##beta: log emission probabilities
-##	##pi: log initial state probabilities (vector of length S)
-##	##tau: transition probabilities (original scale)
-##	##tau.scale: matrix on original scale
-##	S <- ncol(beta)
-##	T <- nrow(beta)  ##matrix of T rows and S columns
-##	delta <- psi <- matrix(NA, T, S)
-##	delta[1, ] <- pi + beta[1, ]
-##	psi[1, ] <- rep(0, S)
-##	i <- which(rowSums(is.na(beta)) > 0)
-##	beta[i, ] <- 0
-##	if(!is.null(distance)){
-##		tau <- exp(-2*distance/1e8)
-##		tauNormal <- exp(-2*distance/constant)		
-##	}
-##	for(t in 2:T){
-##		if(t %% 10000 == 0) cat(".")
-##		if(arm[t] != arm[t-1]){
-##			delta[t, ] <- pi + beta[t, ]
-##			psi[t, ] <- rep(0, S)
-##			next()
-##		}
-##		AA <- matrix(tau[t-1], nr=S, nc=S)  ##
-##		epsilon <- (1-tau[t-1])/(S-1)
-##		eNormal <- (1-tauNormal[t-1])/(S-1)		
-##		AA[upper.tri(AA)] <- AA[lower.tri(AA)] <- epsilon
-##		AA[normalIndex, ] <- rep(eNormal, S)
-##		AA[normalIndex, normalIndex] <- tauNormal[t-1]
-##			
-##		AA <- log(AA*tau.scale)  
-##		for(j in 1:S){
-##			tmp <- delta[t-1, ] + AA[, j]
-##			delta[t, j] <- max(tmp) + beta[t, j]
-##			psi[t, j] <- order(tmp, decreasing=TRUE)[1]
-##		}
-##	}
-##	Pstar <- max(delta[nrow(delta), ])
-##	qhat <- rep(NA, nrow(delta))
-##	qhat[T] <- order(delta[T, ], decreasing=TRUE)[1]
-##	for(t in (T-1):1){
-##		if(arm[t] != arm[t+1]){
-##			qhat[t] <- order(delta[t, ], decreasing=TRUE)[1]
-##		} else {
-##			qhat[t] <- psi[t+1, qhat[t+1]]
-##		}
-##	}
-##	return(qhat)
-##}
+viterbiR <- function(emission, initialP, tau, arm){
+##	emission: log emission probabilities
+##	initialP: log initial state probabilities (vector of length S)
+##	tau: transition probabilities (original scale)
+##	tau.scale: matrix on original scale
+	S <- ncol(emission)
+	T <- nrow(emission)  ##matrix of T rows and S columns
+	delta <- psi <- matrix(NA, T, S)
+	delta[1, ] <- initialP + emission[1, ]
+	psi[1, ] <- rep(0, S)
+	i <- which(rowSums(is.na(emission)) > 0)
+	tau.scale <- 1
+	#emission[i, ] <- 0
+	for(t in 2:T){
+		if(t %% 10000 == 0) cat(".")
+		if(arm[t] != arm[t-1]){
+			delta[t, ] <- initialP + emission[t, ]
+			psi[t, ] <- 0
+			next()
+		}
+		AA <- matrix(tau[t-1], nr=S, nc=S)  
+		epsilon <- (1-tau[t-1])/(S-1)
+		##eNormal <- (1-tauNormal[t-1])/(S-1)		
+		AA[upper.tri(AA)] <- AA[lower.tri(AA)] <- epsilon
+		##AA[normalIndex, ] <- rep(eNormal, S)
+		##AA[normalIndex, normalIndex] <- tauNormal[t-1]
+		AA <- log(AA*tau.scale)  
+		for(j in 1:S){
+			tmp <- delta[t-1, ] + AA[, j]
+			delta[t, j] <- max(tmp) + emission[t, j]
+			psi[t, j] <- order(tmp, decreasing=TRUE)[1]
+		}
+	}
+	Pstar <- max(delta[nrow(delta), ])
+	qhat <- rep(NA, nrow(delta))
+	qhat[T] <- order(delta[T, ], decreasing=TRUE)[1]
+	for(t in (T-1):1){
+		if(arm[t] != arm[t+1]){
+			qhat[t] <- order(delta[t, ], decreasing=TRUE)[1]
+		} else {
+			qhat[t] <- psi[t+1, qhat[t+1]]
+		}
+	}
+	return(qhat)
+}
 
 
 ##How often is a SNP altered across samples
@@ -490,123 +524,96 @@ viterbi <- function(initialStateProbs,
 ##	stats
 ##}
 
-scaleTransitionToState <- function(cols, AA, SCALE){
-	epsilon <- AA[, cols]
-	epsilon.tilde <- epsilon/SCALE
-	AA[, cols] <- epsilon.tilde
-	d <- rowSums(epsilon-epsilon.tilde)
-	diag(AA) <- diag(AA)+d
-	AA
-}
-
-
-.copynumberEmission <- function(copynumber,
-				states,
-				mu,
-				uncertainty,
-				takeLog,
-				verbose=TRUE){
-	cne <- copynumber
-	location <- mu
-	if(missing(takeLog)) stop("must specify whether to take the log2 of the copy number matrix")
-	if(missing(uncertainty)) stop("must supply uncertainty estimates")	
+hmm <- function(object,
+		states,
+		mu=NULL,
+		probs=NULL,
+		takeLog=FALSE,
+		initialP,
+		returnSegments=TRUE,
+		TAUP=1e8,
+		verbose=FALSE,
+		ice=FALSE,
+		envir){
+	if(missing(envir)) envir <- new.env()	
+	if(!all(c("position", "chromosome") %in% fvarLabels(object))){
+		stop("'position' and 'chromosome' must be in fvarLabels(object), or transitionPr must be provided")
+	}
+	object <- object[order(chromosome(object), position(object)), ]
+	envir[["locusset"]] <- object
+	if(missing(states)) stop("must specify states")
+	envir[["states"]] <- states
+	if(missing(initialP)) initialP <- rep(1, length(states))/length(states)
+	envir[["initialP"]] <- initialP
+	envir[["mu"]] <- mu
+	if(is.null(probs)){
+		if(ice){
+			probs <- c(0.05, 0.99, 0.7, 0.999)
+		}
+	}
+	envir[["probs"]] <- probs
+	envir[["takeLog"]] <- takeLog
+	envir[["returnSegments"]] <- returnSegments
+	envir[["TAUP"]] <- TAUP
+	envir[["verbose"]] <- verbose
+	envir[["ice"]] <- ice
+	tau <- transitionProbability(chromosome=chromosome(object),
+				     position=position(object),
+				     TAUP=TAUP,
+				     verbose=verbose)
+	arm <- tau[, "arm"]
+	transitionPr <- tau[, "transitionPr"]
+	envir[["transitionPr"]] <- transitionPr
+	envir[["arm"]] <- arm
 	if(takeLog){
-		if(verbose) message("Calculating emission probabilities of log(copy number)")
-		i <- which(!is.na(as.vector(cne)))
-		##Take log of hidden state
-		if(any(location < 0)){
-			if(verbose) message("negative values in copy number will be NA's")
-		}
-		tmp <- rep(NA, length(as.vector(cne)))
-		tmp[i] <- log2(cne[i])
-		cne <- matrix(tmp, nrow=nrow(snpset), ncol=ncol(snpset))		
-		location <- log2(location)
-	} else{
-		if(verbose) message("no transformation of copy number")
+		copyNumber(object) <- log2(copyNumber(object))
+		mu <- log2(mu)
+	}		
+	if(verbose) message("Calculating emission probabilities")		
+	calculateEmission(object=object,
+			  mu=mu,
+			  probs=probs,
+			  envir=envir,
+			  states=states,
+			  verbose=verbose,
+			  ice=ice)
+	emission <- envir[["emission.cn"]]+envir[["emission.gt"]]
+	envir[["emission"]] <- emission
+	##emission <- .GlobalEnv[["emission.cn"]]+.GlobalEnv[["emission.gt"]]
+	viterbiResults <- viterbi(initialStateProbs=log(initialP),
+				  emission=emission,
+				  tau=transitionPr,
+				  arm=arm,
+				  verbose=verbose)
+	dimnames(viterbiResults) <- list(featureNames(object), sampleNames(object))	
+	if(returnSegments){
+		viterbiResults <- breaks(x=viterbiResults,
+					 states=states,
+					 position=position(object),
+					 chromosome=chromosome(object),
+					 sample=sampleNames(object),
+					 verbose=verbose)
 	}
-	fn <- rownames(cne)
-	S <- length(states)
-	cne <- array(cne, dim=c(nrow(cne), ncol(cne), S))
-	dimnames(cne) <- list(rownames(cne), colnames(cne), states)
-	##assume true copy number mean is the same for all samples
-	##Easiest to keep everything the same dimension, even if not needed at this point
-	location <- aperm(array(location, dim=c(S, ncol(cne), nrow(cne))))
-	
-	##Use SNP-specific standard errors
-	i <- which(!(is.na(as.vector(1/uncertainty))) & !is.na(as.vector(cne)))
-	if(all(1/uncertainty > 0, na.rm=TRUE)){
-		if(verbose) message("Using uncertainty as standard deviation for the copy number")
-		scale <- array(uncertainty, dim=dim(cne))
-	} else{
-		stop("confidence scores in slot cnConfidence must be positive")
-	}
-	k <- which(!is.na(as.vector(cne)))
-	if(!identical(dim(cne), dim(location))) stop("dimensions must be the same")
-	emission.cn <- rep(NA, length(as.vector(location)))
-	emission.cn[k] <- dnorm(as.vector(cne)[k], as.vector(location)[k], as.vector(scale)[k])
-	emission.cn <- array(emission.cn, dim=dim(cne))
-	dimnames(emission.cn) <- list(rownames(cne), colnames(cne), states)
-	if(verbose) message("returning the emission probability on the log scale")
-	return(log(emission.cn))
+	return(viterbiResults)
 }
 
-.genotype.emission <- function(calls, states, ICE=FALSE, probHomCall, pkgs){
-##	if(!("calls" %in% assayDataElementNames(object@snpset))){
-##		warning("calls not an element of the assayData for object@snpset.")
-##		return()
-##	}
-##	if(!validObject(object)){
-##		stop("HmmOptions object is not valid")
-##	}
-##	snpset <- object@snpset
-##	states <- object@states
-	S <- length(states)	
-##	gte <- array(calls(snpset), c(nrow(snpset), ncol(snpset), S))
-	gte <- array(calls, c(nrow(calls), ncol(calls), S))
-##	dimnames(gte) <- list(featureNames(snpset), sampleNames(snpset), states)
-	dimnames(gte) <- list(rownames(calls), colnames(calls), states)
-##	if(!object@calls.ICE) {
-	if(!ICE){
-		##for algorithms that produce bi-allelic calls, only 3
-		##calls are possible.  The emission probability for
-		##the call is the emission probability for a
-		##homozygous call versus the emission probability for
-		##a heterozygous call
-		i <- which(as.vector(gte) == 1 | as.vector(gte) == 3)
-		j <- which(as.vector(gte) == 2)
-		k <- which(as.vector(gte) == 4 | is.na(as.vector(gte)))
-		##prob. for each state.
-		##cn.location <- aperm(array(object@copyNumber.location, dim=c(S, ncol(snpset), nrow(snpset))))
-		##probHom <-  aperm(array(object@probHomCall, dim=c(S, ncol(snpset), nrow(snpset))))
-		probHom <- aperm(array(probHomCall, dim=c(S, ncol(calls), nrow(calls))))
-		emission.gt <- vector("numeric", length=length(as.vector(gte)))
-		emission.gt[i] <- as.vector(probHom)[i]
-		emission.gt[j] <- (1-as.vector(probHom))[j]
-		emission.gt[k] <- NA
-		emission.gt[c(i, j)] <- log(emission.gt[c(i, j)])
-		emission.gt <- array(emission.gt, dim=dim(gte))
-	}  else {
-		##pkgs <- strsplit(annotation(object@snpset), ",")[[1]]
-##		if(length(pkgs) > 1){
-##			object@snpset <- .splitAnnotation(snpset)
-##		} else{
-##			featureData(object@snpset)$platform <- NA
-##			featureData(object@snpset)$platform <- annotation(snpset)
-##		}
-		##emission.gt <- array(NA, dim=c(nrow(object@snpset), ncol(object@snpset), 2))
-		emission.gt <- array(NA, dim=c(nrow(calls), ncol(calls), 2))
-		dimnames(emission.gt) <- list(rownames(calls), colnames(calls), c("LOH", "N"))
-		for(i in 1:length(pkgs)){
-			j <- which(pkgs[[i]])
-			##j <- which(fData(object@snpset)$platform == pkgs[i])
-			##annotation(object@snpset) <- pkgs[1]
-			stop("need to fix this function")
-			emission.gt[j, , ] <- .getCallEmission(object[j, ])
-		}
-		emission.gt <- log(emission.gt)
-	}
-	return(emission.gt)##log scale
-}
+setMethod("update", "environment", function(object, ...){
+	if(length(ls(object)) == 0) stop("nothing to update")
+	hmm(object=object[["locusset"]],
+	    states=object[["states"]],
+	    mu=object[["mu"]],
+	    probs=object[["probs"]],
+	    takeLog=object[["takeLog"]],
+	    initialP=object[["initialP"]],
+	    returnSegments=object[["returnSegments"]],
+	    TAUP=object[["TAUP"]],
+	    verbose=object[["verbose"]],
+	    ice=object[["ice"]],
+	    envir=object)	
+})
+	
+
+
 
 
 

@@ -9,18 +9,24 @@
 
 }
 \usage{
-viterbi(initialStateProbs, emission, tau, arm, tau.scale, verbose = TRUE, returnLikelihood = FALSE)
+viterbi(initialStateProbs, emission, tau, arm, tau.scale, verbose =
+FALSE, chromosome, position, sampleNames, locusNames, normalIndex, returnLikelihood = FALSE)
 }
 
 \arguments{
     \item{initialStateProbs}{initial state probabilities (log scale)}
-  \item{emission}{matrix of log emission probabilities (one sample is a matrix)}
-  \item{tau}{transition probabilities (original scale)}
-  \item{arm}{numeric or character string indicating chromosomal arm}  
-  \item{tau.scale}{matrix to scale the probability of transitioning
-    between states.}
-  \item{verbose}{Logical}
-  \item{returnLikelihood}{whether to return the 'loglikelihood'}
+    \item{emission}{matrix of log emission probabilities (one sample is a matrix)}
+    \item{tau}{transition probabilities (original scale)}
+    \item{arm}{numeric or character string indicating chromosomal arm}  
+    \item{tau.scale}{matrix to scale the probability of transitioning
+      between states.}
+    \item{verbose}{Logical}
+    \item{chromosome}{chromosome}
+    \item{position}{physical position}
+    \item{sampleNames}{sample labels}
+    \item{locusNames}{labels for loci}
+    \item{normalIndex}{index corresponding to the normal state. See details}
+    \item{returnLikelihood}{whether to return the 'loglikelihood'}
 }
 \details{
 
@@ -32,7 +38,7 @@ viterbi(initialStateProbs, emission, tau, arm, tau.scale, verbose = TRUE, return
   probability of transitioning between two altered states.  If missing,
   tau.scale is 1 (no scaling)
 
-  returnLikelihood is experimental
+  
 
 }
 \value{

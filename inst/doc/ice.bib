@@ -80,12 +80,99 @@
   url = {http://dx.doi.org/10.1093/bioinformatics/btl638},
 }
 
-@TECHREPORT{Scharpf2007a,
-  author = {Robert B Scharpf and Giovanni Parmigiani and Jonathan Pevsner and Ingo Ruczinski},
-  title = {A hidden {M}arkov model for joint estimation of genotype and copy
-	number in high-throughput {SNP} chips},
-  institution = {Johns Hopkins University},
-  number = {Working Paper 136},  
-  month = {February},
-  year = {2007},
+@ARTICLE{Scharpf2008,
+  author = {Robert B Scharpf and Giovanni Parmigiani and Jonathan Pevsner and
+	Ingo Ruczinski},
+  title = {Hidden {M}arkov models for the assessment of chromosomal alterations
+	using high-throughput {SNP} arrays},
+  journal = {Annals of Applied Statistics},
+  year = {2008},
+  volume = {2},
+  pages = {687--713},
+  number = {2},
+  url = {http://dx.doi.org/10.1214/07-AOAS155}
 }
+
+@ARTICLE{Wang2007a,
+  author = {Kai Wang and Mingyao Li and Dexter Hadley and Rui Liu and Joseph
+	Glessner and Struan F A Grant and Hakon Hakonarson and Maja Bucan},
+  title = {PennCNV: an integrated hidden Markov model designed for high-resolution
+	copy number variation detection in whole-genome SNP genotyping data.},
+  journal = {Genome Res},
+  year = {2007},
+  volume = {17},
+  pages = {1665--1674},
+  number = {11},
+  month = {Nov},
+  abstract = {Comprehensive identification and cataloging of copy number variations
+	(CNVs) is required to provide a complete view of human genetic variation.
+	The resolution of CNV detection in previous experimental designs
+	has been limited to tens or hundreds of kilobases. Here we present
+	PennCNV, a hidden Markov model (HMM) based approach, for kilobase-resolution
+	detection of CNVs from Illumina high-density SNP genotyping data.
+	This algorithm incorporates multiple sources of information, including
+	total signal intensity and allelic intensity ratio at each SNP marker,
+	the distance between neighboring SNPs, the allele frequency of SNPs,
+	and the pedigree information where available. We applied PennCNV
+	to genotyping data generated for 112 HapMap individuals; on average,
+	we detected approximately 27 CNVs for each individual with a median
+	size of approximately 12 kb. Excluding common rearrangements in lymphoblastoid
+	cell lines, the fraction of CNVs in offspring not detected in parents
+	(CNV-NDPs) was 3.3\%. Our results demonstrate the feasibility of
+	whole-genome fine-mapping of CNVs via high-density SNP genotyping.},
+  doi = {10.1101/gr.6861907},
+  keywords = {Gene Dosage; Genome, Human; Genotype; Humans; Markov Chains; Models,
+	Statistical; Polymorphism, Single Nucleotide; Variation (Genetics)},
+  owner = {gp},
+  pii = {gr.6861907},
+  pmid = {17921354},
+  timestamp = {2008.03.20},
+  url = {http://dx.doi.org/10.1101/gr.6861907}
+}
+
+@ARTICLE{Colella2007,
+  author = {Stefano Colella and Christopher Yau and Jennifer M Taylor and Ghazala
+	Mirza and Helen Butler and Penny Clouston and Anne S Bassett and
+	Anneke Seller and Christopher C Holmes and Jiannis Ragoussis},
+  title = {{Q}uanti{SNP}: an {O}bjective {B}ayes {H}idden-{M}arkov {M}odel to
+	detect and accurately map copy number variation using {SNP} genotyping
+	data.},
+  journal = {Nucleic Acids Res},
+  year = {2007},
+  volume = {35},
+  pages = {2013--2025},
+  number = {6},
+  abstract = {Array-based technologies have been used to detect chromosomal copy
+	number changes (aneuploidies) in the human genome. Recent studies
+	identified numerous copy number variants (CNV) and some are common
+	polymorphisms that may contribute to disease susceptibility. We developed,
+	and experimentally validated, a novel computational framework (QuantiSNP)
+	for detecting regions of copy number variation from BeadArray SNP
+	genotyping data using an Objective Bayes Hidden-Markov Model (OB-HMM).
+	Objective Bayes measures are used to set certain hyperparameters
+	in the priors using a novel re-sampling framework to calibrate the
+	model to a fixed Type I (false positive) error rate. Other parameters
+	are set via maximum marginal likelihood to prior training data of
+	known structure. QuantiSNP provides probabilistic quantification
+	of state classifications and significantly improves the accuracy
+	of segmental aneuploidy identification and mapping, relative to existing
+	analytical tools (Beadstudio, Illumina), as demonstrated by validation
+	of breakpoint boundaries. QuantiSNP identified both novel and validated
+	CNVs. QuantiSNP was developed using BeadArray SNP data but it can
+	be adapted to other platforms and we believe that the OB-HMM framework
+	has widespread applicability in genomic research. In conclusion,
+	QuantiSNP is a novel algorithm for high-resolution CNV/aneuploidy
+	detection with application to clinical genetics, cancer and disease
+	association studies.},
+  doi = {10.1093/nar/gkm076},
+  keywords = {Algorithms, Aneuploidy, Bayes Theorem, Chromosome Breakage, Chromosome
+	Mapping, Computational Biology, Genome, Genomics, Genotype, Human,
+	Humans, Loss of Heterozygosity, Markov Chains, Models, Polymorphism,
+	Singl, Statistical, e Nucleotide, 17341461},
+  owner = {rscharpf},
+  pii = {gkm076},
+  pmid = {17341461},
+  timestamp = {2007.07.10},
+  url = {http://dx.doi.org/10.1093/nar/gkm076}
+}
+

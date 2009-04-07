@@ -5,7 +5,8 @@
 Emission probabilities for copy number
 }
 \usage{
-copynumberEmission(copynumber, states, mu, sds, takeLog, verbose = TRUE)
+copynumberEmission(copynumber, states, mu, sds, takeLog, verbose = TRUE,
+na.rm=TRUE)
 }
 \arguments{
   \item{copynumber}{matrix}
@@ -15,8 +16,7 @@ copynumberEmission(copynumber, states, mu, sds, takeLog, verbose = TRUE)
   \item{takeLog}{logical: if TRUE, this function takes the log of the
     copy number AND mu arguments to this function}
   \item{verbose}{logical}
-}
-\details{
+  \item{na.rm}{The default is to ignore missing values when calculating robust standard deviations}
 }
 \value{
   
@@ -24,8 +24,16 @@ copynumberEmission(copynumber, states, mu, sds, takeLog, verbose = TRUE)
     Dimension 1: SNPs, Dimension 2: samples, Dimension3: states}
   
 }
-\seealso{}
-\examples{
+\details{
+
+  By default, this func estimates the scale parameter for the Normal
+  distribution from the supplied data using the median absolute
+  deviation (MAD). However, different standard deviations can be
+  supplied by the user with the argument \code{sds}. The supplied
+  standard deviations must be of the same dimension as the copy number
+  matrix. 
+
 }
+\seealso{\code{\link{genotypeEmission}}, \code{\link{genotypeEmissionCrlmm}}}
 \keyword{methods}
 

@@ -1,0 +1,14 @@
+4/6/2009 committed Version 1.5.11
+* Simplified Vignette. 
+  - created a data object locusLevelData that has the basic elements required for the HMM
+    	    - matrix of genotypes
+	    - matrix of copy number
+	    - annotation data
+* Added function robustSds for computing uncertainty estimates for copy number
+  (uses MAD)
+* Changed findBreaks function to prevent calling gaps (centromeres) as altered
+  - findBreaks is not meant to be called by the user
+* Added breaks function that is a wrapper for findBreaks
+* The preferred representation of chromosome is an integer.  For the
+   sex chromosomes, 23 = X and 24=Y
+* Included reference distributions for crlmm confidence scores in the inst/extdata directory

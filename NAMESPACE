@@ -1,58 +1,14 @@
-useDynLib("VanillaICE")
-import(SNPchip, Biobase, oligoClasses)
-exportClasses("HmmParameter", "HmmOptions")
-##exportPattern("^[^\\.]")
-exportMethods("[",
-              annotation,
-              "annotation<-",
-              breakpoints,
-	      "breakpoints<-",
-              calculateBreakpoints,
-	      calculateDistance,
-	      physicalDistance,
-	      calls.ICE,
-	      "calls.ICE<-",
-	      copyNumber.ICE,
-	      "copyNumber.ICE<-",
-              coerce,                            
-              db,
-	      emission,
-	      "emission<-",
-              featureNames,
-              hmm,
-              initialize,
-              pData,
-              Pi,
-              position,
-              predictions,
-	      "predictions<-",
-	      probHomCall,
-	      "probHomCall<-",
-	      snpset,
-	      "snpset<-",
-              states,
-              "states<-",
-              show,
-	      summary,
-              tau,
-	      genomicDistance,
-	      "genomicDistance<-",
-	      term5,
-	      "term5<-",
-	      transitionScale,
-	      "transitionScale<-")
-export(getChromosomeArm,
-       addFeatureData,
-       calculateCnSE,
-       calls.emission,
-       copyNumber.emission,
+useDynLib("VanillaICE", .registration=TRUE)
+##import(SNPchip, Biobase, oligoClasses)
+importFrom(SNPchip, chromosome2integer, integer2chromosome)
+importFrom(stats, update)
+##exportMethods("update")
+export(breaks,
        copynumberEmission,
-       findBreaks,
        genotypeEmission,
        genotypeEmissionCrlmm,
-       scaleTransitionProbability,
+       transitionProbability,
+       hmm,
        viterbi)
-##Do not export in released version
-##export(.splitAnnotation, .getCallEmission)
 
 

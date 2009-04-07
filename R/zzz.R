@@ -1,7 +1,12 @@
 THISPKG <- "VanillaICE"
 
-.First.lib <- function(libname, pkgname){
-	library.dynam(THISPKG, pkgname, libname)
+##.First.lib <- function(libname, pkgname){
+##	library.dynam(THISPKG, pkgname, libname)
+##}
+##
+
+.onLoad <- function(libname, pkgname){
+	require("methods")
 }
 
 ##.onAttach <- function(libname, pkgname) {
@@ -12,9 +17,6 @@ THISPKG <- "VanillaICE"
 	library.dynam.unload(THISPKG, libpath)
 }
 
-.onLoad <- function(libname, pkgname){
-	require("methods")
-	.vanillaIcePkgEnv <- new.env(parent=emptyenv())	
-}
+.vanillaIcePkgEnv <- new.env(parent=emptyenv())
 
 
