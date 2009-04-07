@@ -1,4 +1,5 @@
-4/6/2009 committed Version 1.5.11
+4/6/2009 committed Version 1.5.12
+
 * Simplified Vignette. 
   - created a data object locusLevelData that has the basic elements required for the HMM
     	    - matrix of genotypes
@@ -12,3 +13,7 @@
 * The preferred representation of chromosome is an integer.  For the
    sex chromosomes, 23 = X and 24=Y
 * Included reference distributions for crlmm confidence scores in the inst/extdata directory
+
+4/6/2009 committed Version 1.5.13
+
+* Added hmm.Rd file
