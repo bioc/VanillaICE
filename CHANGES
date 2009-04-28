@@ -21,3 +21,8 @@
 4/9/2009 committed version 1.5.14
 
 * Changed description
+
+4/28/2009 committed version 1.7.1
+
+* Fixed bug in the first figure of the vignette -- for some reason the
+  amplified state was not showing up.

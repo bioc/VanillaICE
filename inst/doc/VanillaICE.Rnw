@@ -182,7 +182,6 @@ callsConf <- matrix(as.integer(-1000*log(1-callsConf)), nrow(callsConf), ncol(ca
 callsConf <- rbind(callsConf, callsConf[1:100, , drop=FALSE])
 dimnames(callsConf) <- dimnames(copynumber)
 locusLevelData[["crlmmConfidence"]] <- callsConf
-
 annotation <- locusLevelData[["annotation"]]
 copynumber <- locusLevelData[["copynumber"]]/100
 genotypes <- locusLevelData[["genotypes"]]
@@ -237,10 +236,10 @@ assay data available:
 \item {\color{blue}{SnpCallSet}} (genotypes-only)
 
 <<instantiateCallSet, eval=FALSE>>=
-  new("SnpCallSet",
-      calls=genotypes,
-      phenoData=annotatedDataFrameFrom(genotypes, byrow=FALSE),
-      featureData=featuredata)
+new("SnpCallSet",
+    calls=genotypes,
+    phenoData=annotatedDataFrameFrom(genotypes, byrow=FALSE),
+    featureData=featuredata)
 @ 
 \item {\color{blue}{SnpCopyNumberSet}} (copy number-only)
 
@@ -308,12 +307,6 @@ emission probabilities.  \emph{For \Robject{oligoSnpSet} objects, the
   amplification (in this order). }
 
 <<vanillaSegments>>=
-##featuredata <- new("AnnotatedDataFrame", data=locusAnnotation, varMetadata=data.frame(labelDescription=colnames(locusAnnotation)))
-##locusset <- new("oligoSnpSet",
-##		copyNumber=copynumber,
-##		calls=genotypes,
-##		phenoData=annotatedDataFrameFrom(copynumber, byrow=FALSE),
-##		featureData=featuredata)
 (brks <- hmm(object=locusset, 
 	    states=c("hemDel", "normal", "ROH", "amplification"), 
 	    mu=c(1, 2, 2, 3), 
@@ -329,7 +322,7 @@ emission probabilities.  \emph{For \Robject{oligoSnpSet} objects, the
 fit2 <- hmm(object=locusset, 
 	    states=c("hemDel", "normal", "ROH", "amplification"), 
 	    mu=c(1, 2, 2, 3), 
-	    probs=c(0.999, 0.7, 0.9999, 0.7),
+	    probs=c(0.999, 0.7, 0.999, 0.7),
 	    takeLog=TRUE,
 	    returnSegments=FALSE)
 @ 
@@ -338,12 +331,14 @@ An example of how one may visualize the segmentation:
 
 <<vanillaPlot, fig=TRUE, width=8>>=
 show(plot(locusset[chromosome(locusset) == 1, ]))
-fit2[fit2 == 3] <- 2  ##So LOH line will not plot at 3
-fit2[fit2 == 4] <- 3
-lines(position(locusset)[chromosome(locusset) == 1], fit2[chromosome(locusset) == 1, 1])
-rohRegion <- as.integer(brks[brks$state == "ROH", ][c("start", "end")])
+y <- fit2[chromosome(locusset) == 1, 1]
+y[y == 3] <- 2  ##So LOH line will not plot at 3
+y[y == 4] <- 3
+lines(position(locusset)[chromosome(locusset) == 1], y)
+rohRegion <- as.integer(as.matrix(brks[brks$state == "ROH", ][c("start", "end")]))
 abline(v=rohRegion, col="royalblue", lty=2)
 legend("topright", lty=c(1, 2), col=c("black", "royalblue"), legend=c("CN state", "ROH boundary"), bty="n")
+##print(abcd)
 @ 
 
 \subsubsection{Extracting intermediate objects}
@@ -870,7 +865,7 @@ complete description of the methods.
 %documentation for this object in the R package \ice.
 
 
-<<vanillaPlot,fig=TRUE,width=8,height=5, eval=FALSE>>=
+<<vanillaPlot2, fig=TRUE, width=8, height=5, eval=FALSE>>=
 gp <- plot(snpset[chromosome(snpset) == 1, ])
 lines(position(snpset)[chromosome(snpset)==1], viterbiResults[chromosome(snpset) == 1, ])
 ##show copy-neutral LOH by vertical lines
