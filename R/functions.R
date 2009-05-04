@@ -182,36 +182,40 @@ copynumberEmission <- function(copynumber,
 			       sds,
 			       takeLog,
 			       verbose=TRUE, na.rm=TRUE){
-	if(!is.matrix(mu)) mu <- matrix(mu, nrow(copynumber), length(states), byrow=TRUE)
-	if(missing(takeLog)) stop("must specify whether to take the log2 of the copy number matrix")	
+	##if(!is.matrix(mu)) mu <- matrix(mu, nrow(copynumber), length(states), byrow=TRUE)
+	if(missing(takeLog)) stop("must specify whether to take the log2 of the copy number matrix")
+	fn <- rownames(copynumber)
+	S <- length(states)	
 	if(!missing(sds)){
 		if(!is.matrix(sds)) sds <- matrix(sds, nrow(copynumber), ncol(copynumber), byrow=TRUE)
 	} else {
 		if(missing(sds)) sds <- robustSds(copynumber, takeLog=takeLog, na.rm=na.rm)
 	}
-	if(!all(sds > 0, na.rm=TRUE)) stop("sds not positive")
+	if(any(sds ==0, na.rm=TRUE)){
+		warning("some sds were zero.  Replacing with 10")
+		sds[sds == 0] <- 10
+	}
 	cne <- copynumber
 	if(takeLog){
 		cne <- log2(cne)
 		mu <- log2(mu)
-	} 
-	fn <- rownames(cne)
-	S <- length(states)
-	cne <- array(cne, dim=c(nrow(cne), ncol(cne), S))
-	scale <- array(sds, dim=c(nrow(cne), ncol(cne), S))
- 	##scale <- aperm(array(t(sds), dim=c(S, ncol(cne), nrow(cne))))
-	##dimnames(cne) <- list(rownames(copynumber), colnames(copynumber), states)
-	##mu <- aperm(array(t(mu), dim=c(S, ncol(cne), nrow(cne))))
-	mu <- array(mu, dim=c(nrow(cne), ncol(cne), S))
-	##Use SNP-specific standard errors
-	##i <- which(!(is.na(as.vector(1/sds))) & !is.na(as.vector(cne)))
-	k <- which(!is.na(as.vector(cne)))
-	if(!identical(dim(cne), dim(mu))) stop("dimensions must be the same")
-	emission.cn <- rep(NA, length(as.vector(mu)))
-	emission.cn[k] <- dnorm(as.vector(cne)[k], as.vector(mu)[k], as.vector(scale)[k])
-	emission.cn <- array(emission.cn, dim=dim(cne))
-	##dimnames(emission.cn) <- list(rownames(cne), colnames(cne), states)
-	if(verbose) message("returning the emission probability on the log scale")
+	}
+	emission.cn <- array(NA, dim=c(nrow(cne), ncol(cne), S))
+	if(!is.matrix(mu))
+		mu <- matrix(mu, nrow(cne), length(mu), byrow=TRUE)	
+	for(j in 1:ncol(cne)){
+		cn <- matrix(cne[, j], nrow(cne), ncol(mu))
+		sd <- matrix(sds[, j], nrow(cne), ncol(mu))
+		k <- which(!is.na(as.numeric(cn)))
+		##emission.cn <- rep(NA, length(as.vector(mu)))
+		tmp <- rep(NA, length(as.numeric(mu)))
+		tmp[k] <- dnorm(as.numeric(cn)[k], as.numeric(mu)[k], as.numeric(sd)[k])
+		emission.cn[, j, ] <- tmp
+		##emission.cn[k] <- dnorm(as.vector(cne)[k], as.vector(mu)[k], as.vector(scale)[k])
+		##emission.cn <- array(emission.cn, dim=dim(cne))
+		##dimnames(emission.cn) <- list(rownames(cne), colnames(cne), states)
+		##if(verbose) message("returning the emission probability on the log scale")
+	}
 	return(log(emission.cn))
 }
 

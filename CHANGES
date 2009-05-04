@@ -26,3 +26,7 @@
 
 * Fixed bug in the first figure of the vignette -- for some reason the
   amplified state was not showing up.
+
+4/28/2009 committed version 1.7.2
+
+* edits to copynumberEmission
