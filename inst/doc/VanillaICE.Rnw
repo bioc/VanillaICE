@@ -311,7 +311,7 @@ emission probabilities.  \emph{For \Robject{oligoSnpSet} objects, the
 	    states=c("hemDel", "normal", "ROH", "amplification"), 
 	    mu=c(1, 2, 2, 3), 
 	    probs=c(0.999, 0.7, 0.999, 0.7),
-	    takeLog=TRUE))
+	    takeLog=TRUE, normalIndex=2))
 @ 
 
 
@@ -324,7 +324,8 @@ fit2 <- hmm(object=locusset,
 	    mu=c(1, 2, 2, 3), 
 	    probs=c(0.999, 0.7, 0.999, 0.7),
 	    takeLog=TRUE,
-	    returnSegments=FALSE)
+	    returnSegments=FALSE,
+	    normalIndex=2)
 @ 
 
 An example of how one may visualize the segmentation:
@@ -354,7 +355,8 @@ fit2 <- hmm(object=locusset,
 	    mu=c(1, 2, 2, 3), 
 	    probs=c(0.999, 0.7, 0.9999, 0.7),
 	    takeLog=TRUE,
-	    returnSegments=FALSE, envir=env)
+	    returnSegments=FALSE, envir=env,
+	    normalIndex=2)
 ls(env)
 @ 
 
@@ -455,7 +457,7 @@ initialP <- (rep(1, length(states)))/length(states)
 \subsubsection{Transition probabilities.}
 \label{sec:transition}
 
-Our HMM uses locus-specific transition probabilities that are calculated
+The HMM uses locus-specific transition probabilities that are calculated
 as a function of the physical distance between loci. Specifically, the
 probability that the locus at position $t-1$ is \emph{not} informative
 for the locus at position $t$ is calculated as $1-e^{-d/C}$, where $C$
@@ -478,12 +480,33 @@ table(tau[, "arm"])
 str(tau)
 @
 
+
 \noindent The values for \Robject{arm} indicate that the HMM will be fit
 independently to three separate segments of the supplied data,
 corresponding to arms 1p, 1q, and 2p.  By default this function uses the
 chromosome annotation provided by the \R{} package \Rpackage{SNPchip}
 for the centromere coordinates and will work only for chromosomes 1-22,
 X, and Y.
+
+\paragraph{Scaling the probability of transitioning to a different
+  state.}
+
+Often it may be desirable to allow different transition probabilities
+between normal to altered, altered to normal, and altered to altered
+states \citep{Korn2008}.  There are three arguments to the
+\Robject{viterbi} function that allows one to scale these transition
+probabilities:
+\begin{enumerate}
+\item \Robject{normal2altered}
+\item \Robject{altered2normal}
+\item \Robject{altered2altered}
+\end{enumerate}
+
+\noindent For instance, one may scale the transition probability for
+leaving the normal state to an altered state by 1/2 by specifying
+\Robject{normal2altered=1/2} in the \Robject{viterbi} function.  The
+default value is $1$ for each of these arguments.
+
 
 %TODO: Discuss how one may scale the transition probability matrix.
 
@@ -656,31 +679,28 @@ algorithm is computed for independently for each chromosomal arm.
 fit <- viterbi(initialStateProbs=log(initialP),
 	       emission=emission,
 	       tau=tau[, "transitionPr"],
-	       arm=tau[, "arm"])
+	       arm=tau[, "arm"], 
+	       normalIndex=2)
 table(fit)
 breaks(x=fit, states=states, position=tau[, "position"],
        chromosome=tau[, "chromosome"],
        sampleNames=colnames(copynumber))
 @ 
 
+As described previously, we may scale the probability of transitioning
+between states by setting the arguments \Robject{normal2altered},
+\Robject{altered2normal}, and \Robject{altered2altered}:
 
-%\paragraph{Updating elements of the HMM.} 
-%
-%To update the elements used, for instance, a different.  For instance,
-%
-%<<environment>>=
-%##source("~/madman/Rpacks/VanillaICE/R/functions.R")
-%e1 <- new.env()
-%hmm(object=locusset, 
-%    states=c("hemDel", "normal", "ROH", "amp"), 
-%    mu=c(1, 2, 2, 3), 
-%    probs=c(0.9999, 0.99, 0.9999, 0.99),
-%    takeLog=TRUE, envir=e1)
-%ls(e1)
-%e1[["TAUP"]] <- 1e12
-%##untrace(update, signature="environment", where=getNamespace("VanillaICE"))
-%update(object=e1)
-%@ 
+<<fit, eval=FALSE>>=
+fit <- viterbi(initialStateProbs=log(initialP),
+	       emission=emission,
+	       tau=tau[, "transitionPr"],
+	       arm=tau[, "arm"], 
+	       normalIndex=2,
+	       normal2altered=1/5,
+	       altered2normal=1/2,
+	       altered2altered=1/10)
+@ 
 
 \section{Integretating Confidence Estimates (ICE): Extending
   \Rpackage{CRLMM}}
@@ -726,13 +746,15 @@ fit3 <- hmm(object=locusset2,
 	    states=c("hemDel", "normal", "ROH", "amplification"), 
 	    mu=c(1, 2, 2, 3), 
 	    takeLog=TRUE,
-	    returnSegments=FALSE, ice=TRUE)
+	    returnSegments=FALSE, ice=TRUE,
+	    normalIndex=2)
 brks <- hmm(object=locusset2, 
 	    states=c("hemDel", "normal", "ROH", "amplification"), 
 	    probs=c(0.05, 0.99, 0.7, 0.999),
 	    mu=c(1, 2, 2, 3), 
 	    takeLog=TRUE,
-	    ice=TRUE)
+	    ice=TRUE,
+	    normalIndex=2)
 @ 
 
 \noindent Here we plot one of the regions that has different breakpoints

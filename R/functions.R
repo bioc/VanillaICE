@@ -244,19 +244,22 @@ robustSds <- function(x, takeLog=FALSE, ...){
 	return(sds)
 }
 
-
 viterbi <- function(initialStateProbs,
 		    emission,
 		    tau,
 		    arm,
-		    tau.scale,
 		    verbose=FALSE,
 		    chromosome,
 		    position,
 		    sampleNames,
 		    locusNames,
 		    normalIndex,
-		    returnLikelihood=FALSE){
+		    returnLikelihood=FALSE,
+		    normal2altered=1,
+		    altered2normal=1,
+		    altered2altered=1){
+	if(missing(normalIndex)) stop("Must specify integer for normalIndex")
+	if(!is.numeric(normalIndex)) stop("normalIndex should be numeric")
 	if(returnLikelihood){
 		if(missing(normalIndex)) stop("Must specify index for 'normal' state")
 	}
@@ -294,14 +297,6 @@ viterbi <- function(initialStateProbs,
 		if(verbose) message("arm not the right length.  assuming all values on same chromosomal arm")
 		arm <- rep(as.integer(0), T)
 	}
-	if(missing(tau.scale)){
-		##if(verbose) message("tau.scale not specified.  not scaling the genomic distance")
-		tau.scale <- matrix(1, S, S)
-	}
-	if(any(!(dim(tau.scale) == S))){
-		if(verbose) message("tau.scale not the right dimension.  not scaling the genomic distance")
-		tau.scale <- matrix(1, S, S)
-	}
 	if(missing(tau)){
 		stop("transition probabilities not specified")
 	}
@@ -314,11 +309,14 @@ viterbi <- function(initialStateProbs,
 			    as.double(as.matrix(initialStateProbs)),
 			    as.matrix(as.double(tau)),
 			    as.integer(arm),
-			    as.matrix(as.double(tau.scale)),
 			    as.integer(S),
 			    as.integer(T),
 			    result,
-			    as.matrix(as.double(delta)))
+			    as.matrix(as.double(delta)),
+			    normal2altered,
+			    altered2normal,
+			    altered2altered,
+			    normalIndex)
 		tmp2 <- .C("viterbi",		
 			   tmp[[1]],
 			   tmp[[2]],
@@ -328,9 +326,12 @@ viterbi <- function(initialStateProbs,
 			   tmp[[6]],
 			   tmp[[7]],
 			   tmp[[8]],
-			   tmp[[9]])
-		results[, j] <- tmp2[[8]]
-		lik[, j, ] <- matrix(tmp2[[9]], nrow(results))
+			   tmp[[9]],
+			   tmp[[10]],
+			   tmp[[11]],
+			   tmp[[12]])
+		results[, j] <- tmp2[[7]]
+		lik[, j, ] <- matrix(tmp2[[8]], nrow(results))
 	}
 	if(returnLikelihood){
 		lrdiff <- vector("list", ncol(results))
@@ -352,7 +353,6 @@ viterbi <- function(initialStateProbs,
 	}
 	return(results)		
 }
-
 
 transitionProbability <- function(chromosome, position, TAUP=1e8, chromosomeAnnotation, verbose=FALSE){
 	if(!is.integer(chromosome)) {
@@ -422,6 +422,8 @@ viterbiR <- function(emission, initialP, tau, arm){
 			psi[t, ] <- 0
 			next()
 		}
+##		AA <- matrix(NA, nr=S, nc=S)
+##		for(i in 1:S){
 		AA <- matrix(tau[t-1], nr=S, nc=S)  
 		epsilon <- (1-tau[t-1])/(S-1)
 		##eNormal <- (1-tauNormal[t-1])/(S-1)		
@@ -538,7 +540,8 @@ hmm <- function(object,
 		TAUP=1e8,
 		verbose=FALSE,
 		ice=FALSE,
-		envir){
+		envir,
+		normalIndex){
 	if(missing(envir)) envir <- new.env()	
 	if(!all(c("position", "chromosome") %in% fvarLabels(object))){
 		stop("'position' and 'chromosome' must be in fvarLabels(object), or transitionPr must be provided")
@@ -573,7 +576,7 @@ hmm <- function(object,
 		copyNumber(object) <- log2(copyNumber(object))
 		mu <- log2(mu)
 	}		
-	if(verbose) message("Calculating emission probabilities")		
+	if(verbose) message("Calculating emission probabilities")
 	calculateEmission(object=object,
 			  mu=mu,
 			  probs=probs,
@@ -581,21 +584,26 @@ hmm <- function(object,
 			  states=states,
 			  verbose=verbose,
 			  ice=ice)
-	emission <- envir[["emission.cn"]]+envir[["emission.gt"]]
+	if(!is.null(envir[["emission.gt"]])){
+		emission <- envir[["emission.cn"]]+envir[["emission.gt"]]
+	} else {
+		emission <- envir[["emission.cn"]]
+	}
 	envir[["emission"]] <- emission
 	##emission <- .GlobalEnv[["emission.cn"]]+.GlobalEnv[["emission.gt"]]
 	viterbiResults <- viterbi(initialStateProbs=log(initialP),
 				  emission=emission,
 				  tau=transitionPr,
 				  arm=arm,
-				  verbose=verbose)
+				  verbose=verbose,
+				  normalIndex=normalIndex)
 	dimnames(viterbiResults) <- list(featureNames(object), sampleNames(object))	
 	if(returnSegments){
 		viterbiResults <- breaks(x=viterbiResults,
 					 states=states,
 					 position=position(object),
-					 chromosome=chromosome(object),
-					 sample=sampleNames(object),
+					 chromosome=chromosome(object),	
+				 sample=sampleNames(object),
 					 verbose=verbose)
 	}
 	return(viterbiResults)

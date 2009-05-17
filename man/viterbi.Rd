@@ -9,8 +9,9 @@
 
 }
 \usage{
-viterbi(initialStateProbs, emission, tau, arm, tau.scale, verbose =
-FALSE, chromosome, position, sampleNames, locusNames, normalIndex, returnLikelihood = FALSE)
+viterbi(initialStateProbs, emission, tau, arm, verbose =
+FALSE, chromosome, position, sampleNames, locusNames, normalIndex,
+returnLikelihood = FALSE, normal2altered=1, altered2normal=1, altered2altered=1)
 }
 
 \arguments{
@@ -18,8 +19,6 @@ FALSE, chromosome, position, sampleNames, locusNames, normalIndex, returnLikelih
     \item{emission}{matrix of log emission probabilities (one sample is a matrix)}
     \item{tau}{transition probabilities (original scale)}
     \item{arm}{numeric or character string indicating chromosomal arm}  
-    \item{tau.scale}{matrix to scale the probability of transitioning
-      between states.}
     \item{verbose}{Logical}
     \item{chromosome}{chromosome}
     \item{position}{physical position}
@@ -27,18 +26,17 @@ FALSE, chromosome, position, sampleNames, locusNames, normalIndex, returnLikelih
     \item{locusNames}{labels for loci}
     \item{normalIndex}{index corresponding to the normal state. See details}
     \item{returnLikelihood}{whether to return the 'loglikelihood'}
+    \item{normal2altered}{factor for scaling the probability of transitioning
+      from the normal state to an altered state}
+    \item{altered2normal}{factor for scaling the probability of transitioning
+      from an altered state to a normal state}
+    \item{altered2altered}{factor for scaling the probability of transitioning
+     from an altered state to a different altered state}        
 }
 \details{
 
   The Viterbi algorithm is fit independently to each chromosomal arm if
   arm is specified.
-
-  Argument \code{tau.scale} is a matrix that scales the probability of
-  transitioning from an altered state to a normal state to the
-  probability of transitioning between two altered states.  If missing,
-  tau.scale is 1 (no scaling)
-
-  
 
 }
 \value{

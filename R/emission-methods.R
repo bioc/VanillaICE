@@ -42,7 +42,7 @@ setMethod("calculateEmission", "oligoSnpSet", function(object,
 	envir[["emission.gt"]] <- emission.gt
 })
 
-setMethod("calculateEmission", "SnpCopyNumberSet", function(object, mu, states, envir){
+setMethod("calculateEmission", "SnpCopyNumberSet", function(object, mu, states, envir, ...){
 	if(all(is.na(cnConfidence(object)))){
 		sds <- robustSds(copyNumber(object))
 	} else {

@@ -30,3 +30,17 @@
 4/28/2009 committed version 1.7.2
 
 * edits to copynumberEmission
+
+5/16/2009 committed version 1.7.3
+
+* added 3 additional arguments to the viterbi function that allows one to
+  scale the transition probability between the hidden states:
+      - normal2altered  (scalar for transition from normal to altered state)
+      - altered2normal  (scalar for transitioning from altered to normal state)
+      - altered2altered (scalar for transitioning between to states)
+
+* the default is not to scale the transition probability
+
+* the C code now accepts the above arguments and scales the transition
+  probability accordingly
+

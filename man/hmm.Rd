@@ -5,11 +5,13 @@
   A wrapper for fitting the HMM.
 }
 \usage{
-hmm(object, states, mu = NULL, probs = NULL, takeLog = FALSE, initialP, returnSegments = TRUE, TAUP = 1e+08, verbose = FALSE, ice = FALSE, envir)
+hmm(object, states, mu = NULL, probs = NULL, takeLog = FALSE, initialP,
+returnSegments = TRUE, TAUP = 1e+08, verbose = FALSE, ice = FALSE,
+envir, normalIndex)
 }
 
 \arguments{
-    \item{object}{SnpCallSet, SnpCopyNumberSet, or oligoSnpSet object}
+  \item{object}{SnpCallSet, SnpCopyNumberSet, or oligoSnpSet object}
   \item{states}{Labels for the hidden states.  See details for order.}
   \item{mu}{The latent copy number. See details for order. }
   \item{probs}{See details.}
@@ -23,6 +25,7 @@ hmm(object, states, mu = NULL, probs = NULL, takeLog = FALSE, initialP, returnSe
   \item{ice}{Whether to use CRLMM confidence scores of the genotype calls.}
   \item{envir}{Optional.  An environment for storing intermediate files
     created for fitting the HMM.}
+  \item{normalIndex}{the index of the normal state in the states vector}
 }
 \details{
   

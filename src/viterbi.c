@@ -48,13 +48,16 @@ static void getMatrixIndexAndMaxVal(const double *pMat, const int nCols, double 
  * \param pDelta - output vector of doubles
  * \param pArm - character string
  */
-void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, double *tau_scale, int *S, int *T, int *pQHat, double *pDelta)
+void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, int *S, int *T, int *pQHat, double *pDelta, double *c1, double*c2, double *c3, int *normalState)
 {
   /**  RS double *pDelta, *pAA, *pDeltaTempSum, Pstar; */
-  double *pAA, *pDeltaTempSum, Pstar;
+  double *pAA, *pDeltaTempSum, Pstar, *tp;
   int i,j,t;
   int nRows, nCols, *pPsi;
+  int NS;
 
+  
+  NS = *normalState - 1;
   nRows = *T;
   nCols = *S;
 
@@ -93,20 +96,44 @@ void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, double *t
 	    {
 	      int offset;
 	      offset = j * nCols + i;
-	      if (i == j)
+	      /* if (i == j)*/
+	      if(i == NS)
 		{
-		  /* probability of staying in the same state */
-		  *(pAA + offset) = tau[t-1];
+		  if(i == j)  /* probability of staying in the normal state */
+		    {
+		      *(pAA + offset) = 1 - (1-tau[t-1]) * (nCols - 1) * *c1;
+		      /* probability of staying in the same state */
+		      /* *(pAA + offset) = tau[t-1]; */
+		    }
+		  else /* probability of leaving normal state */
+		    {
+		      *(pAA + offset) = *c1 * (1-tau[t-1]);
+		    }
 		}
-	      else
+	      else   /* transitioning from an altered state */
 		{
-		  /* probability of leaving state i to state j*/
-		  *(pAA + offset) = (1-tau[t-1])/(nCols-1); 
+		  if(i == j)  /* staying in the same altered state */
+		    { 
+		      /* c2 = scalar for transitioning from normal to altered state */
+		      *(pAA + offset) = 1 - (1 - tau[t-1]) * (*c2 + (nCols - 2) * *c3);
+		      /* *(pAA + offset) = (1-tau[t-1])/(nCols-1); */
+		    } 
+		  else /* leaving altered state */
+		    {
+		      if(j == NS) /* going back to normal state */
+			{
+			  *(pAA + offset) = *c2 * (1 - tau[t-1]);
+			}
+		      else  /* going to another altered state */
+			{
+			  *(pAA + offset) = *c3 * (1 - tau[t-1]);
+			}
+		    }
 		}
-	      *(pAA + offset) = log ( *(pAA + offset) * *(tau_scale + offset) );
+	      /* *(pAA + offset) = log ( *(pAA + offset) * *(tau_scale + offset) );*/
+	      *(pAA + offset) = log ( *(pAA + offset) );
 	    }
 	}
-
       for (j=0; j<nCols; ++j)
 	{
 	  double maxDeltaTempSum;
