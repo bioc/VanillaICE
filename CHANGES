@@ -31,7 +31,7 @@
 
 * edits to copynumberEmission
 
-5/16/2009 committed version 1.7.3
+6/18/2009 committed version 1.7.3
 
 * added 3 additional arguments to the viterbi function that allows one to
   scale the transition probability between the hidden states:
@@ -43,4 +43,10 @@
 
 * the C code now accepts the above arguments and scales the transition
   probability accordingly
+
+* for copynumberEmission, check for zero's in copy number estimates
+    when takelog=TRUE...  change zeros to small positive value (0.05)
+    to avoid nan's
+
+
 

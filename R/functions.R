@@ -197,6 +197,10 @@ copynumberEmission <- function(copynumber,
 	}
 	cne <- copynumber
 	if(takeLog){
+		if(any(cne == 0)){
+			message("0 copy number estimates are replaced with 0.05 to avoid nan's when taking the log")
+			cne[cne == 0] <- 0.05
+		}
 		cne <- log2(cne)
 		mu <- log2(mu)
 	}
