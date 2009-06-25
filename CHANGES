@@ -48,5 +48,13 @@
     when takelog=TRUE...  change zeros to small positive value (0.05)
     to avoid nan's
 
+6/18/2009 committed version 1.7.4
+
+* fixed a few bugs in copynumberEmission
+* added warning messages to copynumberEmission -- 
+  - inserted stop() if all values in a row are NA or all values in a column are NA
+
+6/25/2009 committed version 1.7.4
+* changed imports field require oligoClasses >= 1.6.0
 
 

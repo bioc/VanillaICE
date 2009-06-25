@@ -185,39 +185,45 @@ copynumberEmission <- function(copynumber,
 	##if(!is.matrix(mu)) mu <- matrix(mu, nrow(copynumber), length(states), byrow=TRUE)
 	if(missing(takeLog)) stop("must specify whether to take the log2 of the copy number matrix")
 	fn <- rownames(copynumber)
-	S <- length(states)	
+	S <- length(states)
+	if(any(copynumber == 0, na.rm=TRUE)){
+		message("0 copy number estimates are replaced with 0.05 to avoid nan's when taking the log")
+		copynumber[copynumber == 0] <- 0.05
+	}
+	if(any(rowSums(is.na(copynumber)) == ncol(copynumber))){
+		stop("Some rows have all missing values. Exclude these before continuing.")
+	}
+	if(any(colSums(is.na(copynumber))) == nrow(copynumber)){
+		stop("Some samples have all missing values. Exclude these samples before continuing.")
+	}
 	if(!missing(sds)){
 		if(!is.matrix(sds)) sds <- matrix(sds, nrow(copynumber), ncol(copynumber), byrow=TRUE)
 	} else {
-		if(missing(sds)) sds <- robustSds(copynumber, takeLog=takeLog, na.rm=na.rm)
+		sds <- robustSds(copynumber, takeLog=takeLog, na.rm=na.rm)
 	}
-	if(any(sds ==0, na.rm=TRUE)){
-		warning("some sds were zero.  Replacing with 10")
-		sds[sds == 0] <- 10
+	tmp <- rowSums(!is.finite(sds))
+	if(any(sds == 0, na.rm=TRUE)){
+		warning("some sds were zero.  Replacing with typical value")
+		sds[sds == 0] <- median(sds, na.rm=TRUE)
 	}
-	cne <- copynumber
 	if(takeLog){
-		if(any(cne == 0)){
-			message("0 copy number estimates are replaced with 0.05 to avoid nan's when taking the log")
-			cne[cne == 0] <- 0.05
-		}
-		cne <- log2(cne)
+		copynumber <- log2(copynumber)
 		mu <- log2(mu)
 	}
-	emission.cn <- array(NA, dim=c(nrow(cne), ncol(cne), S))
+	emission.cn <- array(NA, dim=c(nrow(copynumber), ncol(copynumber), S))
 	if(!is.matrix(mu))
-		mu <- matrix(mu, nrow(cne), length(mu), byrow=TRUE)	
-	for(j in 1:ncol(cne)){
-		cn <- matrix(cne[, j], nrow(cne), ncol(mu))
-		sd <- matrix(sds[, j], nrow(cne), ncol(mu))
+		mu <- matrix(mu, nrow(copynumber), length(mu), byrow=TRUE)	
+	for(j in 1:ncol(copynumber)){
+		cn <- matrix(copynumber[, j], nrow(copynumber), ncol(mu))
+		sd <- matrix(sds[, j], nrow(copynumber), ncol(mu))
 		k <- which(!is.na(as.numeric(cn)))
 		##emission.cn <- rep(NA, length(as.vector(mu)))
 		tmp <- rep(NA, length(as.numeric(mu)))
 		tmp[k] <- dnorm(as.numeric(cn)[k], as.numeric(mu)[k], as.numeric(sd)[k])
 		emission.cn[, j, ] <- tmp
-		##emission.cn[k] <- dnorm(as.vector(cne)[k], as.vector(mu)[k], as.vector(scale)[k])
-		##emission.cn <- array(emission.cn, dim=dim(cne))
-		##dimnames(emission.cn) <- list(rownames(cne), colnames(cne), states)
+		##emission.cn[k] <- dnorm(as.vector(copynumber)[k], as.vector(mu)[k], as.vector(scale)[k])
+		##emission.cn <- array(emission.cn, dim=dim(copynumber))
+		##dimnames(emission.cn) <- list(rownames(copynumber), colnames(copynumber), states)
 		##if(verbose) message("returning the emission probability on the log scale")
 	}
 	return(log(emission.cn))
@@ -239,7 +245,7 @@ robustSds <- function(x, takeLog=FALSE, ...){
 		sds1 <- rowMAD(x, ...)
 		sds1 <- matrix(sds1, nrow(x), ncol(x))
 		sds2 <- apply(x, 2, "mad", ...)
-		sds2 <- sds2/median(sds2)
+		sds2 <- sds2/median(sds2, na.rm=TRUE)
 		sds <- t(t(sds1) * sds2)
 	} else {
 		sds <- apply(x, 2, "mad", ...)
