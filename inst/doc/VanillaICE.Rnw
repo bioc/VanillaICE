@@ -77,510 +77,309 @@ options(width=80)
 
 \section{Overview}
 
-This vignette describes how to fit a hidden Markov model to
-locus-level estimates of genotype or copy number. This vignette does not
-describe how to preprocess, genotype, or estimate copy number.  We
-assume that locus-level estimates of genotype and/or copy number have
-been obtained by software such as the \R{} package \Rpackage{crlmm}
-(preferred).  Several HMM implementations are now available for the
-joint analysis of copy number and genotype, including QuantiSNP
-\citep{Colella2007} and PennCNV \citep{Wang2007a}.  
+This vignette describes how to fit a hidden Markov model to locus-level
+estimates of genotype or copy number. This vignette requires that you
+have
+
+\begin{itemize}
+  
+\item an absolute estimate of the \emph{total} copy number organized
+  such that rows correspond to loci and columns correspond to samples
+  
+  and / or
+    
+\item a matrix of genotype calls  (1=AA, 2 = AB, 3= BB): rows correspond
+  to loci and columns correspond to samples
+    
+\end{itemize}
+  
+\noindent Additional options can improve the HMM predictions include
+
+\begin{itemize}
+    
+  \item a CRLMM / oligo confidence score of the genotype call
+    
+  \item standard errors of the copy number estimates
+    
+  \end{itemize}
+
+  \noindent If using the \R{} package \Rpackage{crlmm}, see the the
+  vignette copynumber.Rnw for locus-level estimation of copy number and
+  suggestions for fitting a hidden Markov model to allele-specific
+  estimates of copy number.  Note that several HMM implementations are
+  now available for the joint analysis of copy number and genotype,
+  including QuantiSNP \citep{Colella2007} and PennCNV \citep{Wang2007a}.
 
 \paragraph{Citing this software.} 
-%\bibitem{Scharpf2008}
+% \bibitem{Scharpf2008}
 Robert~B Scharpf, Giovanni Parmigiani, Jonathan Pevsner, and Ingo Ruczinski.
 \newblock Hidden {M}arkov models for the assessment of chromosomal alterations
   using high-throughput {SNP} arrays.
 \newblock {\em Annals of Applied Statistics}, 2(2):687--713, 2008.
 
-\section{Data organization}
-\label{sec:data}
+\section{Simple Usage}
+\label{sec:simpleUsage}
 
-\subsection{Basic data elements}
-\label{data:matrices}
 
-The basic elements required for fitting the vanilla hidden Markov
-model in this vignette are
-\begin{itemize}
-\item a matrix of copy number estimates
-\item a matrix of genotype calls (represented as integers: 1=AA, 2=AB,
-  3=BB)
-\item a mapping of platform identifiers to physical position and chromosome
-\end{itemize}
+* Before beginning, verify that it is reasonable to assume integer copy
+number by plotting the locus-level estimates as a function of the
+physical position.
 
-When available, uncertainty estimates of copy number and genotypes
-(CRLMM uncertainties) should also be represented as matrices. As several
-platforms now have polymorphic and nonpolymorphic probes, the dimensions
-of the genotype and copy number matrices do not necessarily
-coincide. However, for this release of \Rpackage{VanillaICE} we do
-impose this requirement. The genotypes for the nonpolymorphic probes can
-be represented as NAs.  The assay data provided with this package
-contains the basic elements for the HMM from an older Affymetrix
-platform (100k):
 
-<<assaydata>>=
+Assuming that a integer copy number hidden state is reasonable, we
+create an object of class \Robject{oligoSnpSet} from the
+\emph{simulated} data available provided in this package:
+
+<<createLocusSet>>=
 library(VanillaICE)
+library(Biobase)
+library(oligoClasses)
 data(locusLevelData)
 copynumber <- locusLevelData[["copynumber"]]/100
-genotypes <- locusLevelData[["genotypes"]]
-@ 
-
-\noindent The copy number estimates provided in the example data were
-saved as [copy number estimate]*100 and stored as an integer -- we
-divided the estimates by 100 above to revert to the original scale.
-Genotypes should be represented as an integer: 1= AA, 2 = AB, 3=BB.  NA
-or the integer 4 can be used to represent missing values.  Confidence
-scores for the assay data are included in the \Robject{locusLevelData},
-but for now we ignore these.
-
-Meta-data on the locus-level estimates are also required. In particular,
-we require a mapping of the platform identifiers to the chromosome and
-physical position. The preferred representation for the chromosome is an
-integer. Currently, the only supported chromosomes are 1-22, X, and Y.
-
-<<featuredata>>=
 chromosome <- locusLevelData[["annotation"]][, "chromosome"]
 position <- locusLevelData[["annotation"]][, "position"]
 names(position) <- names(chromosome) <- rownames(locusLevelData[["annotation"]])
-@ 
-
-Other chromosomes could potentially be supported, but the user will be
-expected to obtain centromere start and stop sites for alternative
-chromosomes.  For details on how chromosome annotation should be
-organized, see
-
-<<chromosomeAnnotation>>=
-require(SNPchip)
-data(chromosomeAnnotation, package="SNPchip")
-@ 
-
-<<checks>>=
-all(c(identical(names(position), rownames(copynumber)),
-      identical(names(position), rownames(genotypes)),
-      identical(colnames(genotypes), colnames(copynumber))))
-@ 
-
-The assay data elements should be ordered by chromosome and physical
-position:
-
-<<order>>=
-ordering <- order(chromosome, position)
-chromosome <- chromosome[ordering]
-position <- position[ordering]
-genotypes <- genotypes[ordering, , drop=FALSE]
-copynumber <- copynumber[ordering, , drop=FALSE]
-@ 
-
-
-
-<<TESTING, echo=FALSE, results=hide, eval=FALSE>>=
-##For testing that the arm variable forces the HMM to run independently on each chromosomal arm
-data(locusLevelData, package="VanillaICE")
-cnConf <- cnConfidence(chromosome1)
-callsConf <- callsConfidence(chromosome1)
-callsConf <- matrix(as.integer(-1000*log(1-callsConf)), nrow(callsConf), ncol(callsConf))
-callsConf <- rbind(callsConf, callsConf[1:100, , drop=FALSE])
-dimnames(callsConf) <- dimnames(copynumber)
-locusLevelData[["crlmmConfidence"]] <- callsConf
-annotation <- locusLevelData[["annotation"]]
-copynumber <- locusLevelData[["copynumber"]]/100
-genotypes <- locusLevelData[["genotypes"]]
-i <- order(annotation[, "chromosome"], annotation[, "position"])
-genotypes <- genotypes[i, , drop=FALSE]
-copynumber <- copynumber[i, , drop=FALSE]
-annotation <- annotation[i, , drop=FALSE]
-copynumber <- copynumber[1:9165, , drop=FALSE]
-genotypes <- genotypes[1:9165, , drop=FALSE]
-annotation <- annotation[1:9165,, drop=FALSE]
-copynumber <- rbind(copynumber, copynumber)
-genotypes <- rbind(genotypes, genotypes)
-annotation2 <- annotation
-annotation2[, 1] <- 2
-rownames(annotation2) <- paste("SNP_A-", 1:nrow(annotation2), sep="")
-annotation <- rbind(annotation, annotation2)
-rownames(genotypes) <- rownames(copynumber) <- rownames(annotation)
-@ 
-
-\subsection{Using \Rpackage{Biobase}-derived classes}
-\label{data:classes}
-
-
-A principal advantage of using classes instead of matrices is that the
-assay data elements are bound to the meta-data on the samples and loci.
-In this section, we show how the above assay data and meta-data can be
-encapsulated in a single object. The classes required for this operation
-are defined in the \Rpackage{oligoClasses} package available at
-BioConductor.  These class definitions are all extensions of
-\Rpackage{eSet}. The methods for manipulating \Robject{eSets} in the
-\R{} package \Rpackage{Biobase} are now available to us.  We will
-instantiate these objects in two-steps: (i) instantiate an object that
-contains the locus-level meta-data and (ii) instantiate an object that
-contains the assay-data and the meta-data.
-
-For (i), the \Robject{AnnotatedDataFrame} class defined in the
-\Rpackage{Biobase} package is used as a container for the meta-data on
-the locus-level summaries:
-
-<<annotatedDataFrame>>=
-require(oligoClasses)
 locusAnnotation <- data.frame(list(chromosome=chromosome, position=position), row.names=names(chromosome))
 featuredata <- new("AnnotatedDataFrame", data=locusAnnotation, varMetadata=data.frame(labelDescription=colnames(locusAnnotation)))
-stopifnot(all(c("chromosome", "position") %in% varLabels(featuredata)))
-@ 
-
-\noindent The labels 'chromosome' and 'position' are controlled
-vocabularies for the locus-level metadata that are later required when
-fitting the HMM.  For (ii), three options are possible and depend on the
-assay data available:
-\begin{enumerate}
-\item {\color{blue}{SnpCallSet}} (genotypes-only)
-
-<<instantiateCallSet, eval=FALSE>>=
-new("SnpCallSet",
-    calls=genotypes,
-    phenoData=annotatedDataFrameFrom(genotypes, byrow=FALSE),
-    featureData=featuredata)
-@ 
-\item {\color{blue}{SnpCopyNumberSet}} (copy number-only)
-
-<<instantiateCopyNumberSet, eval=FALSE>>=
-new("SnpCopyNumberSet",
-    copyNumber=copynumber,
-    phenoData=annotatedDataFrameFrom(copynumber, byrow=FALSE),
-    featureData=featuredata)
-@ 
- 
-\item {\color{blue}{oligoSnpSet}} (genotypes and copy number)
-  
-<<instantiateOligoSnpSet>>=  
 locusset <- new("oligoSnpSet",
 		copyNumber=copynumber,
-		calls=genotypes,
-		phenoData=annotatedDataFrameFrom(copynumber, byrow=FALSE),
-		featureData=featuredata)
-@ 
-  
-\end{enumerate}
-
-Successfully instantiating an object of the class ensures that the assay
-data elements and the meta-data are consistent, greatly simplifying
-operations such as subsetting and reordering.  For instance, the assay
-data and meta-data can be ordered by chromosome and physical position
-with one line of \R{} code:
-
-<<orderClass>>=
+		calls=locusLevelData[["genotypes"]],
+		callsConfidence=locusLevelData[["crlmmConfidence"]],
+		phenoData=annotatedDataFrameFrom(copynumber, byrow=FALSE),		
+		featureData=featuredata,
+		annotation=locusLevelData[["platform"]])
+stopifnot(all(c("chromosome", "position") %in% varLabels(featuredata)))
 locusset <- locusset[order(chromosome(locusset), position(locusset)), ]
 @ 
 
-\section{Fitting the Vanilla HMM}
-\label{hmm:vanilla}
+The following components are required to fit the HMM:
+\begin{enumerate}
+\item initial state probabilities
+\item emission probabilities
+\item transition probabilities
+\end{enumerate}
 
-We use the Vanilla HMM to smooth the locus-level summaries as a function
-of physical position when confidence estimates of the assay data are
-unavailable.  In Section \ref{fit:classes}, \Rpackage{Biobase}-derived
-class representations from the previous section and pre-defined wrappers
-for fitting a basic HMM are implemented.  In Section \ref{sec:matrices},
-we reproduce the results from Section \ref{fit:classes} but in a
-step-by-step fashion using only the matrices and vectors that were
-created in Section \ref{data:matrices} (no classes).  The step-by-step
-code in Section \ref{data:matrices} is a useful guide for those wishing
-to alter the number of states in the HMM or develop other adaptations.
-
-\subsection{Using \Rpackage{Biobase}-derived classes}
-\label{fit:classes}
-
-The objective of developing classes is to facilitate the process of
-fitting an HMM and to more effectively keep the assay- and meta-data
-bound in one object.  The following code uses classes to arrive at the
-same HMM predictions as above.  The starting point is the \R{} object
-\Robject{locusset} created as indicated in Section \ref{data:classes}.
-This object may be any one of the following classes:
-\Robject{SnpCallSet}, \Robject{SnpCopyNumberSet}, \Robject{oligoSnpSet}.
-Note that we could repeat the steps of parameterizing the HMM with
-transition- and emission-probabilities as described above, using the
-accessor methods \Robject{chromosome}, \Robject{position},
-\Robject{copyNumber}, and \Robject{calls} to access the meta- or
-assay-data.  We provide a convenience wrapper for fitting the Vanilla
-HMM, \Robject{vanilla}, that computes the transition probabilities and
-emission probabilities.  \emph{For \Robject{oligoSnpSet} objects, the
-  hidden states are assumed to be hemizygous deletion, normal, ROH, and
-  amplification (in this order). }
-
-<<vanillaSegments>>=
-(brks <- hmm(object=locusset, 
-	    states=c("hemDel", "normal", "ROH", "amplification"), 
-	    mu=c(1, 2, 2, 3), 
-	    probs=c(0.999, 0.7, 0.999, 0.7),
-	    takeLog=TRUE, normalIndex=2))
-@ 
-
-
-\noindent To obtain the matrix of predicted states for each locus, set
-\Robject{returnSegments} to \Robject{FALSE}:
-
-<<vanillaMatrix>>=
-fit2 <- hmm(object=locusset, 
-	    states=c("hemDel", "normal", "ROH", "amplification"), 
-	    mu=c(1, 2, 2, 3), 
-	    probs=c(0.999, 0.7, 0.999, 0.7),
-	    takeLog=TRUE,
-	    returnSegments=FALSE,
-	    normalIndex=2)
-@ 
-
-An example of how one may visualize the segmentation:
-
-<<vanillaPlot, fig=TRUE, width=8>>=
-show(plot(locusset[chromosome(locusset) == 1, ]))
-y <- fit2[chromosome(locusset) == 1, 1]
-y[y == 3] <- 2  ##So LOH line will not plot at 3
-y[y == 4] <- 3
-lines(position(locusset)[chromosome(locusset) == 1], y)
-rohRegion <- as.integer(as.matrix(brks[brks$state == "ROH", ][c("start", "end")]))
-abline(v=rohRegion, col="royalblue", lty=2)
-legend("topright", lty=c(1, 2), col=c("black", "royalblue"), legend=c("CN state", "ROH boundary"), bty="n")
-##print(abcd)
-@ 
-
-\subsubsection{Extracting intermediate objects}
-
-To extract intermediate objects that were created by the \Robject{hmm}
-wrapper, one may pass an environment to store the intermediate objects
-that are created prior to fitting the HMM.
-
-<<passingAnEnvironment>>=
-env <- new.env()
-fit2 <- hmm(object=locusset, 
-	    states=c("hemDel", "normal", "ROH", "amplification"), 
-	    mu=c(1, 2, 2, 3), 
-	    probs=c(0.999, 0.7, 0.9999, 0.7),
-	    takeLog=TRUE,
-	    returnSegments=FALSE, envir=env,
-	    normalIndex=2)
-ls(env)
-@ 
-
-\subsection{Step by step}
-\label{sec:matrices}
-We now go through the previous example step-by-step without using
-Biobase-derived classes or wrappers.  While we reproduce the results in
-the previous section, one may modify any of these step (for instance, to
-expand the of hidden states). The basic elements of the HMM are
-
-\begin{itemize}
-\item[1] hidden states
-\item[2] initial state probabilities
-\item[3] transition probabilities 
-\item[4] emission probabilities 
-\end{itemize}
-
-Items (1) and (4) depend critically on the software that was used for
-obtaining the locus-level estimates and the scientific goals of the
-analysis.
-
-\subsubsection{Hidden states}
-\label{sec:hiddenStates}
-
-In this section we discuss specification of the parameters for the
-hidden states.  We assume that conditional on the underlying state the
-copy number estimates and genotypes are independent \citep{Scharpf2008}.
-
-\paragraph{Copy number.}
-
-There are two important considerations when specifying the hidden copy
-number states. First, the scale of the locus-level estimates are
-dependent on the preprocessing software.  For instance, the BeadStudio
-software for the Illumina platform provides logR ratios, whereas
-\Rpackage{crlmm} provides an absolute estimate of copy number.
-Secondly, the data source is important.  Integer copy number states are
-not appropriate when mixtures of different cell populations are present.
-Mixtures of cell populations can be diagnosed and the admixture
-estimated by visual inspection.  For instance, a genomic region
-containing copy number estimates between 1 and 2 on the absolute scale
-with heterozygous genotype calls interspersed suggest a mixture of cell
-populations.  Therefore, plot your data.
-
-<<plotSnp, eval=FALSE>>=
-chr1 <- annotation[, "chromosome"] == 1
-plot(annotation[chr1, "position"], copynumber[chr1, 1], pch=".", cex=2, col="grey60")
-@ 
-
-If genotypes are available, color-code by the diallelic genotype call.
-<<addCalls,fig=TRUE,width=8, height=5, eval=FALSE>>=
-plot(annotation[chr1, "position"], copynumber[chr1, 1], pch=".", cex=2, col="grey60")
-het <- genotypes[, 1] == 2
-points(annotation[chr1 & !het, "position"], copynumber[chr1 & !het, 1], pch=".", cex=2, col="royalblue")
-points(annotation[chr1 & het, "position"], copynumber[chr1 & het, 1], pch=".", cex=2, col="red")
-abline(h=1:3)
-@ 
-
-While the \Robject{locusLevelData} is based on HapMap samples,
-alterations were simulated to have integer copy number
-states. Therefore, in the code chunk below we specify an integer copy
-number for the hidden states hemizygous deletion (hemDel: copy number <
-1), normal (copy number 2 and typical heterozygosity), region of
-homozygosity (ROH: copy number 2 and unusually low heterozygosity), and
-amplification (copy number >= 3).
-
-<<hiddenStates>>=
-states <- c("hemDel", "normal", "ROH", "amplification")
-copynumberStates <- c(1, 2, 2, 3)
-@
-
-\paragraph{Genotypes}
-
-In the absence of confidence scores for the genotype calls, the
-parameters needed for the hidden states for the genotypes is the
-probability that the true genotype is homozygous conditional on the
-underlying state.
-
-<<hiddenStateParameters-genotypes>>=
-probs <- c(0.999, 0.7, 0.999, 0.7)
-names(probs) <- states
-@ 
-
-\noindent One may expand the number of hidden states to include $>$ 3
-copies and homozygous deletions, perform simple gain/loss analyses using
-copy number only, or assess regions of homozygosity with genotypes only.
-
-\subsubsection{Initial state probabilities.}
-\label{sec:initial}
-
-The only requirement for specifying the initial state probabilities is
-that the probabilities sum to 1.  Here, we assume \emph{a priori} that
-the states are equally likely:
-
-<<initialProb>>=
-initialP <- (rep(1, length(states)))/length(states)
-@ 
-
-\subsubsection{Transition probabilities.}
-\label{sec:transition}
-
-The HMM uses locus-specific transition probabilities that are calculated
-as a function of the physical distance between loci. Specifically, the
-probability that the locus at position $t-1$ is \emph{not} informative
-for the locus at position $t$ is calculated as $1-e^{-d/C}$, where $C$
-is a constant specified by the user and $d$ is the physical distance
-between locus $t$ and locus $t-1$.  The default for $C$ is $1 \times
-10^8$ and can be specified by the \Robject{TAUP} argument to the
-function \Robject{transitionProbability} to acheive a desired amount of
-sensitivity and specificity.  Larger values of \Robject{TAUP} decreases
-the probability of transitioning to other states, and therefore provides
-a more smooth fit. In particular, \Robject{transitionProbability} (i)
-transforms the physical distance between adjacent loci to an estimate of
-the genomic distance and (ii) adds an 'arm' variable to the annotation
-matrix.
-
-<<transitionProbability>>=
+Several of the functions in the VanillaICE package are wrappers to
+facilitate the specification of these arguments. In the following code
+chunk, we assume the hidden states are hemizygous deletion (hemDel; copy
+number = 1, probability of a homozygous genotype call is 0.999), normal
+(copy number = 2, probability of a homozygous genotype calls is 0.7),
+regions of homozygosity (ROH: copy number = 1, probability of a
+homozygous genotype call is 0.999), and amplification (copy number
+greater than 2).
+  
+<<joint.states>>=
+joint.states <- c("hemDel", "normal", "ROH", "amplification")
+copynumber.states <- log2(c(1, 2, 2, 3))
+prob.genotype.is.homozygous <- c(0.999, 0.7, 0.999, 0.7)
+names(prob.genotype.is.homozygous) <- joint.states
+initialP <- (rep(1, length(joint.states)))/length(joint.states)
 tau <- transitionProbability(chromosome=chromosome,
 			     position=position,
 			     TAUP=1e8)
-table(tau[, "arm"])
-str(tau)
-@
-
-
-\noindent The values for \Robject{arm} indicate that the HMM will be fit
-independently to three separate segments of the supplied data,
-corresponding to arms 1p, 1q, and 2p.  By default this function uses the
-chromosome annotation provided by the \R{} package \Rpackage{SNPchip}
-for the centromere coordinates and will work only for chromosomes 1-22,
-X, and Y.
-
-\paragraph{Scaling the probability of transitioning to a different
-  state.}
-
-Often it may be desirable to allow different transition probabilities
-between normal to altered, altered to normal, and altered to altered
-states \citep{Korn2008}.  There are three arguments to the
-\Robject{viterbi} function that allows one to scale these transition
-probabilities:
-\begin{enumerate}
-\item \Robject{normal2altered}
-\item \Robject{altered2normal}
-\item \Robject{altered2altered}
-\end{enumerate}
-
-\noindent For instance, one may scale the transition probability for
-leaving the normal state to an altered state by 1/2 by specifying
-\Robject{normal2altered=1/2} in the \Robject{viterbi} function.  The
-default value is $1$ for each of these arguments.
-
-
-%TODO: Discuss how one may scale the transition probability matrix.
-
-% \section{Joint analysis of copy number and genotype}
-
-\subsubsection{Emission probabilities}
-
-\paragraph{Copy number}
-
-Skip to \emph{Genotypes} if copy number estimates are not available.
-
-One attractive feature of HMMs for smoothing copy number estimates as a
-function of the physical position is that uncertainty estimates can be
-incorporated into the emission probabilities.  While uncertainty
-estimates for copy number and genotype calls can improve both the
-sensitivity and specificity for detecting chromosomal alterations
-\citep{Scharpf2008}, these estimates are not always available. However,
-we can develop ad-hoc estimates of the uncertainty provided a reasonable
-number of samples are available.
-
-To obtain emission probabilities, we provide the matrix of copy number
-estimates and the location parameter for the hidden states (mu).  The
-object \Robject{mu} should have length equal to the number of hidden
-states.  If the hidden states are locus-specific, one may specify
-\Robject{mu} as a matrix with rows corresponding to loci and columns
-corresponding to states.
-%TODO: test SNP-speicific
-
-<<copynumberEmission>>=
-copynumberStates <- c(1, 2, 2, 3)
-emission.cn <- copynumberEmission(copynumber=copynumber,
-				  states=states,
-				  mu=copynumberStates,
-				  takeLog=TRUE,
-				  verbose=TRUE)
-##or
-copynumberStates <- matrix(c(1, 2, 2, 3), nrow(copynumber), length(states), byrow=TRUE)
-emission.cn2 <- copynumberEmission(copynumber=copynumber,
-				  states=states,
-				  mu=copynumberStates,
-				  takeLog=TRUE)
-stopifnot(identical(emission.cn, emission.cn2))
-dim(emission.cn)
+log.sds <- VanillaICE:::robustSds(copyNumber(locusset))
 @ 
 
-The third dimension of the array returned by
-\Robject{copynumberEmission} corresponds to the number of hidden states.
-The copy number and location parameter (mu) must be supplied on the same
-scale.  For instance, in the above code chuck the copy number estimates
-and mu are on the scale of copy number.  These estimates/parameters are
-both log-transformed within the body of the function by setting the
-argument \Robject{takeLog} to \Robject{TRUE}.  Again, the emission
-probabilities are calculated under the assumption that the estimates, or
-a suitable transformation, are approximately Normal. Hence, in the
-simulated data we check that the middle 90\% is approximately Gaussian.
+
+Conditional on the underlying hidden state, we assume that the copy
+number is independent of the genotype and we calculate the emission
+probabilities of each separately.
+<<emissionProbabilities>>=
+emission.cn <- copynumberEmission(copynumber=log2(copyNumber(locusset)),
+				  states=joint.states,
+				  mu=copynumber.states,
+				  sds=log.sds,
+				  takeLog=FALSE,
+				  verbose=TRUE)
+emission.cn[1:5, , ]
+emission.gt <- genotypeEmission(genotypes=calls(locusset),
+				states=joint.states,
+				probHomCall=prob.genotype.is.homozygous)
+@ 
+
+As the emission probabilities returned by the above functions are on the
+log scale, we simply add the emission probabilties to obtain the joint
+emission probabilities:
+<<jointEmission>>=
+emission.joint <- emission.gt + emission.cn
+@ 
+
+The sequence of states that maximizes the likelihood is obtained from
+the \Robject{viterbi} algorithm:
+<<fit1>>=
+fit1 <- viterbi(initialStateProbs=log(initialP),
+		emission=emission.joint,
+		tau=tau[, "transitionPr"],
+		arm=tau[, "arm"], 
+		normalIndex=2)
+(brks <- breaks(x=fit1, states=joint.states, position=tau[, "position"],
+		chromosome=tau[, "chromosome"],
+		sampleNames=colnames(fit1)))
+rohBoundary <- as.integer(as.matrix(brks[brks$state == "ROH", ][c("start", "end")]))
+@ 
+
+A plot of the locus-level data with predicted states overlaid:
+
+<<plotPredictions, fig=TRUE>>=
+require(SNPchip)
+gp <- plot(locusset[chromosome(locusset) == 1, ])
+cns <- fit1
+cns[cns == 3] <- 2
+##show copy-neutral LOH by vertical lines
+gp$abline.v <- TRUE ##plots vertical dashed lines
+gp$col.predict[3] <- "white"
+gp$hmm.ycoords <- c(0.7,0.9)
+show(gp)
+lines(position(locusset)[chromosome(locusset)==1], cns[chromosome(locusset) == 1, ])
+abline(v=rohBoundary, col="royalblue", lty=2)
+legend("topright", lty=c(2, 1), col=c("royalblue", "black"), legend=c("ROH boundary",
+							     "copy number"), bty="n")
+@ 
+
+\section{Additional options}
+
+\subsection{CRLMM confidence scores for the genotypes}
+
+The HMM in Section \ref{sec:simpleUsage} ignores the CRLMM confidence
+estimates that are available for the genotype calls. The following
+platforms are currently supported:
+
+<<supportedPlatforms>>=
+path <- system.file("extdata", package="VanillaICE")
+supportedPlatforms <- list.files(path)[grep("Conf", list.files(path))]
+as.character(sapply(supportedPlatforms, function(x) strsplit(x, "Conf")[[1]][[1]]))
+@ 
+
+The emission probabilities for the genotypes are computed by calling the
+\Robject{genotypeEmissionCrlmm} function.  In the simulated dataset used
+for this vignette, two heterozygous genotype calls were located in the
+middle of the ROH region.  
+
+<<hetIndices>>=
+hetIndices <- which(calls(locusset) == 2 & fit1 == 3)
+confs <- round(1-exp(-callsConfidence(locusset)[hetIndices]/1000), 5)
+@ 
+
+\noindent The confidence scores for these two SNPs are \Sexpr{confs[1]}
+and \Sexpr{confs[2]}.  Because these two heterozygous SNPs were
+genotyped with high confidence, the HMM will be less likely to call the
+region homozygous as evidenced by the higher emission probability for
+the normal state at the above loci:
+
+<<emissionCompare>>=
+emission.crlmm <- genotypeEmissionCrlmm(genotypes=calls(locusset),
+					conf=callsConfidence(locusset),
+					annotation=annotation(locusset),
+					pHetCalledHom=0.001,
+					pHetCalledHet=0.995,
+					pHomInNormal=0.8,
+					pHomInRoh=0.999)
+emission.crlmm[hetIndices, , ]
+@ 
+
+We recompute the HMM predictions as follows:
+
+<<updateEmission>>=
+joint.emission2 <- emission.cn
+joint.emission2[, , c("normal", "amplification")] <- joint.emission2[, , c("normal", "amplification")] + emission.crlmm[, , "norm"]
+joint.emission2[, , c("hemDel", "ROH")] <- joint.emission2[, , c("hemDel", "ROH")] + emission.crlmm[, ,"ROH"]
+fit2 <- viterbi(initialStateProbs=log(initialP),
+		emission=joint.emission2,
+		tau=tau[, "transitionPr"],
+		arm=tau[, "arm"], 
+		normalIndex=2)
+table(fit2)
+breaks(x=fit2, states=joint.states, position=tau[, "position"],
+       chromosome=tau[, "chromosome"],
+       sampleNames=colnames(fit1))
+@ 
+
+\noindent Note that after incorporating the confidence scores, the
+previously called ROH region is now called \emph{normal}.
+
+
+The following two sections describe how to fit the HMM to copy
+number-only or diallelic genotype-only data.
+
+\subsection{Copy number only}
+
+<<copyNumberOnly>>=
+states <- 0:5
+mus <- log2(c(0.05, 1:5))
+emission.cn <- copynumberEmission(copynumber=log2(copyNumber(locusset)),
+				  states=states,
+				  mu=mus,
+				  sds=log.sds,
+				  takeLog=FALSE,
+				  verbose=TRUE)
+initialP <- log(rep(1/length(states), length(states)))
+fit3 <- viterbi(initialStateProbs=initialP,
+		emission=emission.cn,
+		tau=tau[, "transitionPr"],
+		arm=tau[, "arm"], 
+		normalIndex=3)
+breaks(x=fit3, states=states, position=tau[, "position"],
+       chromosome=tau[, "chromosome"],
+       sampleNames=colnames(fit3))
+@ 
+
+For homozygous deletion, I just specified a small number. An empirical
+estimate of 'zero copy number' could be obtained from chromosome Y for
+females.
+
+
+\subsection{Genotypes only}
+
+Note the hemizygous deletions are called 'ROH' when copy number is
+ignored:
+<<genotypesOnly>>=
+states <- c("normal", "ROH")
+prob.genotype.is.homozygous <- c(0.7, 0.999)
+##without confidence scores
+emission.gt <- genotypeEmission(genotypes=calls(locusset),
+				states=states,
+				probHomCall=prob.genotype.is.homozygous)
+initialP <- log(rep(1/length(states), length(states)))
+fit4 <- viterbi(initialStateProbs=initialP,
+		emission=emission.gt,
+		tau=tau[, "transitionPr"],
+		arm=tau[, "arm"], 
+		normalIndex=1)
+breaks(x=fit4, states=states, position=tau[, "position"],
+       chromosome=tau[, "chromosome"],
+       sampleNames=colnames(fit4))
+@ 
+
+
+\subsection{Modeling assumptions}
+
+
+The emission probabilities are calculated under the assumption that the
+estimates, or a suitable transformation, are approximately
+Gaussian. Hence, in the simulated data we check that the middle 90\% is
+approximately Gaussian.
 
 <<qq, fig=TRUE>>=
 par(pty="s", las=1)
-qqnorm(log2(copynumber), cex=0.6)
-qqline(log2(copynumber))
+qqnorm(log2(copyNumber(locusset)), cex=0.6)
+qqline(log2(copyNumber(locusset)))
 abline(v=c(-1.645, 1.645))
 @ 
+
+\subsection{Copy number outliers}
 
 When true uncertainty estimates for the copy number are not available,
 copy number outliers are more likely to result in extreme emission
 probabilities than can influence the HMM segmentation. There are several
 approaches to reducing the influence of outliers on the HMM
-segmentation: (i) improved uncertainty estimates (preferred), (ii)
-increase \Robject{TAUP} for the transition probabilities, (iii)
-threshold the emission probabilities, and (iv) threshold extreme values
-for the copy number estimates.  For example, 
+segmentation: (i) improved uncertainty estimates (preferred-- see the
+\Rpackage{crlmm} package), (ii) increase \Robject{TAUP} for the
+transition probabilities, (iii) threshold the emission probabilities,
+and (iv) threshold extreme values for the copy number estimates.  For
+example of (iii), one could do
 
-<<epsilon>>=
-emission.cn[emission.cn[, , 2] < -10, , 2] <- -10
+<<epsilon, eval=FALSE>>=
+emission.cn[emission.cn[, , "normal"] < -10, , "normal"] <- -10
 @ 
 
 \Robject{copynumberEmission} estimates the scale parameter for the
@@ -600,7 +399,7 @@ the standard deviation using the median absolute deviation (MAD) on the
 log scale:
 
 <<robustSds>>=
-cn.sds <- VanillaICE:::robustSds(copynumber, takeLog=TRUE)
+cn.sds <- VanillaICE:::robustSds(copyNumber(locusset), takeLog=TRUE)
 dim(cn.sds)
 @ 
 
@@ -611,8 +410,8 @@ of noise.  In the following code chunk, we simulate a matrix of copy
 number for 200 samples and then compute a robust SNP-specific estimate
 of the standard deviation.
 
-<<multipleSamples, eval=FALSE>>=
-CT <- matrix(sample(copynumber, 100*200, replace=TRUE), 100, 200)
+<<multipleSamples, eval=TRUE>>=
+CT <- matrix(sample(copyNumber(locusset), 100*200, replace=TRUE), 100, 200)
 sds <- VanillaICE:::robustSds(CT, takeLog=TRUE)
 @ 
 
@@ -624,26 +423,7 @@ variance on a larger reference set, such as HapMap, using the same
 software, and then scale these estimates by a measure of the sample
 variance.
 
-\paragraph{Genotypes.}
-
-Proceed to \emph{Fitting the hidden Markov model} if genotypes estimates
-are not available.  If genotypes were estimated using the
-\Rpackage{CRLMM} or \Rpackage{oligo} and confidence estimates are
-available, see Section \ref{sec:ice}.
-
-As copy number estimates are typically very noisy, genotype calls can
-potentially provide increased power to identify small regions of
-hemizygous deletions.  In addition, the genotypes can be used to
-identify unusually long regions of homozygosity (ROH).  In our
-experience, sequences of 70 - 100 homozygous genotypes are not uncommon
-and likely represent normal regions of the genome with fairly uniform
-haplotype structure.  Emission probabilities for the Vanilla HMM are
-estimated from a Bernoulli with state-specific probabilities of a
-homozygous genotype call as specified in Section \ref{sec:hiddenStates}.
-
-<<genotypeEmission>>=
-emission.gt <- genotypeEmission(genotypes=genotypes, states=states, probHomCall=probs)
-@ 
+\subsection{Missing genotype calls}
 
 If any of the genotype calls are missing and missingness is not
 independent of the underlying hidden state, one may specify the
@@ -651,45 +431,21 @@ probability of a missing genotype calls for each hidden state
 (\texttt{probMissing}).  By default, the HMM will assume that missing
 genotype calls are independent of the underlying hidden state.  In
 particular, this assumption may not be reasonable for homozygous
-deletions.
+deletions.  Again, the emph{preferred} approach is to use the confidence
+scores provided by crlmm and the function
+\Robject{genotypeEmissionCrlmm}.
 
-Conditional on the hidden state, we assume that the copy number and
-genotype are independent.  Therefore, the emission probabilities for an
-HMM that models the copy number and genotypes jointly are computed by
-adding the emission probabilities (log-scale) for copy number and
-genotype:
-
-<<emission>>=
-emission <- emission.gt + emission.cn
-@ 
-
-If assay data for only genotypes or only copy number is available, the
-emission probability is simply the genotype or copy number emission
-probabilities, respectfully.
-
-\subsubsection{Viterbi algorithm.}
+\subsection{Transition probabilities}
 
 The sequence of states that maximizes the likelihood is obtained by the
 Viterbi algorithm.  Note that the argument \Robject{arm} to this
 function is a factor indicating the chromosomal arms -- the Viterbi
-algorithm is computed for independently for each chromosomal arm.
-
-
-<<fit>>=
-fit <- viterbi(initialStateProbs=log(initialP),
-	       emission=emission,
-	       tau=tau[, "transitionPr"],
-	       arm=tau[, "arm"], 
-	       normalIndex=2)
-table(fit)
-breaks(x=fit, states=states, position=tau[, "position"],
-       chromosome=tau[, "chromosome"],
-       sampleNames=colnames(copynumber))
-@ 
-
-As described previously, we may scale the probability of transitioning
-between states by setting the arguments \Robject{normal2altered},
-\Robject{altered2normal}, and \Robject{altered2altered}:
+algorithm is computed for independently for each chromosomal arm.  We
+may scale the probability of transitioning between states by setting the
+arguments \Robject{normal2altered}, \Robject{altered2normal}, and
+\Robject{altered2altered}.  For example, to facilitate comparisons to
+the Birdseye HMM \citep{Korn2008} one may pass the following arguments
+to \Robject{viterbi}:
 
 <<fit, eval=FALSE>>=
 fit <- viterbi(initialStateProbs=log(initialP),
@@ -697,251 +453,44 @@ fit <- viterbi(initialStateProbs=log(initialP),
 	       tau=tau[, "transitionPr"],
 	       arm=tau[, "arm"], 
 	       normalIndex=2,
-	       normal2altered=1/5,
-	       altered2normal=1/2,
-	       altered2altered=1/10)
+	       normal2altered=0.005,
+	       altered2normal=0.5,
+	       altered2altered=0.0025)
 @ 
 
-\section{Integretating Confidence Estimates (ICE): Extending
-  \Rpackage{CRLMM}}
-\label{sec:ice}
+%\subsection{\emph{Smoothness}}
 
-In this section, we illustrate how one may fit an HMM that incorporates
-confidence esimates of the SNP-level summaries for the genotype calls.
-To reduce the amount of repeated code, we will use the
-\Rpackage{Biobase}-derived classes to illustrate this approach.  We will
-instantiate an object of class \Robject{oligoSnpSet} as described in
-Section \ref{data:classes}, however we will also store the CRLMM
-confidence scores (represented as an integer).
+The \Robject{TAUP} argument to the function
+\Robject{transitionProbability} together with the above arguments to the
+\Robject{viterbi} function can be used to control the 'smoothness' of
+the resulting predictions.  In particular, higher values of
+\Robject{TAUP} encourages fewer jumps.
 
-<<oligoSnpSetCrlmm>>=
-##load("../../../tmp/VanillaICE/data/chromosome1.RData")
-##cnConf <- cnConfidence(chromosome1)
-copynumber <- locusLevelData[["copynumber"]]/100
-crlmmConfidence <- locusLevelData[["crlmmConfidence"]]
-genotypes <- locusLevelData[["genotypes"]]
-fd <- locusLevelData[["annotation"]]
-featuredata <- new("AnnotatedDataFrame", data=data.frame(fd), varMetadata=data.frame(labelDescription=colnames(fd)))
-(locusset2 <- new("oligoSnpSet",
-		  copyNumber=copynumber,
-		  calls=genotypes,
-		  callsConfidence=crlmmConfidence,
-		  phenoData=annotatedDataFrameFrom(copynumber, byrow=FALSE),
-		  featureData=featuredata,
-		  annotation="genomewidesnp6"))
-locusset2 <- locusset2[order(chromosome(locusset2), position(locusset2)), ]
-@ 
-
-The \Robject{annotation} slot must be specified so that the appropriate
-reference distribution will be loaded.  Supported Affymetrix platforms
-include genomewidesnp6, pd.mapping250k.nsp, and pd.mapping250k.sty. When
-fitting the ICE HMM using the \Robject{hmm} wrapper, we again assume
-that the hidden states are hemizygous deletion, normal, copy-neutral
-region of homozygosity, and amplification (in this order).  Fitting the
-ICE HMM using other states is possible, and one could follow the
-step-by-step approach outlined in Section \ref{sec:matrices}.
-
-<<ice>>=
-fit3 <- hmm(object=locusset2, 
-	    states=c("hemDel", "normal", "ROH", "amplification"), 
-	    mu=c(1, 2, 2, 3), 
-	    takeLog=TRUE,
-	    returnSegments=FALSE, ice=TRUE,
-	    normalIndex=2)
-brks <- hmm(object=locusset2, 
-	    states=c("hemDel", "normal", "ROH", "amplification"), 
-	    probs=c(0.05, 0.99, 0.7, 0.999),
-	    mu=c(1, 2, 2, 3), 
-	    takeLog=TRUE,
-	    ice=TRUE,
-	    normalIndex=2)
-@ 
-
-\noindent Here we plot one of the regions that has different breakpoints
-in the ICE and Vanilla HMMs.
-
-<<iceFig, fig=TRUE, width=8>>=
-i <- which(position(locusset2) >= 45*1e6 & position(locusset2) <= 55*1e6 & chromosome(locusset2) == 1)
-gp <- plot(locusset2[i, ]) 
-gp$pch <- 21; gp$col <- "black"; gp$cex <- 0.9; gp$ylim <- c(0.9, 6)
-gp$add.cytoband <- FALSE
-show(gp)
-fit3[fit3 == 3] <- 2  ##So LOH line will not plot at 3
-fit3[fit3 == 4] <- 3
-lines(position(locusset2)[i], fit3[i, 1])
-rohRegion <- as.numeric(as.matrix(brks[brks$state == "ROH", ][c("start", "end")]))
-abline(v=rohRegion, col="royalblue", lty=2)
-legend("topright", lty=c(1, 2), col=c("black", "royalblue"), legend=c("CN state", "ROH boundary"), bty="o", bg="white")
-@ 
-
-%TODO: Vignette for generating chromosome 21 data.
-%TODO: Reference distribution for pd.mapping50k.nsp
-%TODO: Reference distribution for pd.mapping50k.sty
-%TODO: merging pd.mapping50k.sty and pd.mapping50k.sty
-
-%\section{Affymetrix 6.0 example}
+%\section{Appendix}
 %
-%Placeholder for an example using Affy 6.0 data (INCOMPLETE).
+%\subsection{Confidence scores for genotype calls.}
 %
-%<<crlmmResults>>=
-%require(SNPchip) 
-%data(crlmmResults, package="VanillaICE")
-%crlmmResults[["crlmmVersion"]]
-%@ 
+%The \Rfunction{CRLMM} (in the R package \Rpackage{oligo}) provides
+%confidence scores ($\pgte$) of the genotype estimates ($\gte$).  From
+%269 HapMap samples assayed on the Affymetrix 50k Xba and Hind chips, we
+%have a gold standard of the true genotype defined by the consensus of
+%the HapMap centers.  We use kernal-based density estimates to obtain
 %
-%<<reformat>>=
-%genotypes <- crlmmResults[["genotypes"]]
-%confidence <- crlmmResults[["confidence"]]
-%logsds <- crlmmResults[["logsds"]]/100
-%copynumber <- crlmmResults[["copynumber"]]/100
-%position <- crlmmResults[["position"]]
-%dns <- list(crlmmResults[["nms"]], crlmmResults[["sns"]])
-%copynumber[copynumber < 0.05] <- 0.05
-%copynumber[copynumber > 6] <- 6
-%copynumber[is.na(copynumber)] <- 2
-%dimnames(confidence) <- dimnames(logsds) <- dimnames(copynumber) <- dimnames(genotypes) <- dimnames(confidence) <- dns
-%@ 
+%{\scriptsize
+%\begin{eqnarray}
+%\label{ingo2}
+%f\left\{\ \pgtehom\ |\ \gtehom,\thom\ \right\},\
+%f\left\{\ \pgtehom\ |\ \gtehom,\thet\ \right\},\
+%f\left\{\ \pgtehet\ |\ \gtehet,\thom\ \right\},\ \mbox{~ and~}
+%f\left\{\ \pgtehet\ |\ \gtehet,\thet\ \right\}
+%\end{eqnarray}
+%}
 %
-%<<g6set>>=
-%fD <- new("AnnotatedDataFrame", 
-%	  data=data.frame(cbind(chromosome=21, position=position), row.names=rownames(copynumber)), 
-%	  varMetadata=data.frame(labelDescription=c("chromosome", "position")))
-%snpset <- new("oligoSnpSet", 
-%	      copyNumber=log2(copynumber), 
-%	      cnConfidence=1/logsds,
-%	      calls=genotypes, 
-%	      callsConfidence=confidence, featureData=fD,
-%	      phenoData=annotatedDataFrameFrom(copynumber, byrow=FALSE),
-%	      annotation="genomewidesnp6")
-%snpset <- snpset[order(chromosome(snpset), position(snpset)), ]
-%fit4 <- hmm(object=snpset, 
-%	    states=c("hemDel", "normal", "ROH", "amplification"), 
-%	    probs=c(0.01, 0.99, 0.9, 0.999),
-%	    mu=c(0.05, 1, 1, 1.58), 
-%	    takeLog=FALSE,
-%	    returnSegments=FALSE, ice=TRUE)
-%env <- new.env()
-%brks <- hmm(object=snpset, 
-%	    probs=c(0.01, 0.99, 0.9, 0.999),	    
-%	    states=c("hemDel", "normal", "ROH", "amplification"), 
-%	    mu=c(0.05, 1, 1, 1.58), 
-%	    takeLog=FALSE,
-%	    ice=TRUE, 
-%	    envir=env)
-%@ 
-
-%<<>>=
-%par(las=1)
-%CT <- 2^copyNumber(snpset)
-%HET <- calls(snpset)[, 1] == 2
-%plot(position(snpset), CT[, 1], log="y", pch=".", type="n", ylab="copy number", xaxt="n", ylim=c(0.5, 5))
-%points(position(snpset)[HET], CT[HET, 1], col="royalblue", pch=".")
-%points(position(snpset)[!HET], CT[!HET, 1], col="red", pch=".")
-%fit4[fit4 == 3] <- 2  ##So LOH line will not plot at 3
-%fit4[fit4 == 4] <- 3
-%lines(position(snpset), fit4[, 1])
-%rohRegion <- as.integer(as.matrix(brks[brks$state == "ROH", c("start", "end")]))
-%abline(v=rohRegion, col="royalblue", lty=2)
-%legend("topright", lty=c(1, 2), col=c("black", "royalblue"), legend=c("CN state", "ROH boundary"), bty="n")
-%@ 
-
-\section{Appendix}
-
-\subsection{Confidence scores for genotype calls.}
-
-We suggest using the \Rfunction{CRLMM} algorithm \cite{Carvalho2007} for
-genotype calls.  \Rfunction{CRLMM} (in the R package \Rpackage{oligo})
-provides confidence scores ($\pgte$) of the genotype estimates ($\gte$).
-From 269 HapMap samples assayed on the Affymetrix 50k Xba and Hind
-chips, we have a gold standard of the true genotype defined by the
-consensus of the HapMap centers.  We use kernal-based density estimates
-to obtain
-
-{\scriptsize
-\begin{eqnarray}
-\label{ingo2}
-f\left\{\ \pgtehom\ |\ \gtehom,\thom\ \right\},\
-f\left\{\ \pgtehom\ |\ \gtehom,\thet\ \right\},\
-f\left\{\ \pgtehet\ |\ \gtehet,\thom\ \right\},\ \mbox{~ and~}
-f\left\{\ \pgtehet\ |\ \gtehet,\thet\ \right\}
-\end{eqnarray}
-}
-
-\noindent separately for the Xba and Hind 50k chips. The first term in
-(\ref{ingo2}), for example, denotes the density of the scores when the
-genotype is correctly called homozygous ($\gtehom$) and the true
-genotype is homozygous ($\thom$). See \cite{Scharpf2008} for a more
-complete description of the methods. 
-
-%\paragraph{Confidence scores for copy number estimates}
-%
-%To illustrate how standard errors of the copy number estimate could be
-%integrated in the HMM, the R object \Robject{chromosome1} contains
-%standard errors simulated from a shifted Gamma: $\mbox{Gamma}(1, 2) +
-%0.3$, where 1 is the shape parameter and 2 is the rate parameter.  To
-%ascertain the effect of qualitatively high confidence scores on the
-%ICE HMM, we scaled a robust estimate of the copy number standard
-%deviation by $\frac{1}{2}$. Similarly, to simulate less precise $\cne$
-%we scaled $\epsilon$ by 2.  For more detailed information about how
-%the data in the \Robject{chromosome1} was generated, see the
-%documentation for this object in the R package \ice.
-
-
-<<vanillaPlot2, fig=TRUE, width=8, height=5, eval=FALSE>>=
-gp <- plot(snpset[chromosome(snpset) == 1, ])
-lines(position(snpset)[chromosome(snpset)==1], viterbiResults[chromosome(snpset) == 1, ])
-##show copy-neutral LOH by vertical lines
-gp$abline.v <- TRUE ##plots vertical dashed lines
-allParameters <- unlist(snpPar(gp))
-gp$col.predict[3] <- "white"
-gp$hmm.ycoords <- c(0.7,0.9)
-show(gp)
-@ 
-
-\subsection{More examples}
-%
-\subsubsection{Copy number only: assessing gain/loss}
-
-The method \Robject{hmm} has a different set of underlying hidden states
-depending on whether copy number estimates, genotype calls, or both are
-available.  When only copy number estimates are available, the hidden
-states (for autosomes) are hemizygous or homozygous deletion (one or
-fewer copies), normal (two copies), and amplification (three or more
-copies).  The corresponding Biobase-derived class is {SnpCopyNumberSet}.
-
-\subsubsection{Genotypes only: assessing ROH}
-
-When only genotype calls are available, the hidden states are loss and
-retention (ret) of heterozygosity.  We define \textit{loss} to be a
-sequence of homozygous SNPs longer than what we would expect to observe
-by chance. Note that many long stretches of homozygosity may occur as a
-result of a population sharing a common underlying haplotype structure;
-loss predictions from an HMM fit to an indvidual do not necessarily
-reflect the 'loss' of an allele in that individual.  The corresponding
-Biobase-derived class is {SnpCallSet}.
-
-
-\subsection{Expanding the number of hidden states}
-
-Section is incomplete.  For homozygous deletion, we specify a small
-value (less than 1) but greater than zero to account for background
-fluorescence.
-
-<<hiddenStates, eval=FALSE>>=
-states <- c("homozygousDeletion", "hemizygousDeletion",
-	    "normal", "LOH", "3copyAmp", "4copyAmp")
-mu <- c(0.05, 1, 2, 2, 3, 4)
-probs <- c(0.99, 0.999, 0.99, 0.999, 0.99, 0.99)
-probMissing <- c(0.95, rep(0.5, 5))
-@ 
-
-\subsection{Classes for segmented data}
-
-TODO
-
-\subsection{Plotting methods for segmented data classes}
-
-TODO
+%\noindent separately for the Xba and Hind 50k chips. The first term in
+%(\ref{ingo2}), for example, denotes the density of the scores when the
+%genotype is correctly called homozygous ($\gtehom$) and the true
+%genotype is homozygous ($\thom$). See \cite{Scharpf2008} for a more
+%complete description of the methods. 
 
 \section{Session Information}
 

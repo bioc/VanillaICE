@@ -57,4 +57,13 @@
 6/25/2009 committed version 1.7.4
 * changed imports field require oligoClasses >= 1.6.0
 
+7/07/2009 committed version 1.7.5
+
+* rewrote vignette
+
+* added check that computed transition probabilities sum to one in the
+  viterbi function
+
+
+
 

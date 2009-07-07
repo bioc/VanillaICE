@@ -97,7 +97,9 @@ genotypeEmission <- function(genotypes, conf, states, probHomCall,
 		if(!missing(probMissing)) tmp[tmp == 4 | is.na(tmp)] <- probMissing[s]
 		emission[, , s] <- tmp
 	}
-	dimnames(emission)[[3]] <- states
+	dimnames(emission) <- list(rownames(genotypes),
+				   colnames(genotypes),
+				   states)
 	logemit <- log(emission)
 	return(logemit)
 }
@@ -105,7 +107,7 @@ genotypeEmission <- function(genotypes, conf, states, probHomCall,
 genotypeEmissionCrlmm <- function(genotypes, conf,
 				  pHetCalledHom=0.001,
 				  pHetCalledHet=0.995,
-				  pHomInNormal=0.99,
+				  pHomInNormal=0.8,
 				  pHomInRoh=0.999,  ##Pr(AA or BB | region of homozygosity)
 				  annotation){
 	if(missing(annotation)) stop("must specify annotation")
@@ -168,11 +170,14 @@ genotypeEmissionCrlmm <- function(genotypes, conf,
 	fLoh[het] <- (1-pHomInRoh) * pTruthIsRoh[het]
 
 	f <- array(NA, dim=c(nrow(genotypes), ncol(genotypes), 2))
-	dimnames(f)[[3]] <- c("norm", "ROH")
+	dimnames(f) <- list(rownames(genotypes),
+			    colnames(genotypes),
+			    c("norm", "ROH"))	
 	f[, , "norm"] <- matrix(fNormal, nrow(genotypes), ncol(genotypes))
 	f[, , "ROH"] <- matrix(fLoh, nrow(genotypes), ncol(genotypes))
 	f[f  == 0] <- min(f[f > 0], na.rm=TRUE)
 	f <- log(f)
+
 	return(f)	
 }
 
@@ -186,14 +191,16 @@ copynumberEmission <- function(copynumber,
 	if(missing(takeLog)) stop("must specify whether to take the log2 of the copy number matrix")
 	fn <- rownames(copynumber)
 	S <- length(states)
-	if(any(copynumber == 0, na.rm=TRUE)){
-		message("0 copy number estimates are replaced with 0.05 to avoid nan's when taking the log")
-		copynumber[copynumber == 0] <- 0.05
+	if(takeLog){
+		if(any(copynumber == 0, na.rm=TRUE)){
+			message("0 copy number estimates are replaced with 0.05 to avoid nan's when taking the log")
+			copynumber[copynumber == 0] <- 0.05
+		}
 	}
 	if(any(rowSums(is.na(copynumber)) == ncol(copynumber))){
 		stop("Some rows have all missing values. Exclude these before continuing.")
 	}
-	if(any(colSums(is.na(copynumber))) == nrow(copynumber)){
+	if(any(colSums(is.na(copynumber)) == nrow(copynumber))){
 		stop("Some samples have all missing values. Exclude these samples before continuing.")
 	}
 	if(!missing(sds)){
@@ -226,6 +233,9 @@ copynumberEmission <- function(copynumber,
 		##dimnames(emission.cn) <- list(rownames(copynumber), colnames(copynumber), states)
 		##if(verbose) message("returning the emission probability on the log scale")
 	}
+	dimnames(emission.cn) <- list(rownames(copynumber),
+				      colnames(copynumber),
+				      states)
 	return(log(emission.cn))
 }
 
@@ -270,6 +280,9 @@ viterbi <- function(initialStateProbs,
 		    altered2altered=1){
 	if(missing(normalIndex)) stop("Must specify integer for normalIndex")
 	if(!is.numeric(normalIndex)) stop("normalIndex should be numeric")
+	if(normal2altered <= 0) stop("normal2altered must be > 0")
+	if(altered2normal <= 0) stop("altered2normal must be > 0")
+	if(altered2altered <= 0) stop("altered2altered must be > 0")	
 	if(returnLikelihood){
 		if(missing(normalIndex)) stop("Must specify index for 'normal' state")
 	}
@@ -288,23 +301,23 @@ viterbi <- function(initialStateProbs,
 		} else stop("initial state probabilities should be a probability or a log probability")
 	}
 	if(any(is.na(emission))){
-		##if(verbose) message("Converting missing values in the emission matrix to 0")
+		message("Converting missing values in the emission matrix to 0")
 		emission[is.na(emission)] <- 0
 	}
 	if(any(is.nan(emission))){
-		if(verbose) message("some of the log emission probabilities are NaN.  Replacing with 0") 		
+		message("some of the log emission probabilities are NaN.  Replacing with 0") 		
 		emission[is.nan(emission)] <- 0
 	}
 	if(any(is.infinite(emission))){
-		if(verbose) message("some of the log emission probabilities are infinite.  Replacing with 0's") 		
+		message("some of the log emission probabilities are infinite.  Replacing with 0's") 		
 		emission[is.infinite(emission)] <- 0
 	}
 	if(missing(arm)){
-		if(verbose) message("chromosome arm not specified...HMM is not fit separately to each chromosomal arm")
+		message("chromosome arm not specified...HMM is not fit separately to each chromosomal arm")
 		arm <- rep(as.integer(0), T)
 	}
 	if(length(arm) != T) {
-		if(verbose) message("arm not the right length.  assuming all values on same chromosomal arm")
+		message("arm not the right length.  assuming all values on same chromosomal arm")
 		arm <- rep(as.integer(0), T)
 	}
 	if(missing(tau)){
@@ -315,18 +328,21 @@ viterbi <- function(initialStateProbs,
 	lik <- array(NA, dim=c(T, ncol(results), S))
 	for(j in 1:ncol(results)){
 		result <- rep(as.integer(0), T)		
-		tmp <- list(as.matrix(as.double(as.matrix(emission[, j, ]))),
-			    as.double(as.matrix(initialStateProbs)),
-			    as.matrix(as.double(tau)),
-			    as.integer(arm),
-			    as.integer(S),
-			    as.integer(T),
-			    result,
-			    as.matrix(as.double(delta)),
-			    normal2altered,
-			    altered2normal,
-			    altered2altered,
-			    normalIndex)
+		tmp <- list(as.matrix(as.double(as.matrix(emission[, j, ]))),##beta
+			    as.double(as.matrix(initialStateProbs)),##initialP
+			    as.matrix(as.double(tau)),##tau
+			    as.integer(arm),##arm
+			    as.integer(S),##number of states
+			    as.integer(T),##number of loci
+			    result,##placeholder for results
+			    as.matrix(as.double(delta)),##delta
+			    normal2altered,##c1
+			    altered2normal,##c2
+			    altered2altered,##c3
+			    as.integer(normalIndex),
+			    as.double(rep(0, S^2)))##normalState
+		##inputs <- tmp
+		##.GlobalEnv[["inputs"]] <- inputs
 		tmp2 <- .C("viterbi",		
 			   tmp[[1]],
 			   tmp[[2]],
@@ -339,7 +355,14 @@ viterbi <- function(initialStateProbs,
 			   tmp[[9]],
 			   tmp[[10]],
 			   tmp[[11]],
-			   tmp[[12]])
+			   tmp[[12]],
+			   tmp[[13]])  ##can verify that the transition prob. matrix is correct (for last snp)
+		##check transition probs.
+		M <- matrix(tmp2[[13]], S, S)
+		if(!all(is.finite(M))) stop("Infinite values in transition prob. matrix")
+		if(any(rowSums(exp(M)) != 1)){
+			warning("Rows of the transition probability matrix do not sum to 1")
+		}
 		results[, j] <- tmp2[[7]]
 		lik[, j, ] <- matrix(tmp2[[8]], nrow(results))
 	}
@@ -361,6 +384,10 @@ viterbi <- function(initialStateProbs,
 		}
 		results <- list(results, lrdiff)
 	}
+	if(!is.null(rownames(emission)))
+		rownames(results) <- rownames(emission)
+	if(!is.null(colnames(emission)))	
+		colnames(results) <- colnames(emission)
 	return(results)		
 }
 

@@ -48,10 +48,11 @@ static void getMatrixIndexAndMaxVal(const double *pMat, const int nCols, double 
  * \param pDelta - output vector of doubles
  * \param pArm - character string
  */
-void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, int *S, int *T, int *pQHat, double *pDelta, double *c1, double*c2, double *c3, int *normalState)
+void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, int *S, int *T, int *pQHat, double *pDelta, double *c1, double*c2, double *c3, int *normalState, double *pAA)
 {
   /**  RS double *pDelta, *pAA, *pDeltaTempSum, Pstar; */
-  double *pAA, *pDeltaTempSum, Pstar, *tp;
+  /** double *pAA, *pDeltaTempSum, Pstar, *tp; */
+  double *pDeltaTempSum, Pstar, *tp;
   int i,j,t;
   int nRows, nCols, *pPsi;
   int NS;
@@ -65,7 +66,7 @@ void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, int *S, i
       pDelta = (double *)R_alloc(sizeof(double), nRows * nCols); */
   pPsi = (int *)R_alloc(sizeof(int), nRows * nCols);
   /** transition probability matrix */
-  pAA = (double *)R_alloc(sizeof(double), nCols * nCols);
+  /** pAA = (double *)R_alloc(sizeof(double), nCols * nCols); */
   pDeltaTempSum = (double *)R_alloc(sizeof(double), nCols);
 
   /** what is this notation? *(pDelta + nrows*j) C uses vectors and
@@ -89,7 +90,6 @@ void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, int *S, i
 	    }
 	  continue;
 	}
-
       for (i=0; i<nCols; ++i)
 	{
 	  for (j=0; j<nCols; ++j)
@@ -101,7 +101,8 @@ void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, int *S, i
 		{
 		  if(i == j)  /* probability of staying in the normal state */
 		    {
-		      *(pAA + offset) = 1 - (1-tau[t-1]) * (nCols - 1) * *c1;
+		      *(pAA + offset) = 1 - ((1-tau[t-1]) * (nCols - 1) * *c1);
+		      /* printf(i, j); */
 		      /* probability of staying in the same state */
 		      /* *(pAA + offset) = tau[t-1]; */
 		    }
@@ -131,7 +132,8 @@ void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, int *S, i
 		    }
 		}
 	      /* *(pAA + offset) = log ( *(pAA + offset) * *(tau_scale + offset) );*/
-	      *(pAA + offset) = log ( *(pAA + offset) );
+	      /* why is there a log here? */
+	      *(pAA + offset) = log ( *(pAA + offset) ); 
 	    }
 	}
       for (j=0; j<nCols; ++j)
