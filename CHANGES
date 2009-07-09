@@ -64,6 +64,15 @@
 * added check that computed transition probabilities sum to one in the
   viterbi function
 
+7/08/2009 committed version 1.7.6
+
+* initialStateProbs argument for viterbi can be missing
+
+* -Inf values in emission probs replaced with small negative value
+   (-50) instead of zero
+
+*  use all.equal to check sums of the transition prob. matrix
+
 
 
 

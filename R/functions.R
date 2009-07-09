@@ -292,6 +292,9 @@ viterbi <- function(initialStateProbs,
 	results <- matrix(NA, nrow(emission), ncol(emission))
 	S <- dim(emission)[3]
 	T <- nrow(emission)
+	if(missing(initialStateProbs)){
+		inititialStateProbes <- log(rep(1/S, S))
+	}
 	if(length(initialStateProbs) != S){
 		stop("initialStateProbs (the initial state probabilities, should be a numeric vector of length S, where S is the number of hidden states")
 	}
@@ -309,8 +312,8 @@ viterbi <- function(initialStateProbs,
 		emission[is.nan(emission)] <- 0
 	}
 	if(any(is.infinite(emission))){
-		message("some of the log emission probabilities are infinite.  Replacing with 0's") 		
-		emission[is.infinite(emission)] <- 0
+		message("some of the log emission probabilities are infinite.  Replacing with some small value (-50)") 		
+		emission[is.infinite(emission)] <- -50
 	}
 	if(missing(arm)){
 		message("chromosome arm not specified...HMM is not fit separately to each chromosomal arm")
@@ -360,7 +363,7 @@ viterbi <- function(initialStateProbs,
 		##check transition probs.
 		M <- matrix(tmp2[[13]], S, S)
 		if(!all(is.finite(M))) stop("Infinite values in transition prob. matrix")
-		if(any(rowSums(exp(M)) != 1)){
+		if(!all.equal(rowSums(exp(M)), rep(1, S))){
 			warning("Rows of the transition probability matrix do not sum to 1")
 		}
 		results[, j] <- tmp2[[7]]
