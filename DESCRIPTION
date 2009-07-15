@@ -14,4 +14,4 @@ Collate:  AllGenerics.R
 	  functions.R
 	  utils.R
 	  zzz.R
-biocViews: Bioinformatics, DNACopyNumber, SNPsAndGeneticVariability, Visualization
+biocViews: Bioinformatics, CopyNumberVariants, SNP, GeneticVariability, Visualization
