@@ -1,15 +1,14 @@
-breaks <- function(x, states, position, chromosome, sampleNames, chromosomeAnnotation=NULL, verbose=FALSE){
+breaks <- function(x, states, position, chromosome, chromosomeAnnotation=NULL, verbose=FALSE){
 	x <- as.matrix(x)
 	if(missing(states)) stop("must specify labels for the hidden states")
 	if(missing(position)) stop("must provide physical position of loci")
 	if(missing(chromosome)) stop("must indicate chromosome")
-	if(missing(sampleNames)) stop("must provide sample labels")
 	results <- vector("list", ncol(x))
 	for(j in 1:ncol(x)){
 		results[[j]] <- findBreaks(x[, j], states=states,
 					   position=position,
 					   chromosome=chromosome,
-					   sample=sampleNames[j],
+					   sample=colnames(x)[j],
 					   chromosomeAnnotation=chromosomeAnnotation,
 					   verbose=verbose)
 	}
@@ -264,10 +263,10 @@ robustSds <- function(x, takeLog=FALSE, ...){
 	return(sds)
 }
 
-viterbi <- function(initialStateProbs,
-		    emission,
+viterbi <- function(emission,
 		    tau,
 		    arm,
+		    initialStateProbs,		    
 		    verbose=FALSE,
 		    chromosome,
 		    position,
@@ -293,7 +292,7 @@ viterbi <- function(initialStateProbs,
 	S <- dim(emission)[3]
 	T <- nrow(emission)
 	if(missing(initialStateProbs)){
-		inititialStateProbes <- log(rep(1/S, S))
+		initialStateProbs <- log(rep(1/S, S))
 	}
 	if(length(initialStateProbs) != S){
 		stop("initialStateProbs (the initial state probabilities, should be a numeric vector of length S, where S is the number of hidden states")
@@ -643,7 +642,6 @@ hmm <- function(object,
 					 states=states,
 					 position=position(object),
 					 chromosome=chromosome(object),	
-				 sample=sampleNames(object),
 					 verbose=verbose)
 	}
 	return(viterbiResults)

@@ -74,5 +74,13 @@
 *  use all.equal to check sums of the transition prob. matrix
 
 
+7/08/2009 committed version 1.7.7
 
+* initialStateProbs argument for viterbi can be missing
+
+* removed sampleNames argument from breaks()
+
+7/16/2009 committed version 1.7.8
+
+* fixed documentation problems, updated vignette
 

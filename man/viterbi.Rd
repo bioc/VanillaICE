@@ -9,16 +9,17 @@
 
 }
 \usage{
-viterbi(initialStateProbs, emission, tau, arm, verbose =
+viterbi(emission, tau, arm, initialStateProbs, verbose =
 FALSE, chromosome, position, sampleNames, locusNames, normalIndex,
 returnLikelihood = FALSE, normal2altered=1, altered2normal=1, altered2altered=1)
 }
 
 \arguments{
-    \item{initialStateProbs}{initial state probabilities (log scale)}
-    \item{emission}{matrix of log emission probabilities (one sample is a matrix)}
+    \item{emission}{matrix of log emission probabilities (one sample is
+      a matrix)}
     \item{tau}{transition probabilities (original scale)}
-    \item{arm}{numeric or character string indicating chromosomal arm}  
+    \item{arm}{numeric or character string indicating chromosomal arm}
+    \item{initialStateProbs}{initial state probabilities (log scale)}    
     \item{verbose}{Logical}
     \item{chromosome}{chromosome}
     \item{position}{physical position}

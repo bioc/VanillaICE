@@ -6,7 +6,7 @@
   the confidence scores for the genotype calls. 
 }
 \usage{
-genotypeEmissionCrlmm(genotypes, conf, pHetCalledHom = 0.001, pHetCalledHet = 0.995, pHomInNormal = 0.99, pHomInRoh = 0.999, annotation)
+genotypeEmissionCrlmm(genotypes, conf, pHetCalledHom = 0.001, pHetCalledHet = 0.995, pHomInNormal = 0.8, pHomInRoh = 0.999, annotation)
 }
 \arguments{
   \item{genotypes}{Matrix of genotypes}

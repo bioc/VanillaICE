@@ -6,7 +6,7 @@ Identify breakpoints: physical position of breaks, number of SNPs in
 region, and the called hidden state.
 }
 \usage{
-breaks(x, states, position, chromosome, sampleNames, chromosomeAnnotation = NULL, verbose = FALSE)
+breaks(x, states, position, chromosome, chromosomeAnnotation = NULL, verbose = FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -15,7 +15,6 @@ breaks(x, states, position, chromosome, sampleNames, chromosomeAnnotation = NULL
   \item{states}{Labels for the hidden states}
   \item{position}{Physical position of loci}
   \item{chromosome}{integer indicating chromosome (23=X)}
-  \item{sampleNames}{ sample labels}
   \item{chromosomeAnnotation}{chromosome annotation. see details}
   \item{verbose}{verbose output}
 }
@@ -39,8 +38,7 @@ breaks(x, states, position, chromosome, sampleNames, chromosomeAnnotation = NULL
 \author{R. Scharpf}
 \examples{
 x <- matrix(rep(c(1, 2, 3, 1, 2), each=50), ncol=1)
-breaks(x, states=c("0", "1", "2"), position=1:nrow(x), chromosome=1,
-       sampleNames="A")
+breaks(x, states=c("0", "1", "2"), position=1:nrow(x), chromosome=1)
 }
 \keyword{manip}
 

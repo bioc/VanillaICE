@@ -213,8 +213,7 @@ fit1 <- viterbi(initialStateProbs=log(initialP),
 		arm=tau[, "arm"], 
 		normalIndex=2)
 (brks <- breaks(x=fit1, states=joint.states, position=tau[, "position"],
-		chromosome=tau[, "chromosome"],
-		sampleNames=colnames(fit1)))
+		chromosome=tau[, "chromosome"]))
 rohBoundary <- as.integer(as.matrix(brks[brks$state == "ROH", ][c("start", "end")]))
 @ 
 
@@ -290,8 +289,7 @@ fit2 <- viterbi(initialStateProbs=log(initialP),
 		normalIndex=2)
 table(fit2)
 breaks(x=fit2, states=joint.states, position=tau[, "position"],
-       chromosome=tau[, "chromosome"],
-       sampleNames=colnames(fit1))
+       chromosome=tau[, "chromosome"])
 @ 
 
 \noindent Note that after incorporating the confidence scores, the
@@ -319,8 +317,7 @@ fit3 <- viterbi(initialStateProbs=initialP,
 		arm=tau[, "arm"], 
 		normalIndex=3)
 breaks(x=fit3, states=states, position=tau[, "position"],
-       chromosome=tau[, "chromosome"],
-       sampleNames=colnames(fit3))
+       chromosome=tau[, "chromosome"])
 @ 
 
 For homozygous deletion, I just specified a small number. An empirical
@@ -346,8 +343,7 @@ fit4 <- viterbi(initialStateProbs=initialP,
 		arm=tau[, "arm"], 
 		normalIndex=1)
 breaks(x=fit4, states=states, position=tau[, "position"],
-       chromosome=tau[, "chromosome"],
-       sampleNames=colnames(fit4))
+       chromosome=tau[, "chromosome"])
 @ 
 
 
