@@ -84,3 +84,7 @@
 
 * fixed documentation problems, updated vignette
 
+8/27/2009 ----- version 1.7.9
+
+* check that emission probabilities are an array in the viterbi function
+* add column for sample in 'breaks' function

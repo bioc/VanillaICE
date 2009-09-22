@@ -4,6 +4,7 @@ breaks <- function(x, states, position, chromosome, chromosomeAnnotation=NULL, v
 	if(missing(position)) stop("must provide physical position of loci")
 	if(missing(chromosome)) stop("must indicate chromosome")
 	results <- vector("list", ncol(x))
+	sns <- colnames(x)
 	for(j in 1:ncol(x)){
 		results[[j]] <- findBreaks(x[, j], states=states,
 					   position=position,
@@ -11,12 +12,17 @@ breaks <- function(x, states, position, chromosome, chromosomeAnnotation=NULL, v
 					   sample=colnames(x)[j],
 					   chromosomeAnnotation=chromosomeAnnotation,
 					   verbose=verbose)
+		results[[j]]$sample <- sns[j]
 	}
 	if(length(results) == 1){
 		results <- results[[1]]
-	} else  results <- do.call("rbind", results)
+	} else  {
+		results <- do.call("rbind", results)
+	}
 	return(results)
 }
+
+
 findBreaks <- function(x, states, position, chromosome, sample, chromosomeAnnotation=NULL, verbose=FALSE){
 	if(is.null(chromosomeAnnotation)){
 		data(chromosomeAnnotation, package="SNPchip", envir=environment())
@@ -263,6 +269,9 @@ robustSds <- function(x, takeLog=FALSE, ...){
 	return(sds)
 }
 
+
+					
+
 viterbi <- function(emission,
 		    tau,
 		    arm,
@@ -277,6 +286,7 @@ viterbi <- function(emission,
 		    normal2altered=1,
 		    altered2normal=1,
 		    altered2altered=1){
+	if(class(emission) != "array") stop("emission probabilities must be an array: snps, samples, states. ")
 	if(missing(normalIndex)) stop("Must specify integer for normalIndex")
 	if(!is.numeric(normalIndex)) stop("normalIndex should be numeric")
 	if(normal2altered <= 0) stop("normal2altered must be > 0")
