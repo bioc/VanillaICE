@@ -104,3 +104,10 @@
 10/05/2009 ----- version 1.7.12
 
 * removed extra verbose argument from viterbi 
+
+10/06/2009 ----- version 1.7.13
+
+* for chromosome arm, define p as <= centromereEnd (instead of centromereStart)
+* by default, transitionPr = max(0.5, exp(-2*diff(position)/TAUP)).
+* updated transitionProbability help file
+svn ci -m "transitionProbability returns tau as max(0.5, exp(-2*d/TAUP)). updated help file"

@@ -433,9 +433,10 @@ transitionProbability <- function(chromosome, position, TAUP=1e8, chromosomeAnno
 	positionList <- split(position, chromosome)
 	positionList <- positionList[match(uchrom, names(positionList))]
 	for(i in seq(along=uchrom)){
-		chromosomeArm[[i]] <- as.integer(ifelse(positionList[[i]] <= chrAnn[uchrom[i], "centromereStart"], 0, 1))	
+		chromosomeArm[[i]] <- as.integer(ifelse(positionList[[i]] <= chrAnn[uchrom[i], "centromereEnd"], 0, 1))	
 ##		tau[[i]] <- c(exp(-2 * diff(positionList[[i]])/TAUP), 0)	
 	}
+	##probability SNP is informative
 	tau <- c(exp(-2*diff(position)/TAUP), 0)
 	if(max(tau) > 1){
 		##values greater than one occur when the diff is negative.
@@ -450,7 +451,11 @@ transitionProbability <- function(chromosome, position, TAUP=1e8, chromosomeAnno
 	annotation <- cbind(chromosome, position, chromosomeArm, tau)
 	colnames(annotation) <- c("chromosome", "position", "arm", "transitionPr")
 	range.tau <- range(annotation[, "transitionPr"])
+	##check range
 	if(range.tau[1] < 0 | range.tau[2] > 1) stop("Transition probabilities are not valid.  Check that the snpset object has been ordered by chromosome and physical position.")
+	##assign a minimum pr. that the snp is informative
+	tau[tau < 0.5] <- 0.5
+	annotation[, "transitionPr"] <- tau
 	return(annotation)
 }
 
