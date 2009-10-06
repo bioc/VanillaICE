@@ -11,7 +11,8 @@
 \usage{
 viterbi(emission, tau, arm, initialStateProbs, verbose =
 FALSE, chromosome, position, sampleNames, locusNames, normalIndex,
-returnLikelihood = FALSE, normal2altered=1, altered2normal=1, altered2altered=1)
+returnLikelihood = FALSE, normal2altered=1, altered2normal=1,
+altered2altered=1, verbose=TRUE)
 }
 
 \arguments{
@@ -32,7 +33,8 @@ returnLikelihood = FALSE, normal2altered=1, altered2normal=1, altered2altered=1)
     \item{altered2normal}{factor for scaling the probability of transitioning
       from an altered state to a normal state}
     \item{altered2altered}{factor for scaling the probability of transitioning
-     from an altered state to a different altered state}        
+      from an altered state to a different altered state}
+    \item{verbose}{Logical.  Whether to display all messages and warnings.}
 }
 \details{
 

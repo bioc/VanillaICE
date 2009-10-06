@@ -285,7 +285,8 @@ viterbi <- function(emission,
 		    returnLikelihood=FALSE,
 		    normal2altered=1,
 		    altered2normal=1,
-		    altered2altered=1){
+		    altered2altered=1,
+		    verbose=TRUE){
 	if(class(emission) != "array") stop("emission probabilities must be an array: snps, samples, states. ")
 	if(missing(normalIndex)) stop("Must specify integer for normalIndex")
 	if(!is.numeric(normalIndex)) stop("normalIndex should be numeric")
@@ -313,7 +314,7 @@ viterbi <- function(emission,
 		} else stop("initial state probabilities should be a probability or a log probability")
 	}
 	if(any(is.na(emission))){
-		message("Converting missing values in the emission matrix to 0")
+		if(verbose) message("Converting missing values in the emission matrix to 0")
 		emission[is.na(emission)] <- 0
 	}
 	if(any(is.nan(emission))){
@@ -437,8 +438,13 @@ transitionProbability <- function(chromosome, position, TAUP=1e8, chromosomeAnno
 ##		tau[[i]] <- c(exp(-2 * diff(positionList[[i]])/TAUP), 0)	
 	}
 	tau <- c(exp(-2*diff(position)/TAUP), 0)
+	if(max(tau) > 1){
+		##values greater than one occur when the diff is negative.
+		stop("check that the physical position is ordered from smallest to largest")
+	}
+	if(any(tau < 0)) stop("some of the computed transition probabilities less than zero.")
 	##tau <- tau[tau < 0 | tau > 1] <- NA
-	tau[tau < 0 | tau > 1] <- 0
+	##tau[tau < 0 | tau > 1] <- 0
 	chromosomeArm <- unlist(chromosomeArm)
 	chromosomeArm <- cumsum(c(0, diff(chromosomeArm) != 0 | diff(chromosome) != 0))
 	tau <- unlist(tau)

@@ -84,7 +84,19 @@
 
 * fixed documentation problems, updated vignette
 
-8/27/2009 ----- version 1.7.9
+9/22/2009 ----- version 1.7.9
 
 * check that emission probabilities are an array in the viterbi function
 * add column for sample in 'breaks' function
+
+
+9/23/2009 ----- version 1.7.10
+
+* transitionProbability returns an error if the computed tau is
+  greater than 1.  We may therefore need to require that one do this
+  computation one chromosome at a time.  Need to debug for multiple
+  chromosomes.
+
+10/05/2009 ----- version 1.7.11
+
+* added verbose argument to viterbi function
