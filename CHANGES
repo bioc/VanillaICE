@@ -100,3 +100,7 @@
 10/05/2009 ----- version 1.7.11
 
 * added verbose argument to viterbi function
+
+10/05/2009 ----- version 1.7.12
+
+* removed extra verbose argument from viterbi 

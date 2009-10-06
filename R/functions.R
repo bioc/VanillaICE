@@ -285,8 +285,7 @@ viterbi <- function(emission,
 		    returnLikelihood=FALSE,
 		    normal2altered=1,
 		    altered2normal=1,
-		    altered2altered=1,
-		    verbose=TRUE){
+		    altered2altered=1){
 	if(class(emission) != "array") stop("emission probabilities must be an array: snps, samples, states. ")
 	if(missing(normalIndex)) stop("Must specify integer for normalIndex")
 	if(!is.numeric(normalIndex)) stop("normalIndex should be numeric")

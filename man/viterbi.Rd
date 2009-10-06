@@ -21,7 +21,7 @@ altered2altered=1, verbose=TRUE)
     \item{tau}{transition probabilities (original scale)}
     \item{arm}{numeric or character string indicating chromosomal arm}
     \item{initialStateProbs}{initial state probabilities (log scale)}    
-    \item{verbose}{Logical}
+    \item{verbose}{Logical.  Whether to display all messages and warnings.}
     \item{chromosome}{chromosome}
     \item{position}{physical position}
     \item{sampleNames}{sample labels}
@@ -34,7 +34,6 @@ altered2altered=1, verbose=TRUE)
       from an altered state to a normal state}
     \item{altered2altered}{factor for scaling the probability of transitioning
       from an altered state to a different altered state}
-    \item{verbose}{Logical.  Whether to display all messages and warnings.}
 }
 \details{
 
