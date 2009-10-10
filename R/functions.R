@@ -320,9 +320,9 @@ viterbi <- function(emission,
 		message("some of the log emission probabilities are NaN.  Replacing with 0") 		
 		emission[is.nan(emission)] <- 0
 	}
-	if(any(is.infinite(emission))){
-		message("some of the log emission probabilities are infinite.  Replacing with some small value (-50)") 		
-		emission[is.infinite(emission)] <- -50
+	if(any(emission < -50)){
+		message("some of the log emission probabilities are infinite.  Replacing with some small value (-10)") 		
+		emission[emission < -50] <- -50
 	}
 	if(missing(arm)){
 		message("chromosome arm not specified...HMM is not fit separately to each chromosomal arm")
@@ -336,6 +336,8 @@ viterbi <- function(emission,
 		stop("transition probabilities not specified")
 	}
 	if(length(tau) != T) stop("tau must have length T")
+	## The last index is arbitrary and, by default, is NA. Must replace this by a number-- C can not handle NA's
+	tau[is.na(tau)] <- 0
 	delta <- matrix(as.double(0), nrow=T, ncol=S)
 	lik <- array(NA, dim=c(T, ncol(results), S))
 	for(j in 1:ncol(results)){
@@ -433,24 +435,21 @@ transitionProbability <- function(chromosome, position, TAUP=1e8, chromosomeAnno
 	positionList <- split(position, chromosome)
 	positionList <- positionList[match(uchrom, names(positionList))]
 	for(i in seq(along=uchrom)){
-		chromosomeArm[[i]] <- as.integer(ifelse(positionList[[i]] <= chrAnn[uchrom[i], "centromereEnd"], 0, 1))	
-##		tau[[i]] <- c(exp(-2 * diff(positionList[[i]])/TAUP), 0)	
+		chromosomeArm[[i]] <- as.integer(ifelse(positionList[[i]] <= chrAnn[uchrom[i], "centromereEnd"], 0, 1))
+		##probability SNP is informative.  Note, the last index is assigned zero -- this is arbitrary.  
+		tau[[i]] <- c(exp(-2 * diff(positionList[[i]])/TAUP), NA)
+		if(any(tau[[i]] > 1, na.rm=TRUE)){
+			##values greater than one occur when the diff is negative.
+			stop("check that the physical position is ordered from smallest to largest")
+		}
+		if(any(tau[[i]] < 0, na.rm=TRUE)) stop("some of the computed transition probabilities less than zero.")		
 	}
-	##probability SNP is informative
-	tau <- c(exp(-2*diff(position)/TAUP), 0)
-	if(max(tau) > 1){
-		##values greater than one occur when the diff is negative.
-		stop("check that the physical position is ordered from smallest to largest")
-	}
-	if(any(tau < 0)) stop("some of the computed transition probabilities less than zero.")
-	##tau <- tau[tau < 0 | tau > 1] <- NA
-	##tau[tau < 0 | tau > 1] <- 0
 	chromosomeArm <- unlist(chromosomeArm)
 	chromosomeArm <- cumsum(c(0, diff(chromosomeArm) != 0 | diff(chromosome) != 0))
 	tau <- unlist(tau)
 	annotation <- cbind(chromosome, position, chromosomeArm, tau)
 	colnames(annotation) <- c("chromosome", "position", "arm", "transitionPr")
-	range.tau <- range(annotation[, "transitionPr"])
+	range.tau <- range(annotation[, "transitionPr"], na.rm=TRUE)
 	##check range
 	if(range.tau[1] < 0 | range.tau[2] > 1) stop("Transition probabilities are not valid.  Check that the snpset object has been ordered by chromosome and physical position.")
 	##assign a minimum pr. that the snp is informative

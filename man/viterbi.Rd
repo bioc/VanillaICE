@@ -12,7 +12,7 @@
 viterbi(emission, tau, arm, initialStateProbs, verbose =
 FALSE, chromosome, position, sampleNames, locusNames, normalIndex,
 returnLikelihood = FALSE, normal2altered=1, altered2normal=1,
-altered2altered=1, verbose=TRUE)
+altered2altered=1)
 }
 
 \arguments{

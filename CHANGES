@@ -111,3 +111,7 @@
 * by default, transitionPr = max(0.5, exp(-2*diff(position)/TAUP)).
 * updated transitionProbability help file
 svn ci -m "transitionProbability returns tau as max(0.5, exp(-2*d/TAUP)). updated help file"
+
+10/10/2009 ----- version 1.7.14
+
+* fixed bug in transitionProbability.  Returns NA in last index (arbitrary).
