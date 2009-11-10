@@ -321,7 +321,7 @@ viterbi <- function(emission,
 		emission[is.nan(emission)] <- 0
 	}
 	if(any(emission < -50)){
-		message("some of the log emission probabilities are infinite.  Replacing with some small value (-10)") 		
+		message("some of the log emission probabilities are very small -- probable outliers.  Replacing with a small value (-10)") 		
 		emission[emission < -50] <- -50
 	}
 	if(missing(arm)){
@@ -409,7 +409,7 @@ transitionProbability <- function(chromosome, position, TAUP=1e8, chromosomeAnno
 	if(!is.integer(chromosome)) {
 		chromosome <- chromosome2integer(chromosome)
 	}
-	if(!all(chromosome %in% c(1:24))){
+	if(!all(chromosome %in% 1:24)){
 			warning("Chromosome annotation is currently available for chromosomes 1-22, X and Y")
 			message("Please add/modify data(chromosomeAnnotation, package='SNPchip') to accomodate special chromosomes")
 			stop()
@@ -426,14 +426,9 @@ transitionProbability <- function(chromosome, position, TAUP=1e8, chromosomeAnno
 	}
 	chrAnn <- chromosomeAnnotation
 	uchrom <- unique(integer2chromosome(chromosome))
-	if(!all(chromosome %in% 1:24)){
-		warning("Chromosome annotation is currently available for chromosomes 1-22, X and Y")
-		message("Please add/modify data(chromosomeAnnotation, package='SNPchip') to accomodate special chromosomes")
-		stop()
-	}	
 	chromosomeArm <- tau <- vector("list", length(uchrom))
 	positionList <- split(position, chromosome)
-	positionList <- positionList[match(uchrom, names(positionList))]
+	positionList <- positionList[match(unique(chromosome), names(positionList))]
 	for(i in seq(along=uchrom)){
 		chromosomeArm[[i]] <- as.integer(ifelse(positionList[[i]] <= chrAnn[uchrom[i], "centromereEnd"], 0, 1))
 		##probability SNP is informative.  Note, the last index is assigned zero -- this is arbitrary.  

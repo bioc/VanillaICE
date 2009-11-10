@@ -115,3 +115,7 @@ svn ci -m "transitionProbability returns tau as max(0.5, exp(-2*d/TAUP)). update
 10/10/2009 ----- version 1.7.14
 
 * fixed bug in transitionProbability.  Returns NA in last index (arbitrary).
+
+11/10/2009 ----- version 1.9.1
+
+* fixed bug in transitionProbability for chromosome X.  
