@@ -38,17 +38,23 @@ static void getMatrixIndexAndMaxVal(const double *pMat, const int nCols, double 
 
 /**
  * viterbi
- * \param beta - log emission probabilities SxT
+ * \param pBeta - log emission probabilities SxT
  * \param initialP - log initial state probabilities - length S
  * \param tau - transition probabilities - original scale
- * \param tau.scale - matrix on original scale
+ * \param pArm - indicator for chromosome arm
  * \param S - number of columns of beta (number of states)
  * \param T - number of rows of beta matrix
  * \param pQHat - output vector of integers
- * \param pDelta - output vector of doubles
- * \param pArm - character string
+ * \param pDelta - output vector of doubles ...this is the forward variable
+ * \param c1  Pr( Normal -> altered)
+ * \param c2  Pr( altered -> normal)
+ * \param c3  Pr( altered -> altered)
+ * \param normalState  index of normal state
+ * \param pAA  
  */
-void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, int *S, int *T, int *pQHat, double *pDelta, double *c1, double*c2, double *c3, int *normalState, double *pAA)
+void viterbi(double *pBeta, double *initialP, double *tau, 
+             int  *pArm, int *S, int *T, int *pQHat, double *pDelta,
+             double *c1, double*c2, double *c3, int *normalState, double *pAA)
 {
   /**  RS double *pDelta, *pAA, *pDeltaTempSum, Pstar; */
   /** double *pAA, *pDeltaTempSum, Pstar, *tp; */
@@ -132,7 +138,6 @@ void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, int *S, i
 		    }
 		}
 	      /* *(pAA + offset) = log ( *(pAA + offset) * *(tau_scale + offset) );*/
-	      /* why is there a log here? */
 	      *(pAA + offset) = log ( *(pAA + offset) ); 
 	    }
 	}
@@ -140,17 +145,17 @@ void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, int *S, i
 	{
 	  double maxDeltaTempSum;
 	  int maxDeltaSumIdx = 0;
-	  /* Sum the jth column of AA and the (t-1)th row of delta. The jth column of AA occupies
-	     consecutive memory locations starting at the memory location pAA + nrow(AA)*j.  Since
-	     AA is a square matrix, that starting address can be expressed as pAA + nCols*j */   
+	  /* Sum the jth column of AA and the (t-1)th row of delta. 
+             The jth column of AA occupies
+	     consecutive memory locations starting at the memory location pAA + nrow(AA)*j.
+	     Since AA is a square matrix, that starting address can be
+	     expressed as pAA + nCols*j */   
 	  for (i=0; i<nCols; ++i)
 	    {
 	      pDeltaTempSum[i] = pAA[j * nCols + i] + pDelta[(t-1) + i * nRows];
 	    }
-
 	  /* Needs update */
 	  getIndexAndMaxVal( (double *)(pDeltaTempSum), nCols, &maxDeltaTempSum, &maxDeltaSumIdx);
-	  
 	  *(pPsi + j * nRows  + t) = maxDeltaSumIdx;
 	  *(pDelta + j*nRows + t) = maxDeltaTempSum + *(pBeta + j*nRows + t);
 	}
@@ -158,7 +163,6 @@ void viterbi(double *pBeta, double *initialP, double *tau, int  *pArm, int *S, i
 
   /* Needs update */
   getMatrixIndexAndMaxVal( (double *)(pDelta + nRows-1), nCols, &Pstar, (int *)(pQHat + nRows-1), nRows);
-
   for (t=nRows-2; t>= 0; --t)
     {
       /*if (strcmp(*(ppArm + t), *(ppArm + t + 1)) != 0)*/

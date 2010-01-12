@@ -103,12 +103,13 @@ have
     
   \end{itemize}
 
-  \noindent If using the \R{} package \Rpackage{crlmm}, see the the
-  vignette copynumber.Rnw for locus-level estimation of copy number and
-  suggestions for fitting a hidden Markov model to allele-specific
-  estimates of copy number.  Note that several HMM implementations are
-  now available for the joint analysis of copy number and genotype,
-  including QuantiSNP \citep{Colella2007} and PennCNV \citep{Wang2007a}.
+  \noindent If using the \R{} package \Rpackage{crlmm}, see the
+  \textit{copynumber} vignette in \texttt{crlmm/inst/scripts} for
+  locus-level estimation of copy number. %Suggestions for fitting a
+%  hidden Markov model to allele-specific estimates of copy number.
+  Several HMM implementations are now available for the joint analysis
+  of copy number and genotype, including QuantiSNP \citep{Colella2007}
+  and PennCNV \citep{Wang2007a}.
 
 \paragraph{Citing this software.} 
 % \bibitem{Scharpf2008}
@@ -132,25 +133,17 @@ create an object of class \Robject{oligoSnpSet} from the
 
 <<createLocusSet>>=
 library(VanillaICE)
-library(Biobase)
-library(oligoClasses)
+library(oligoClasses)  ##if not loaded, varLabels not found??? why
 data(locusLevelData)
-copynumber <- locusLevelData[["copynumber"]]/100
-chromosome <- locusLevelData[["annotation"]][, "chromosome"]
-position <- locusLevelData[["annotation"]][, "position"]
-names(position) <- names(chromosome) <- rownames(locusLevelData[["annotation"]])
-locusAnnotation <- data.frame(list(chromosome=chromosome, position=position), row.names=names(chromosome))
-featuredata <- new("AnnotatedDataFrame", data=locusAnnotation, varMetadata=data.frame(labelDescription=colnames(locusAnnotation)))
-locusset <- new("oligoSnpSet",
-		copyNumber=copynumber,
-		calls=locusLevelData[["genotypes"]],
-		callsConfidence=locusLevelData[["crlmmConfidence"]],
-		phenoData=annotatedDataFrameFrom(copynumber, byrow=FALSE),		
-		featureData=featuredata,
+oligoSet <- new("oligoSnpSet",
+		copyNumber=locusLevelData[["copynumber"]],
+		call=locusLevelData[["genotypes"]],
+		callProbability=locusLevelData[["crlmmConfidence"]],
 		annotation=locusLevelData[["platform"]])
-stopifnot(all(c("chromosome", "position") %in% varLabels(featuredata)))
-locusset <- locusset[order(chromosome(locusset), position(locusset)), ]
+oligoSet <- oligoSet[order(chromosome(oligoSet), position(oligoSet)), ]
 @ 
+
+
 
 The following components are required to fit the HMM:
 \begin{enumerate}
@@ -159,42 +152,120 @@ The following components are required to fit the HMM:
 \item transition probabilities
 \end{enumerate}
 
-Several of the functions in the VanillaICE package are wrappers to
-facilitate the specification of these arguments. In the following code
-chunk, we assume the hidden states are hemizygous deletion (hemDel; copy
-number = 1, probability of a homozygous genotype call is 0.999), normal
-(copy number = 2, probability of a homozygous genotype calls is 0.7),
-regions of homozygosity (ROH: copy number = 1, probability of a
-homozygous genotype call is 0.999), and amplification (copy number
-greater than 2).
+In the following code chunk, we assume the hidden states are hemizygous
+deletion (hemDel; copy number = 1, probability of a homozygous genotype
+call is 0.999), normal (copy number = 2, probability of a homozygous
+genotype calls is 0.7), regions of homozygosity (ROH: copy number = 1,
+probability of a homozygous genotype call is 0.999), and amplification
+(copy number greater than 2).
+
+
+\paragraph{The Vanilla  HMM: genotype and copy number} 
   
 <<joint.states>>=
-joint.states <- c("hemDel", "normal", "ROH", "amplification")
-copynumber.states <- log2(c(1, 2, 2, 3))
-prob.genotype.is.homozygous <- c(0.999, 0.7, 0.999, 0.7)
-names(prob.genotype.is.homozygous) <- joint.states
-initialP <- (rep(1, length(joint.states)))/length(joint.states)
-tau <- transitionProbability(chromosome=chromosome,
-			     position=position,
-			     TAUP=1e8)
-log.sds <- VanillaICE:::robustSds(copyNumber(locusset))
+library(VanillaICE)
+library(oligoClasses)  ##if not loaded, varLabels not found??? why
+data(locusLevelData)
+oligoSet <- new("oligoSnpSet",
+		copyNumber=log2(locusLevelData[["copynumber"]]),
+		cnConfidence=1/robustSds(log2(locusLevelData[["copynumber"]])),
+		call=locusLevelData[["genotypes"]],
+		callProbability=locusLevelData[["crlmmConfidence"]],
+		annotation=locusLevelData[["platform"]])
 @ 
+
+<<>>=
+setwd("~/madman/Rpacks/VanillaICE.Rcheck")
+load("oligoSet.rda")
+# 1. VanillaHMM, genotype and copy number
+##copyNumber(oligoSet) <- log2(copyNumber(oligoSet))
+hmmOpts <- hmmOptions(oligoSet, 
+		      copynumberStates=log2(c(1, 2, 2, 3)),
+		      states=c("hem-del", "ROH", "normal", "amp"),
+		      normalIndex=3,
+		      log.initialP=rep(log(1/4), 4),
+		      prGenotypeHomozygous=c(0.999, 0.999, 0.7, 0.7))
+fit.van <- hmm(oligoSet, hmmOpts)
+# 2. ICE HMM, genotype and copy number
+hmmOpts <- hmmOptions(oligoSet, 
+		      ICE=TRUE,
+		      copynumberStates=log2(c(1, 2, 2, 3)),
+		      states=c("hem-del", "ROH", "normal", "amp"),
+		      normalIndex=3,
+		      log.initialP=rep(log(1/4), 4),
+		      rohStates=c(TRUE, TRUE, FALSE, FALSE))
+fit.ice <- hmm(oligoSet, hmmOpts)
+
+## see findOverlaps, countOverlaps
+lapply(ranges(fit.van), IntervalTree)
+# 3. Vanilla HMM, genotypes
+# 4. Vanilla HMM, copy number
+# 5. ICE HMM, genotypes
+# 6. ICE HMM, copy number
+# 7. Trio HMM for biparental inheritance
+library(oligoClasses)
+library(VanillaICE)
+library(crlmm)
+celFiles <- oligoClasses:::list.celfiles("/thumper/ctsa/snpmicroarray/hapmap/raw/affy/1m", full.names=TRUE)
+batch <- substr(basename(celFiles), 13, 13)
+celFiles <- celFiles[batch == "C" | batch == "Y"]
+fns <- list.files("/thumper/ctsa/beaty/scharpf/crlmmOut/hapmap", pattern="cnSet", full.names=TRUE)
+fns <- fns[-c(grep("23", fns), grep("24", fns))]
+load(fns[1])
+cnSet <- cnSet[order(chromosome(cnSet), position(cnSet)), ]
+hmmOpts <- hmmOptions(cnSet, 
+		      log.initial=log(c(0.99, 1-0.99)),
+		      normalIndex=1,
+		      trioHmm=TRUE)
+##loadPreprocessedData
+##for each chromosome
+## - compute copy number
+## - run HMM
+## - save output
+## load preprocessed data
+## begin for loop for chromosome
+##       cnSet <- crlmmCopynumber(snprma, cnrma, callSet, CHR=1)
+##       hmmSet <- hmm(cnSet)
+##       save output
+## end for loop for chromosome
+##trioOpts <- trioOptions(verbose=TRUE, TAUP=1e8, altered2normal=0.5, normal2altered=0.1,
+##			useCrlmmConfidence=FALSE)
+##trace(hmm.SnpSuperSet, browser)
+opts2 <- hmmOpts
+opts2[["trios"]] <- hmmOpts[["trios"]][12:60, ]
+##trace(viterbi, browser)
+rD <- hmm.SnpSuperSet(cnSet, opts2)
+
+
+# 8. crlmm copy number & crlmm genotypes (logA and logB ellipses)
+# 9. crlmm copy number & crlmm genotypes, copy number scale
+@ 
+trace(calculateEmission.oligoSnpSet, browser)
+trace(genotypeEmissionCrlmm, browser)
+hmmOpts <- hmmOptions(oligoSet, 
+		      ICE=TRUE,
+		      copynumberStates=log2(c(1, 2, 2, 3)),
+		      states=c("hem-del", "ROH", "normal", "amp"),
+		      normalIndex=3,
+		      log.initialP=rep(log(1/4), 4),
+		      rohStates=c(TRUE, TRUE, FALSE, FALSE))
+fit.ice <- hmm(oligoSet, hmmOpts)
+hmmOpts <- hmmOptions(oligoSet, 
+		      copynumberStates=log2(c(1, 2, 2, 3)),
+		      states=c("hem-del", "ROH", "normal", "amp"),
+		      normalIndex=3,
+		      log.initialP=rep(log(1/4), 4),
+		      prGenotypeHomozygous=c(0.999, 0.999, 0.7, 0.7))
+fit.vanilla <- hmm(oligoSet, hmmOpts)
+@ 
+
+\paragraph{The ICE  HMM: crlmm confidence scores for genotypes}
 
 
 Conditional on the underlying hidden state, we assume that the copy
 number is independent of the genotype and we calculate the emission
 probabilities of each separately.
 <<emissionProbabilities>>=
-emission.cn <- copynumberEmission(copynumber=log2(copyNumber(locusset)),
-				  states=joint.states,
-				  mu=copynumber.states,
-				  sds=log.sds,
-				  takeLog=FALSE,
-				  verbose=TRUE)
-emission.cn[1:5, , ]
-emission.gt <- genotypeEmission(genotypes=calls(locusset),
-				states=joint.states,
-				probHomCall=prob.genotype.is.homozygous)
 @ 
 
 As the emission probabilities returned by the above functions are on the
@@ -234,6 +305,30 @@ abline(v=rohBoundary, col="royalblue", lty=2)
 legend("topright", lty=c(2, 1), col=c("royalblue", "black"), legend=c("ROH boundary",
 							     "copy number"), bty="n")
 @ 
+
+\section{Annotation platform not supported}
+
+If the annotation for the platform is not supported, or if you would
+prefer to use your own annotation for physical position and chromosome,
+the object may be initialized by
+<<>>=
+library(VanillaICE)
+library(oligoClasses)
+data(locusLevelData)
+physical.position <- position(oligoSet)
+chrom <- chromosome(oligoSet)
+isSnp <- rep(1L, length(chrom))
+oligoSet2 <- new("oligoSnpSet",
+		copyNumber=locusLevelData[["copynumber"]]/100,
+		call=locusLevelData[["genotypes"]],
+		callProbability=locusLevelData[["crlmmConfidence"]],
+		position=physical.position,
+		chromosome=chrom,
+		isSnp=isSnp,
+		annotation="YourPlatform")
+identical(featureData(oligoSet), featureData(oligoSet2))
+@ 
+
 
 \section{Additional options}
 

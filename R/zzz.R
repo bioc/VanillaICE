@@ -9,9 +9,9 @@ THISPKG <- "VanillaICE"
 	require("methods")
 }
 
-##.onAttach <- function(libname, pkgname) {
-##	message("Welcome to VanillaICE version ", packageDescription(THISPKG, field="Version"))
-##}
+.onAttach <- function(libname, pkgname) {
+	message("Welcome to VanillaICE version ", packageDescription(THISPKG, field="Version"))
+}
 
 .onUnload <- function(libpath){
 	library.dynam.unload(THISPKG, libpath)
