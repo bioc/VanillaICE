@@ -119,3 +119,12 @@ svn ci -m "transitionProbability returns tau as max(0.5, exp(-2*d/TAUP)). update
 11/10/2009 ----- version 1.9.1
 
 * fixed bug in transitionProbability for chromosome X.  
+
+02/20/2010 ----- version 1.9.2
+
+* added hmmOptions function, updated viterbi.  Updated VanillaICE vignette.
+
+* viterbi returns RangedData object (IRanges class) as well as log
+  likelihood ratio comparing the viterbi state path to the normal
+  state path
+

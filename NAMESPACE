@@ -39,5 +39,6 @@ export(computeHmm.CNSet,
        hmm.SnpSuperSet,
        computeBpiEmission.SnpSuperSet,
        isBiparental.matrix,
-       isBiparental.SnpSuperSet)
+       isBiparental.SnpSuperSet,
+       calculateEmission.CopyNumberSet)
        

@@ -74,7 +74,7 @@ getChromosomeArm <- function(object){
 			stop()
 	}
 	if(!is.integer(pos)) {
-		if(verbose) message("Coerced pos to an integer.")
+		message("Coerced pos to an integer.")
 		pos <- as.integer(pos)
 	}
 	data(chromosomeAnnotation, package="SNPchip", envir=environment())
@@ -94,12 +94,20 @@ getChromosomeArm <- function(object){
 
 viterbi <- function(object, hmmOptions){
 	log.E <- hmmOptions[["log.emission"]]
+	sns <- colnames(log.E)
+	if(is.null(sns)) stop("no dimnames for log.emission")
 	log.initial <- hmmOptions[["log.initial"]]
 	arm <- getChromosomeArm(object)
 	normalIndex <- hmmOptions[["normalIndex"]]
+	if(normalIndex < 1 | normalIndex > dim(log.E)[[3]]){
+		stop("normalIndex in hmmOptions not valid")
+	}
 	normal2altered=hmmOptions[["normal2altered"]]
 	altered2normal=hmmOptions[["altered2normal"]]
 	altered2altered=hmmOptions[["altered2altered"]]
+	c1 <- normal2altered
+	c2 <- altered2normal
+	c3 <- altered2altered
 	TAUP <- hmmOptions[["TAUP"]]
 	TT <- nrow(object)
 	states <- hmmOptions[["states"]]
@@ -110,10 +118,12 @@ viterbi <- function(object, hmmOptions){
 		rD <- vector("list", length(unique(arm)))
 		for(a in seq(along=unique(arm))){
 			I <- arm == a
+			if(sum(I) < 2) next()
 			T <- sum(I)
 			transitionPr <- exp(-2 * diff(position(object)[I])/TAUP)
 			##is the lower bound a function of normal2altered, altered2normal, altered2altered?
-			transitionPr[transitionPr < 0.05] <- 0.05
+			minimum <- 1-1/((S-1)*c1) + 0.01
+			transitionPr[transitionPr < minimum] <- minimum
 			if(any(transitionPr < 0 | transitionPr > 1)) stop("Transition probabilities not in [0,1].  Order object by chromosome and physical position")
 			result <- rep(as.integer(0), T)
 			viterbiResults <- viterbi.wrapper(log.emission=log.E[I, j, ],
@@ -142,9 +152,6 @@ viterbi <- function(object, hmmOptions){
 			##** The NA is to stagger the transition probabilities by 1
 			##  -- this way, the same index can be used to multiply the transition and emission probabilities
 			p <- c(NA, as.numeric(viterbiResults[["tau"]]))
-			c1 <- normal2altered
-			c2 <- altered2normal
-			c3 <- altered2altered
 			lP.N2N <- log(1-((1-p)*(S-1)*c1)) ##probability normal -> normal
 			lP.N2A <- log((1-p)*c1) ##probability normal -> altered
 			P.A2A <- sapply(1-((1-p)*(c2+(S-2)*c3)), function(x) max(x, 0.01))
@@ -247,11 +254,14 @@ viterbi <- function(object, hmmOptions){
 			ir <- IRanges(start=start, end=end)
 			rD[[a]] <- RangedData(ir,
 					      space=rep(paste("chr", unique(chromosome(object)[I]), sep=""), length(ir)),
-					      sampleId=sampleNames(object)[j],
+					      ##sampleId=sampleNames(object)[j],
+					      sampleId=colnames(log.E)[j],
 					      state=states,
 					      numMarkers=numMarkers,
 					      LLR=LLR)			
 		}
+		notnull <- !sapply(rD, is.null)
+		rD <- rD[notnull]
 		L <- sapply(rD, nrow)
 		if(any(L == 1) & any(L > 1)){
 			rangedData[[j]] <- c(do.call(c, rD[L == 1]), do.call(c, rD[L > 1]))
@@ -281,6 +291,8 @@ viterbi <- function(object, hmmOptions){
 	return(rangedData)			
 
 }
+
+
 
 
 					
@@ -513,6 +525,7 @@ hmmOptions <- function(object,
 		       log.cn.emission=NULL,
 		       trioHmm=FALSE,
 		       ...){  ## whether the save the emission probabilities
+	if(class(object) == "SnpSet") copyNumber <- FALSE
 	stopifnot(is.numeric(normalIndex))
 	if(normal2altered <= 0) stop("normal2altered must be > 0")
 	if(altered2normal <= 0) stop("altered2normal must be > 0")
@@ -563,6 +576,10 @@ hmmOptions <- function(object,
 	} 
 	##opts[["tau"]] <- transitionProbability(object, opts)
 	if(opts$copyNumber){
+		##check that the median copy number is near the
+		##specified copy number for the normal hidden state
+		##(helps prevent errors from forgetting to take the
+		##log)
 		isAutosome <- chromosome(object) <= 22
 		if(sum(isAutosome) > 1){
 			med <- median(as.numeric(copyNumber(object)[isAutosome, ]), na.rm=TRUE)
@@ -692,13 +709,20 @@ viterbiR <- function(emission, initialP, tau, arm){
 	return(qhat)
 }
 
-setMethod("hmm", "oligoSnpSet", function(object, hmmOptions){
+##setMethod("hmm", "oligoSnpSet", function(object, hmmOptions){
+##	viterbi(object, hmmOptions)
+##})
+##
+##setMethod("hmm", "CNSet", function(object, hmmOptions){
+##	viterbi(object, hmmOptions)
+##})
+##
+##setMethod("hmm", "CopyNumberSet", function(object, hmmOptions){
+##	viterbi(object, hmmOptions)
+##})
+hmm <- function(object, hmmOptions){
 	viterbi(object, hmmOptions)
-})
-
-setMethod("hmm", "CNSet", function(object, hmmOptions){
-	viterbi(object, hmmOptions)
-})
+}
 
 
 ##hmm <- function(object,
@@ -794,15 +818,23 @@ setMethod("update", "environment", function(object, ...){
 	    envir=object)	
 })
 	
-
-
-
-
-
-
-
-
-
-
-
-
+findFatherMother <- function(offspringId, object){
+	stopifnot(!missing(offspringId)) 
+	family.id <- pData(object)[sampleNames(object) == offspringId, "familyId"]
+	father.id <- pData(object)[sampleNames(object) == offspringId, "fatherId"]
+	mother.id <- pData(object)[sampleNames(object) == offspringId, "motherId"]
+	father.name <- sampleNames(object)[object$familyId == family.id & object$individualId == father.id]
+	mother.name <- sampleNames(object)[object$familyId == family.id & object$individualId == mother.id]
+	if(length(father.name) > 1 | length(mother.name) > 1){
+		stop("More than 1 father and/or more than 1 mother.  Check annotation in phenoData")
+	}
+	if(length(father.name) < 1 ){
+		father.name <- NA
+	}
+	if(length(mother.name) < 1){
+		mother.name <- NA
+	}
+	fmo.trio <- c(father.name, mother.name, offspringId)
+	names(fmo.trio) <- c("father", "mother", "offspring")
+	return(fmo.trio)
+}

@@ -36,6 +36,71 @@ calculateEmission.copynumber <- function(object, hmmOptions){
 	return(log(emission.cn))
 }
 
+calculateEmission.CopyNumberSet <- function(object, hmmOptions){
+	EMIT.THR <- hmmOptions[["EMIT.THR"]]
+	states <- hmmOptions[["states"]]
+	verbose <- hmmOptions[["verbose"]]
+	normalIndex <- hmmOptions[["normalIndex"]]
+	if(all(is.na(cnConfidence(object)))){
+		message("cnConfidence missing.  Using MAD")
+		sds <- robustSds(copyNumber(object))
+		cnConfidence(object) <- 1/sds
+	} 
+	log.emission <- calculateEmission.copynumber(object,
+						     hmmOptions)
+	if(any(is.na(log.emission))){
+		if(verbose) message("Converting missing values in the emission matrix to 0")
+		log.emission[is.na(log.emission)] <- 0
+	}
+	if(any(log.emission < EMIT.THR)){
+		if(verbose) message("Minimum value in log emission probabilities is ", EMIT.THR, ".  See EMIT.THR in hmmOptions.") 		
+		log.emission[log.emission < EMIT.THR] <- EMIT.THR
+	}	
+	hmmOptions[["log.emission"]] <- log.emission
+	hmmOptions
+}
+
+
+calculateEmission.SnpSet <- function(object, hmmOptions){
+	ICE <- hmmOptions[["ICE"]]
+	EMIT.THR <- hmmOptions[["EMIT.THR"]]
+	states <- hmmOptions[["states"]]
+	verbose <- hmmOptions[["verbose"]]
+	normalIndex <- hmmOptions[["normalIndex"]]
+	if(!ICE){
+		log.gt.emission <- calculateEmission.genotype(object, hmmOptions)
+	} else {
+		##assumed order
+		## ROH, normal
+		log.gt.emission <- array(NA, dim=c(nrow(object), ncol(object), length(states)),
+					 dimnames=list(featureNames(object),
+					 sampleNames(object),
+					 states))
+		tmp <- genotypeEmissionCrlmm(object, hmmOptions)
+		rohStates <- which(hmmOptions[["rohStates"]])
+		notRohState <- which(!hmmOptions[["rohStates"]])
+		for(j in rohStates){
+			log.gt.emission[, , j] <- tmp[, , "ROH"]
+		}
+		for(j in notRohState){
+			log.gt.emission[, , j] <- tmp[, , "normal"]
+		}
+	}
+	log.emission <- log.gt.emission
+	rm(log.gt.emission); gc()
+	if(any(is.na(log.emission))){
+		if(verbose) message("Converting missing values in the emission matrix to 0")
+		log.emission[is.na(log.emission)] <- 0
+	}
+	if(any(log.emission < EMIT.THR)){
+		if(verbose) message("Minimum value in log emission probabilities is ", EMIT.THR, ".  See EMIT.THR in hmmOptions.") 		
+		log.emission[log.emission < EMIT.THR] <- EMIT.THR
+	}	
+	hmmOptions[["log.emission"]] <- log.emission
+	hmmOptions
+}
+
+
 calculateEmission.oligoSnpSet <- function(object, hmmOptions){
 	ICE <- hmmOptions[["ICE"]]
 	EMIT.THR <- hmmOptions[["EMIT.THR"]]
@@ -45,9 +110,10 @@ calculateEmission.oligoSnpSet <- function(object, hmmOptions){
 	if(all(is.na(cnConfidence(object)))){
 		message("cnConfidence missing.  Using MAD")
 		sds <- robustSds(copyNumber(object))
-	} else {
-		sds <- 1/cnConfidence(object)
-	}
+		cnConfidence(object) <- 1/sds
+	} ##else {
+	##sds <- 1/cnConfidence(object)
+##	}
 	log.cn.emission <- calculateEmission.copynumber(object,
 							hmmOptions)
 	if(!ICE){
@@ -83,12 +149,22 @@ calculateEmission.oligoSnpSet <- function(object, hmmOptions){
 	hmmOptions[["log.emission"]] <- log.emission
 	hmmOptions
 }
+
+setMethod("calculateEmission", "CopyNumberSet",
+	  function(object, hmmOptions){
+		  calculateEmission.CopyNumberSet(object, hmmOptions)
+	  })
 	
 
 setMethod("calculateEmission", "oligoSnpSet",
 	  function(object, hmmOptions){
 		  calculateEmission.oligoSnpSet(object, hmmOptions)
-})
+	  })
+
+setMethod("calculateEmission", "SnpSet",
+	  function(object, hmmOptions){
+		  calculateEmission.SnpSet(object, hmmOptions)
+	  })
 
 ##setMethod("calculateEmission", "SnpCopyNumberSet", function(object, mu, states, envir, ...){
 ##	if(all(is.na(cnConfidence(object)))){
@@ -284,7 +360,7 @@ hmm.SnpSuperSet <- function(object, hmmOptions){
 		if(verbose) cat("Offspring ID ", trios[i, "offspring"], "\n")
 		trioSet <- object[, match(trios[i, ], sampleNames(object))]
 		## Remove the noinformative snps here.
-		isBPI <- isBiparental.SnpSuperSet(trioSet)
+		isBPI <- isBiparental.SnpSuperSet(trioSet, allowHetParent=hmmOptions[["allowHetParent"]])
 		isInformative <- !is.na(isBPI)
 		if(all(!isInformative)){
 			fit[, i] <- 1
@@ -402,28 +478,9 @@ computeBpiEmission.SnpSuperSet <- function(object, hmmOptions, isBPI){
 }
 
 
-findFatherMother <- function(offspringId, object){
-	stopifnot(!missing(offspringId)) 
-	family.id <- pData(object)[sampleNames(object) == offspringId, "familyId"]
-	father.id <- pData(object)[sampleNames(object) == offspringId, "fatherId"]
-	mother.id <- pData(object)[sampleNames(object) == offspringId, "motherId"]
-	father.name <- sampleNames(object)[object$familyId == family.id & object$individualId == father.id]
-	mother.name <- sampleNames(object)[object$familyId == family.id & object$individualId == mother.id]
-	if(length(father.name) > 1 | length(mother.name) > 1){
-		stop("More than 1 father and/or more than 1 mother.  Check annotation in phenoData")
-	}
-	if(length(father.name) < 1 ){
-		father.name <- NA
-	}
-	if(length(mother.name) < 1){
-		mother.name <- NA
-	}
-	fmo.trio <- c(father.name, mother.name, offspringId)
-	names(fmo.trio) <- c("father", "mother", "offspring")
-	return(fmo.trio)
-}
 
-isBiparental.SnpSuperSet <- function(object, allowHetParent=TRUE){
+
+isBiparental.SnpSuperSet <- function(object, allowHetParent=FALSE){
 	##if(length(object$familyMember) < 3) stop("object$familyMember not the right length")
 	father <- 1
 	mother <- 2
