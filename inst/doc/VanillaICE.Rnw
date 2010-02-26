@@ -229,7 +229,7 @@ relatively unbiased (though perhaps very noisy).  Transforming the
 estimates to the log-scale is often helpful.
 
 <<logscale>>=
-copyNumber(oligoSet) <- log2(copyNumber(oligoSet))
+vcopyNumber(oligoSet) <- log2(copyNumber(oligoSet))
 @ 
 
 The SNPs should be ordered by chromosome and physical position.
@@ -399,12 +399,14 @@ homozygosity.  Note that hemizygous deletions are also identified as
 hemizygous deletions tends to be all homozygous calls).
 
 <<genotypesOnly>>=
-library(VanillaICE)
-data(locusLevelData)
+##library(VanillaICE)
+##ta(locusLevelData)
 snpSet <- new("SnpSet",
 	      call=locusLevelData[["genotypes"]],
 	      callProbability=locusLevelData[["crlmmConfidence"]],
 	      annotation=locusLevelData[["platform"]])
+## The initialization is defined in Biobase... add the annotation
+snpSet <- annotate(snpSet)
 snpSet <- snpSet[order(chromosome(snpSet), position(snpSet)), ]
 hmmOpts <- hmmOptions(snpSet, 
 		      states=c("ROH", "normal"),
