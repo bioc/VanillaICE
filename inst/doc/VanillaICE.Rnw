@@ -229,7 +229,7 @@ relatively unbiased (though perhaps very noisy).  Transforming the
 estimates to the log-scale is often helpful.
 
 <<logscale>>=
-vcopyNumber(oligoSet) <- log2(copyNumber(oligoSet))
+copyNumber(oligoSet) <- log2(copyNumber(oligoSet))
 @ 
 
 The SNPs should be ordered by chromosome and physical position.
