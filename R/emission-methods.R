@@ -527,10 +527,10 @@ computeHmm.CNSet <- function(object, cnOptions){
 	object <- object[order(chromosome(object), position(object)), ]
 	##emission <- hmmOptions[["emission"]]
 	chrom <- unique(chromosome(object))
-	tPr <- transitionProbability(chromosome=chromosome(object),
-				     position=position(object),
-				     TAUP=hmmOptions[["TAUP"]])
-	emissionPr(object) <- computeEmission(object, hmmOptions)
+##	tPr <- transitionProbability(chromosome=chromosome(object),
+##				     position=position(object),
+##				     TAUP=hmmOptions[["TAUP"]])
+##	emissionPr(object) <- computeEmission(object, hmmOptions)
 	rangedData(object) <- viterbi.CNSet(object,
 					    hmmOptions=hmmOptions,
 					    transitionPr=tPr[, "transitionPr"],
@@ -539,14 +539,16 @@ computeHmm.CNSet <- function(object, cnOptions){
 }
 
 viterbi.CNSet <- function(object, hmmOptions, transitionPr, chromosomeArm){
-	state.sequence <- viterbi(emission=emissionPr(object),
-				  tau=transitionPr,
-				  initialStateProbs=hmmOptions[["log.initial"]],
-				  arm=chromosomeArm,
-				  normalIndex=hmmOptions[["normalIndex"]],
-				  normal2altered=hmmOptions[["normal2altered"]],
-				  altered2normal=hmmOptions[["altered2normal"]],
-				  altered2altered=hmmOptions[["altered2altered"]])
+	state.sequence <- viterbi(object,
+				  hmmOptions)
+##				  emission=emissionPr(object),
+####				  tau=transitionPr,
+##				  initialStateProbs=hmmOptions[["log.initial"]],
+##				  arm=chromosomeArm,
+##				  normalIndex=hmmOptions[["normalIndex"]],
+##				  normal2altered=hmmOptions[["normal2altered"]],
+##				  altered2normal=hmmOptions[["altered2normal"]],
+##				  altered2altered=hmmOptions[["altered2altered"]])
 	state.sequence <- data.frame(state.sequence)
 	rleList <- RleList(state.sequence)
 	rd <- RangedData(rleList)
