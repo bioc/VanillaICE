@@ -1,61 +1,64 @@
 \name{hmm}
 \alias{hmm}
-\title{Wrapper for fitting the HMM}
+\alias{viterbi}
+
+\title{Application of the Viterbi algorithm to copy number and/or
+genotype data.}
 \description{
   A wrapper for fitting the HMM.
 }
 \usage{
-hmm(object, states, mu = NULL, probs = NULL, takeLog = FALSE, initialP,
-returnSegments = TRUE, TAUP = 1e+08, verbose = FALSE, ice = FALSE,
-envir, normalIndex)
+hmm(object, hmm.params, ...)
+viterbi(object, hmm.params, verbose=TRUE, normal2altered=1, altered2normal=1,
+altered2altered=1, TAUP=1e8)
 }
 
 \arguments{
-  \item{object}{SnpCallSet, SnpCopyNumberSet, or oligoSnpSet object}
-  \item{states}{Labels for the hidden states.  See details for order.}
-  \item{mu}{The latent copy number. See details for order. }
-  \item{probs}{See details.}
-  \item{takeLog}{Whether to take the log of the copy number before
-    computing emission probabilities and standard deviations}
-  \item{initialP}{Initial state probabilities}
-  \item{returnSegments}{Logical: whether to return the segments or the
-    loci x sample matrix of predicted states}
-  \item{TAUP}{Scaling parameter for transition probabilities.}
-  \item{verbose}{Logical: Verbose output?}
-  \item{ice}{Whether to use CRLMM confidence scores of the genotype calls.}
-  \item{envir}{Optional.  An environment for storing intermediate files
-    created for fitting the HMM.}
-  \item{normalIndex}{the index of the normal state in the states vector}
+
+\item{object}{one of the following classes derived from eSet:
+	\code{SnpSet}, \code{oligoSnpSet}, \code{CopyNumberSet},
+	\code{CNSet}}
+
+\item{hmm.params}{List. See \code{hmm.setup}}
+
+\item{verbose}{Logical.  Whether to display all messages and warnings.}	
+
+\item{normal2altered}{Numeric. Factor for scaling the probability of transitioning
+	      from the normal state to an altered state}
+
+\item{altered2normal}{Numeric. Factor for scaling the probability of transitioning
+      from an altered state to a normal state.}
+
+\item{altered2altered}{Numeric. Factor for scaling the probability of transitioning
+      from an altered state to a different altered state}
+
+\item{TAUP}{
+
+  Numeric. Factor for scaling the distance weighted transition
+  probability.  The transition probability is computed as
+
+  \code{exp(-2 * d/TAUP)}, where d is the distance between two loci.
+
+  The default value is 1e8, but users can adjust this number to
+  control the smoothness of the resulting HMM.
+
 }
+
+  \item{\dots}{Additional arguments to \code{viterbi}.}
+
+}
+
 \details{
   
-  For oligoSnpSet objects, the hidden state labels are assumed to be
-  1: hemizygous deletion
-  2: normal
-  3: region of homozygosity (ROH)
-  4: amplification
-
-  The argument mu should have copy number values corresponding to the
-  above states.  For instance on the absolute scale, the copy number
-  states should be 1, 2, 2, and 4.
-
-  \code{probs}:  If \code{ice} is FALSE, the elements in probs should
-  correspond to the probability of a homozygous genotype in each of the
-  above states.  If \code{ice} is TRUE, the elements in probs should
-  correspond to
-  1.  Pr(homozygous call | truth is heterozyous)  
-  2.  Pr(heterozygous call | truth is heterozygous)
-  3.  Pr(homozygous call | truth is ROH)
-  4.  Pr(homozygous call | truth is normal) .  'Normal' meaning copy
-  number 2 and a typical frequency of heterozygosity for autosomes.
 }
+
 \value{
 
-  If \code{returnSegments} is TRUE, a data.frame containing the
-  coordinates of the predicted segments is returned.  Otherwise, a loci
-  X sample matrix is returned. The elements of the matrix correspond to
-  the predict hidden state for a specific locus and sample.
+	An object of class \code{RangedData}.	
+
 }
+
+\seealso{\code{\link{hmm.setup}}}
 
 \references{
 
@@ -64,5 +67,43 @@ envir, normalIndex)
   Applied Statistics
 
   }
+
+\examples{
+
+data(locusLevelData)
+oligoSet <- new("oligoSnpSet",
+		copyNumber=log2(locusLevelData[["copynumber"]]/100),
+		call=locusLevelData[["genotypes"]],
+		callProbability=locusLevelData[["crlmmConfidence"]],
+		annotation=locusLevelData[["platform"]])
+oligoSet <- oligoSet[order(chromosome(oligoSet), position(oligoSet)),]
+hmmOpts <- hmm.setup(oligoSet, 
+		     copynumberStates=log2(c(1, 2, 2, 3)),
+		     states=c("hem-del", "ROH", "normal", "amp"),
+		     normalIndex=3,
+		     log.initialP=rep(log(1/4), 4),
+		     prGenotypeHomozygous=c(0.99, 0.99, 0.7, 0.7))
+fit <- hmm(oligoSet, hmmOpts, TAUP=5e7)
+
+## Useful accessors for RangedData
+tmp <- ranges(fit)
+start(fit)
+end(fit)
+
+##Log likelihood ratio comparing likelihood of predicted state to the 'normal' state
+## for each segment
+fit$LLR
+## the number of SNPs / nonpolymorphic loci in each segment
+fit$numMarkers
+
+## Expand to a locus x sample matrix
+
+
+}
+
 \author{R. Scharpf}
+
 \keyword{models}
+\keyword{manip}
+\keyword{ts}
+

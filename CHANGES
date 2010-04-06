@@ -128,7 +128,10 @@ svn ci -m "transitionProbability returns tau as max(0.5, exp(-2*d/TAUP)). update
   likelihood ratio comparing the viterbi state path to the normal
   state path
 
-02/20/2010 ----- version 1.9.4
+04/05/2010 ----- version 1.9.4
 * added inst/test/crlmmDownstream.Rnw
+
+04/06/2010 ----- version 1.9.5
+* modified vignette.  Added help pages
 
 

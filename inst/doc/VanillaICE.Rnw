@@ -4,7 +4,7 @@
 \documentclass{article}
 \usepackage{amsmath}
 \usepackage{graphicx}
-\usepackage{natbib}
+\usepackage[numbers]{natbib}
 \usepackage{color}
 
 \newcommand{\scscst}{\scriptscriptstyle}
@@ -47,7 +47,7 @@
 
 
 <<setup, echo=FALSE>>=
-options(width=80)
+options(width=70)
 @ 
 
 \begin{abstract}
@@ -141,130 +141,64 @@ estimates are available, these should be supplied to the
 illustration, in the following code chunk we transform the copy number
 estimates to the log scale and calculate a robust estimate of the
 standard deviation.  If uncertainty estimates are not available for copy
-number, the HMM will calculate robust estimates of the standard
-deviation as per the code chunk below (assigning confidence scores to
-the cnConfidence slot is only needed if estimates of uncertainty are
-available from the software used to obtain copy number estimates).
+number, the HMM will calculate the median absolute deviation (MAD).  See
+the the function \Robject{robustSds}.
 
 <<eval=FALSE>>=
-sds <- VanillaICE:::robustSds(log2(locusLevelData[["copynumber"]]/100))
-oligoSet2 <- new("oligoSnpSet",
-		copyNumber=log2(locusLevelData[["copynumber"]]/100),
-		cnConfidence=1/sds,
-		call=locusLevelData[["genotypes"]],
-		callProbability=locusLevelData[["crlmmConfidence"]],
-		annotation=locusLevelData[["platform"]])
+sds <- robustSds(log2(locusLevelData[["copynumber"]]/100))
 @ 
+\noindent The inverse of the \Robject{sds} object can be assigned to the
+\Robject{cnConfidence} slot.
 
 
 \section{Fitting the HMM}
 
-Several scenarios are outlined for fitting the HMM.  In particular, one
-may model the genotype and copy number estimates jointly, or each
-separately.  
+%Several scenarios are outlined for fitting the HMM.  In general, the
+%following elements are required to fit the HMM: initial state
+%probabilities, emission probabilities, and transition probabilities. 
+\subsection{Vanilla HMM}
 
-In general, the following elements are required to fit the HMM:
-\begin{enumerate}
-\item initial state probabilities
-\item emission probabilities
-\item transition probabilities
-\end{enumerate}
-\noindent Two approaches for computing the emission probabilities are
-available in the \R{} package \Rpackage{VanillaICE}.  One approach is to
-model the copy number estimates and genotype calls jointly to identify
-hemizygous deletions, normal copy number, retention of heterozygosity,
-and amplifications.  A second approach is to compute the emisson
-probabilities directly from the bivariate normal prediction regions for
-integer copy number on the log A versus log B scale \citep{Korn2008}.
-The latter approach is available only if the \crlmm{} package was used
-to preprocess the raw intensities.  See the crlmmDownstream vignette
-available with this package for additional information, and the
-technical report describing the estimation procedure for copy number in
-crlmm \citep{ScharpfCopyNumber}.  In the remainder of this vignette, we
-assume that alternative methods were used to obtain the total copy
-number and/or genotypes.
-
-\subsection{Joint HMM for genotype and total copy number} 
-
-For computing emission probabilities from genotype and total copy
-number, one can incorporate confidence estimates of the genotype calls
-if the CRLMM algorithm was used for genotyping \citep{Carvalho2007}.
-(The \R{} packages \crlmm{} and \oligo{} both implement the CRLMM
-genotyping algorithm.)  The \emph{vanilla} HMM does not use confidence
-scores for the genotype calls, whereas the \emph{ICE} HMM integrates the
-confidence estimates of the genotypes for computing the emission
-probabilities.
-
-\paragraph{The vanilla HMM.}
-
-In the following code chunk, we assume the hidden states are hemizygous
-deletion (hemDel; copy number = 1, probability of a homozygous genotype
-call is 0.999), normal (copy number = 2, probability of a homozygous
-genotype calls is 0.7), regions of homozygosity (ROH: copy number = 1,
-probability of a homozygous genotype call is 0.999), and amplification
-(copy number greater than 2).  The primary assumptions of the HMM are
-(1) that the copy number estimates are approximately Gaussian and (2)
-that the hidden state is an integer and the copy number estimates are
-relatively unbiased (though perhaps very noisy).  Transforming the
-estimates to the log-scale is often helpful.
+When jointly modeling the copy number and genotype data, we assume that
+the genotype estimates and copy number estimates are independent
+conditional on the underlying hidden state.  The emission probabilities
+for the genotypes are then calculated using either (i) assumptions of
+the probability of observing a homozygous genotype call given the
+underlying state. Note that the SNPs should be ordered by chromosome and
+physical position.
 
 <<logscale>>=
 copyNumber(oligoSet) <- log2(copyNumber(oligoSet))
-@ 
-
-The SNPs should be ordered by chromosome and physical position.
-
-<<reorder>>=
 oligoSet <- oligoSet[order(chromosome(oligoSet), position(oligoSet)), ]
+hmmOpts <- hmm.setup(oligoSet, 
+		     copynumberStates=log2(c(1, 2, 2, 3)),
+		     states=c("hem-del", "ROH", "normal", "amp"),
+		     normalIndex=3,
+		     log.initialP=rep(log(1/4), 4),
+		     prGenotypeHomozygous=c(0.99, 0.99, 0.7, 0.7))
 @ 
 
-The initial state probabilities, copy number states, and the
-probabilitiy of a homozygous genotype call for each state must be
-supplied as arguments to the \Rfunction{hmmOptions} function.
-
-<<hmmOpts_vanilla>>=
-hmmOpts <- hmmOptions(oligoSet, 
-		      copynumberStates=log2(c(1, 2, 2, 3)),
-		      states=c("hem-del", "ROH", "normal", "amp"),
-		      normalIndex=3,
-		      log.initialP=rep(log(1/4), 4),
-		      prGenotypeHomozygous=c(0.99, 0.99, 0.7, 0.7),
-		      TAUP=5e7)
+\noindent The log-scale emission probabilities:
+<<emission.gt>>=
+dim(hmmOpts$log.emission)
 @ 
-
-Note that specified hidden states for copy number should be on the same
-scale as the copy number estimates stored in the \Robject{oligoSet}
-object.  As we had log-transformed the copy number estimates, the above
-code chunk log transforms the copy number hidden states.  Again, the
-above code chunk assumes that the hidden states are integers and that
-the copy number estimates provide unbiased though noisy estimes of these
-parameters.  Depending on the software and platform used for obtaining
-locus-level estimates of copy number, one could specify noninteger
-hidden states in the above code chunk.  Conditional on the underlying
-hidden state, we assume that the copy number is independent of the
-genotype and we calculate the emission probabilities of each separately.
-The joint emission probabilities are simply the product of the emission
-probabilities for the genotype calls and copy number estimates.  
-
-The viterbi algorithm is used to obtain the most likely sequence of
-hidden states given the observed data.  For efficiency, we return an
-object of class \Robject{RangedData} with genomic coordinates of the
-normal and altered regions.  We also return the log-likelihood ratio
-(LLR) of the predicted sequence in an interval versus the null of normal
-copy number. For intervals with typical copy number (2) and percent
-heterozygosity (the 3rd state in the above codechunk), the LLR is zero.
+\noindent The viterbi algorithm is used to obtain the most likely
+sequence of hidden states given the observed data.  For efficiency, we
+return an object of class \Robject{RangedData} with genomic coordinates
+of the normal and altered regions.  We also return the log-likelihood
+ratio (LLR) of the predicted sequence in an interval versus the null of
+normal copy number. For intervals with typical copy number (2) and
+percent heterozygosity (the 3rd state in the above codechunk), the LLR
+is zero.
 
 <<fit_van>>=
 fit.van <- hmm(oligoSet, hmmOpts)
-fit.van
 @ 
 
-<<colorbrewer>>=
+
+
+<<fig2, fig=TRUE, width=8, echo=FALSE>>=
 library(RColorBrewer)
 cols <- brewer.pal(5, "YlOrBr")[2:5]
-@ 
-
-<<fig2, fig=TRUE, width=8>>=
 chr1 <- oligoSet[chromosome(oligoSet)==1,]
 fit.chr1 <- fit.van[space(fit.van)=="chr1", ]
 isHet <- snpCall(chr1)==2
@@ -285,30 +219,28 @@ for(i in 1:nrow(fit.chr1)){
 legend("topleft", fill=cols, legend=hmmOpts$states, bty="n")
 @ 
 
+\subsection{ICE HMM}
 
-\paragraph{The ICE HMM}.  When the CRLMM algorithm is used for
-genotyping, one should incorporate the confidence score of the
-genotypes.  In general, this involves estimating the probability that
-the genotype call was \emph{correct} from the reference HapMap data
-where a gold standard is available.  The probability of a correct call
-could vary by platform as well as the population, but here we assume
-such differences are small.  
+
+
+To compute emission probabilities that incorporate the \Rpackage{crlmm}
+genotype confidence scores, (i) set \Robject{ICE} to \texttt{TRUE} in
+the \Robject{hmm.setup} function and (ii) indicate which of the states
+are expected to be largely homozygous (\texttt{rohStates}).
 
 <<ice>>=
-# 2. ICE HMM, genotype and copy number
-hmmOpts <- hmmOptions(oligoSet, 
-		      ICE=TRUE,
-		      copynumberStates=log2(c(1, 2, 2, 3)),
-		      states=c("hem-del", "ROH", "normal", "amp"),
-		      normalIndex=3,
-		      log.initialP=rep(log(1/4), 4),
-		      rohStates=c(TRUE, TRUE, FALSE, FALSE),
-		      TAUP=5e7)
+hmmOpts <- hmm.setup(oligoSet, 
+		     ICE=TRUE,
+		     copynumberStates=log2(c(1, 2, 2, 3)),
+		     states=c("hem-del", "ROH", "normal", "amp"),
+		     normalIndex=3,
+		     log.initialP=rep(log(1/4), 4),
+		     rohStates=c(TRUE, TRUE, FALSE, FALSE))
+
 fit.ice <- hmm(oligoSet, hmmOpts)
-fit.ice
 @ 
 
-<<fig3, fig=TRUE, width=8>>=
+<<fig3, fig=TRUE, width=8, echo=FALSE>>=
 fit.chr1 <- fit.ice[space(fit.ice)=="chr1", ]
 widths <- width(fit.chr1)
 fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
@@ -329,49 +261,47 @@ legend("topleft", fill=cols, legend=hmmOpts$states, bty="n")
 @ 
 
 
+\subsection{Other options}
 
-\subsection{Copy number HMM}  A HMM for copy number only (e.g., if
+
+\paragraph{Copy number.} A HMM for copy number only (e.g., if
 genotypes are ignored or are unavailable) can be fit as follows.
 
 <<copyNumberOnly>>=
 cnSet <- new("CopyNumberSet",
 	     copyNumber=log2(locusLevelData[["copynumber"]]/100),
 	     annotation=locusLevelData[["platform"]])
-
 cnSet <- cnSet[order(chromosome(cnSet), position(cnSet)), ]
-hmmOpts <- hmmOptions(cnSet, 
+hmmOpts <- hmm.setup(cnSet, 
 		      copynumberStates=log2(c(0, 1, 2, 3)),
 		      states=c("hom-del", "hem-del", "normal", "amp"),
 		      normalIndex=3,
-		      log.initialP=rep(log(1/4), 4),
-		      TAUP=5e7)
+		      log.initialP=rep(log(1/4), 4))
 fit.cn <- hmm(cnSet, hmmOpts)
-fit.cn
 @ 
 
+%<<fig4, fig=TRUE, width=8>>=
+%fit.chr1 <- fit.cn[space(fit.cn)=="chr1", ]
+%widths <- width(fit.chr1)
+%fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
+%par(las=1)
+%plot(position(chr1), copyNumber(chr1), pch=".", ylab="log2 copy number", xlab="physical position", cex=2, col="royalblue")
+%points(position(chr1)[isHet], copyNumber(chr1)[isHet], col="red", pch=".", cex=2)
+%abline(h=log2(1:3), col="grey70")
+%sts <- start(fit.chr1); ends <- end(fit.chr1)
+%xx <- range(c(sts,ends))
+%y <- c(-1,-1,-0.9,-0.9)
+%polygon(x=c(xx, rev(xx)), y=y, col="white")
+%for(i in 1:nrow(fit.chr1)){
+%	polygon(x=c(sts[i], ends[i], ends[i], sts[i]),
+%		y=y, col=cols[fit.chr1$state[i]],
+%		border=cols[fit.chr1$state[i]])
+%}
+%legend("topleft", fill=cols, legend=hmmOpts$states, bty="n")
+%@ 
 
-<<fig4, fig=TRUE, width=8>>=
-fit.chr1 <- fit.cn[space(fit.cn)=="chr1", ]
-widths <- width(fit.chr1)
-fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
-par(las=1)
-plot(position(chr1), copyNumber(chr1), pch=".", ylab="log2 copy number", xlab="physical position", cex=2, col="royalblue")
-points(position(chr1)[isHet], copyNumber(chr1)[isHet], col="red", pch=".", cex=2)
-abline(h=log2(1:3), col="grey70")
-sts <- start(fit.chr1); ends <- end(fit.chr1)
-xx <- range(c(sts,ends))
-y <- c(-1,-1,-0.9,-0.9)
-polygon(x=c(xx, rev(xx)), y=y, col="white")
-for(i in 1:nrow(fit.chr1)){
-	polygon(x=c(sts[i], ends[i], ends[i], sts[i]),
-		y=y, col=cols[fit.chr1$state[i]],
-		border=cols[fit.chr1$state[i]])
-}
-legend("topleft", fill=cols, legend=hmmOpts$states, bty="n")
-@ 
-
-
-\subsection{Region of homozygosity (ROH) HMM} 
+\paragraph{Regions of homozygosity.}
+%\subsection{Region of homozygosity (ROH) HMM} 
 
 A HMM for genotype-only data can be used to find long stretches of
 homozygosity.  Note that hemizygous deletions are also identified as
@@ -379,27 +309,25 @@ homozygosity.  Note that hemizygous deletions are also identified as
 hemizygous deletions tends to be all homozygous calls).
 
 <<genotypesOnly>>=
-##library(VanillaICE)
-##ta(locusLevelData)
 snpSet <- new("SnpSet",
 	      call=locusLevelData[["genotypes"]],
 	      callProbability=locusLevelData[["crlmmConfidence"]],
 	      annotation=locusLevelData[["platform"]])
-## The initialization is defined in Biobase... add the annotation
 featureData(snpSet) <- addFeatureAnnotation(snpSet)
 fvarLabels(snpSet)
 snpSet <- snpSet[order(chromosome(snpSet), position(snpSet)), ]
-hmmOpts <- hmmOptions(snpSet, 
+hmmOpts <- hmm.setup(snpSet, 
 		      states=c("ROH", "normal"),
 		      normalIndex=2,
 		      log.initialP=rep(log(1/2), 2),
 		      prGenotypeHomozygous=c(0.99,0.7),
 		      TAUP=5e7)
 fit.gt <- hmm(snpSet, hmmOpts)
-fit.gt
 @ 
 
-<<fig5, fig=TRUE, width=8>>=
+\noindent A suggested visualization:
+
+<<fig5, fig=TRUE, width=8, echo=FALSE>>=
 fit.chr1 <- fit.gt[space(fit.gt)=="chr1", ]
 widths <- width(fit.chr1)
 fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
@@ -421,133 +349,50 @@ for(i in 1:nrow(fit.chr1)){
 legend("bottomleft", fill=cols, legend=hmmOpts$states, bty="n")
 @ 
 
+\section{Quality control}
 
+\subsection{Outliers}
 
-%\section{Copy number outliers}
-%
-%When true uncertainty estimates for the copy number are not available,
-%copy number outliers are more likely to result in extreme emission
-%probabilities than can influence the HMM segmentation. There are several
-%approaches to reducing the influence of outliers on the HMM
-%segmentation: (i) improved uncertainty estimates (preferred-- see the
-%\Rpackage{crlmm} package), (ii) increase \Robject{TAUP} for the
-%transition probabilities, (iii) threshold the emission probabilities,
-%and (iv) threshold extreme values for the copy number estimates.  For
-%example of (iii), one could do
-%
-%<<epsilon, eval=FALSE>>=
-%emission.cn[emission.cn[, , "normal"] < -10, , "normal"] <- -10
-%@ 
-%
-%\Robject{copynumberEmission} estimates the scale parameter for the
-%Normal distribution from the supplied data using the median absolute
-%deviation (MAD). However, different standard deviations can be supplied
-%by the user with the argument \Robject{sds}. The supplied \Robject{sds}
-%must be of the same dimension as the copy number matrix. The following
-%discussion elaborates briefly on the default procedure used to estimate
-%the standard deviations.
-%
-%In the example dataset, we have only one sample and no estimates of the
-%copy number uncertainty.  Therfore, we obtain a robust estimate of the
-%copy number standard deviation across SNPs and use this as a rough
-%estimate of the uncertainty.  As the log-transformed copy number
-%estimates are more nearly Gaussian, we calculate a robust estimate of
-%the standard deviation using the median absolute deviation (MAD) on the
-%log scale:
+Copy number outliers can cause the HMM to become too jumpy.  One
+approach to reduce the influence of outliers is to some
+\textit{light}-smoothing prior to fitting the HMM, as suggested in the
+\R{} package \texttt{DNAcopy}. For instance, one could identify outliers
+by some criteria and then average the outliers using the estimates from
+neigboring probes. Here, we use the defaults in \Robject{smooth.CNA}.
 
-%<<robustSds>>=
-%cn.sds <- VanillaICE:::robustSds(copyNumber(locusset), takeLog=TRUE)
-%dim(cn.sds)
-%@ 
-%
-%When multiple samples are available (e.g., 10 or more), SNP-specific
-%estimates of the copy number uncertainty can be obtained by scaling an
-%estimate of the variability across samples by a sample-specific estimate
-%of noise.  In the following code chunk, we simulate a matrix of copy
-%number for 200 samples and then compute a robust SNP-specific estimate
-%of the standard deviation.
-%
-%<<multipleSamples, eval=TRUE>>=
-%CT <- matrix(sample(copyNumber(locusset), 100*200, replace=TRUE), 100, 200)
-%sds <- VanillaICE:::robustSds(CT, takeLog=TRUE)
-%@ 
-%
-%The \Robject{robustSds} function returns a SNP-specific matrix of
-%standard deviations provided that the copy number matrix has at least 3
-%samples.  The {\it preferred} approach when the sample size is small
-%(say, less than 10), is to develop SNP-specific estimates of the
-%variance on a larger reference set, such as HapMap, using the same
-%software, and then scale these estimates by a measure of the sample
-%variance.
+<<smoothing>>=
+if(require("DNAcopy")){
+	##create an outlier
+	copyNumber(cnSet)[50] <- 10
+	copyNumber(cnSet)[45:55] 
+	cnaObj <- CNA(genomdat=copyNumber(cnSet), 
+		      chrom=chromosome(cnSet),
+		      maploc=position(cnSet), 
+		      data.type="logratio",
+		      sampleid=sampleNames(cnSet))
+	smoothed.cnaObj <- smooth.CNA(cnaObj)
+	copyNumber(cnSet) <- matrix(smoothed.cnaObj[[3]], nrow(cnSet),1)
+	copyNumber(cnSet)[50]
+}
+@
 
-%\subsection{Missing genotype calls}
-%
-%If any of the genotype calls are missing and missingness is not
-%independent of the underlying hidden state, one may specify the
-%probability of a missing genotype calls for each hidden state
-%(\texttt{probMissing}).  By default, the HMM will assume that missing
-%genotype calls are independent of the underlying hidden state.  In
-%particular, this assumption may not be reasonable for homozygous
-%deletions.  Again, the emph{preferred} approach is to use the confidence
-%scores provided by crlmm and the function
-%\Robject{genotypeEmissionCrlmm}.
-%
-%\subsection{Transition probabilities}
-%
-%The sequence of states that maximizes the likelihood is obtained by the
-%Viterbi algorithm.  Note that the argument \Robject{arm} to this
-%function is a factor indicating the chromosomal arms -- the Viterbi
-%algorithm is computed for independently for each chromosomal arm.  We
-%may scale the probability of transitioning between states by setting the
-%arguments \Robject{normal2altered}, \Robject{altered2normal}, and
-%\Robject{altered2altered}.  For example, to facilitate comparisons to
-%the Birdseye HMM \citep{Korn2008} one may pass the following arguments
-%to \Robject{viterbi}:
-%
-%<<fit, eval=FALSE>>=
-%fit <- viterbi(initialStateProbs=log(initialP),
-%	       emission=emission,
-%	       tau=tau[, "transitionPr"],
-%	       arm=tau[, "arm"], 
-%	       normalIndex=2,
-%	       normal2altered=0.005,
-%	       altered2normal=0.5,
-%	       altered2altered=0.0025)
-%@ 
-%
-%%\subsection{\emph{Smoothness}}
-%
-%The \Robject{TAUP} argument to the function
-%\Robject{transitionProbability} together with the above arguments to the
-%\Robject{viterbi} function can be used to control the 'smoothness' of
-%the resulting predictions.  In particular, higher values of
-%\Robject{TAUP} encourages fewer jumps.
+\noindent One could also increase the value of \Robject{TAUP} in the
+viterbi algorithm to encourage a fit with fewer jumps. Note that with
+improved estimates of copy number uncertainty, many of these
+\textit{post-hoc} approaches for addressing outliers would be less
+critical.
 
-%\section{Appendix}
-%
-%\subsection{Confidence scores for genotype calls.}
-%
-%The \Rfunction{CRLMM} (in the R package \Rpackage{oligo}) provides
-%confidence scores ($\pgte$) of the genotype estimates ($\gte$).  From
-%269 HapMap samples assayed on the Affymetrix 50k Xba and Hind chips, we
-%have a gold standard of the true genotype defined by the consensus of
-%the HapMap centers.  We use kernal-based density estimates to obtain
-%
-%{\scriptsize
-%\begin{eqnarray}
-%\label{ingo2}
-%f\left\{\ \pgtehom\ |\ \gtehom,\thom\ \right\},\
-%f\left\{\ \pgtehom\ |\ \gtehom,\thet\ \right\},\
-%f\left\{\ \pgtehet\ |\ \gtehet,\thom\ \right\},\ \mbox{~ and~}
-%f\left\{\ \pgtehet\ |\ \gtehet,\thet\ \right\}
-%\end{eqnarray}
-%}
-%
-%\noindent separately for the Xba and Hind 50k chips. The first term in
-%(\ref{ingo2}), for example, denotes the density of the scores when the
-%genotype is correctly called homozygous ($\gtehom$) and the true
-%genotype is homozygous ($\thom$). See \cite{Scharpf2008} for a more
-%complete description of the methods. 
+\subsection{Batch effects} See the technical report available from the
+author's website \citep{ScharpfCopyNumber}.
+
+\section{Alternatives}
+
+See the \texttt{crlmmDownstream} vignette located in \texttt{inst/test}
+for an alternative approach that computes emission probabilities
+directly on the bivariate normal log(A) versus log(B) space
+\citep{Korn2008}.  A technical report describing the estimation
+procedure for copy number in \Rpackage{crlmm} is available from the
+author's website \citep{ScharpfCopyNumber}.  
 
 \section{Session Information}
 

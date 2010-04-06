@@ -80,7 +80,7 @@ getChromosomeArm <- function(object){
 	data(chromosomeAnnotation, package="SNPchip", envir=environment())
 	chromosomeAnnotation <- as.matrix(chromosomeAnnotation)		
 	chrAnn <- chromosomeAnnotation
-	uchrom <- unique(integer2chromosome(chrom))
+	uchrom <- unique(SNPchip:::integer2chromosome(chrom))
 	chromosomeArm <- vector("list", length(uchrom))
 	positionList <- split(pos, chrom)
 	positionList <- positionList[match(unique(chrom), names(positionList))]
@@ -92,25 +92,32 @@ getChromosomeArm <- function(object){
 	chromosomeArm <- chromosomeArm+1 ##start at 1	
 }
 
-viterbi <- function(object, hmmOptions){
-	log.E <- hmmOptions[["log.emission"]]
+viterbi <- function(object,
+		    hmm.params,
+		    verbose=TRUE,
+		    normal2altered=1,
+		    altered2normal=1,
+		    altered2altered=1,
+		    TAUP=1e8){
+	log.E <- hmm.params[["log.emission"]]
 	sns <- colnames(log.E)
 	if(is.null(sns)) stop("no dimnames for log.emission")
-	log.initial <- hmmOptions[["log.initial"]]
+	log.initial <- hmm.params[["log.initial"]]
+
+	if(normal2altered <= 0) stop("normal2altered must be > 0")
+	if(altered2normal <= 0) stop("altered2normal must be > 0")
+	if(altered2altered <= 0) stop("altered2altered must be > 0")
+	
 	arm <- getChromosomeArm(object)
-	normalIndex <- hmmOptions[["normalIndex"]]
+	normalIndex <- hmm.params[["normalIndex"]]
 	if(normalIndex < 1 | normalIndex > dim(log.E)[[3]]){
-		stop("normalIndex in hmmOptions not valid")
+		stop("normalIndex in hmm.params not valid")
 	}
-	normal2altered=hmmOptions[["normal2altered"]]
-	altered2normal=hmmOptions[["altered2normal"]]
-	altered2altered=hmmOptions[["altered2altered"]]
 	c1 <- normal2altered
 	c2 <- altered2normal
 	c3 <- altered2altered
-	TAUP <- hmmOptions[["TAUP"]]
 	TT <- nrow(object)
-	states <- hmmOptions[["states"]]
+	states <- hmm.params[["states"]]
 	S <- length(states)
 	delta <- matrix(as.double(0), nrow=TT, ncol=S)
 	rangedData <- list()
@@ -159,7 +166,7 @@ viterbi <- function(object, hmmOptions){
 			lP.A2N <- log((1-p)*c2) ##probability altered -> normal
 			lP.A2Astar <- log((1-p)*c3) ## probability altered -> different altered state
 			##For each seqment, compute the likelihood ratio
-			names(log.initial) <- hmmOptions[["states"]]
+			names(log.initial) <- hmm.params[["states"]]
 			for(k in seq(along=starts)){
 				##if(any(LLR < 0)) browser()
 				index <- start(rl)[k]:end(rl)[k]
@@ -498,38 +505,27 @@ trioOptions <- function(opts,
 ##	}
 ##})
 
-hmmOptions <- function(object,
-		       states=paste("state", 1:length(copynumberStates), sep=""),
-		       ICE=FALSE,
-		       copyNumber=TRUE,
-		       copynumberStates=0:4,		       
-		       EMIT.THR=-10,
-		       scaleSds=TRUE,
-		       verbose=TRUE,
-		       log.initial=log(rep(1/length(states), length(states))),
-		       normalIndex=3,
-		       normal2altered=1,
-		       altered2normal=1,
-		       altered2altered=1,
-		       TAUP=1e8,
-		       save.it=TRUE,
-		       prGenotypeHomozygous=numeric(), ##only used when ICE=FALSE
-		       prGenotypeMissing=rep(1/length(states), length(states)), ##not applicable when ICE is TRUE (no NA's from crlmm genotypes)
-		       pHetCalledHom=0.001, ## ignored unless ICE is TRUE
-		       pHetCalledHet=0.995, ## ignored unless ICE is TRUE
-		       pHomInNormal=0.8,    ## ignored unless ICE is TRUE
-		       pHomInRoh=0.999, ## ignored unless ICE is TRUE
-		       rohStates=logical(), ## ignored unless ICE is TRUE
-		       log.emission=NULL,
-		       log.gt.emission=NULL,
-		       log.cn.emission=NULL,
-		       trioHmm=FALSE,
+hmm.setup <- function(object,
+		      states=paste("state", 1:length(copynumberStates), sep=""),
+		      ICE=FALSE,
+		      copyNumber=TRUE,
+		      copynumberStates=0:4,		       
+		      EMIT.THR=-10,
+		      scaleSds=TRUE,
+		      verbose=TRUE,
+		      log.initial=log(rep(1/length(states), length(states))),
+		      normalIndex=3,
+		      prGenotypeHomozygous=numeric(), ##only used when ICE=FALSE
+		      prGenotypeMissing=rep(1/length(states), length(states)), ##not applicable when ICE is TRUE (no NA's from crlmm genotypes)
+		      pHetCalledHom=0.001, ## ignored unless ICE is TRUE
+		      pHetCalledHet=0.995, ## ignored unless ICE is TRUE
+		      pHomInNormal=0.8,    ## ignored unless ICE is TRUE
+		      pHomInRoh=0.999, ## ignored unless ICE is TRUE
+		      rohStates=logical(), ## ignored unless ICE is TRUE
+		      trioHmm=FALSE,
 		       ...){  ## whether the save the emission probabilities
 	if(class(object) == "SnpSet") copyNumber <- FALSE
 	stopifnot(is.numeric(normalIndex))
-	if(normal2altered <= 0) stop("normal2altered must be > 0")
-	if(altered2normal <= 0) stop("altered2normal must be > 0")
-	if(altered2altered <= 0) stop("altered2altered must be > 0")
 	if(ICE){
 		##check with crlmm confidence scores for this platform are available
 		if(length(annotation(object)) < 1){
@@ -545,14 +541,8 @@ hmmOptions <- function(object,
 		     copyNumber=copyNumber,
 		     EMIT.THR=EMIT.THR,
 		     scaleSds=scaleSds,
-		     verbose=verbose,
 		     log.initial=log.initial,
 		     normalIndex=normalIndex,
-		     normal2altered=normal2altered,
-		     altered2normal=altered2normal,
-		     altered2altered=altered2altered,
-		     TAUP=TAUP,
-		     save.it=save.it,
 		     prGenotypeHomozygous=prGenotypeHomozygous,
 		     prGenotypeMissing=prGenotypeMissing,
 		     pHetCalledHom=pHetCalledHom,
@@ -560,9 +550,10 @@ hmmOptions <- function(object,
 		     pHomInNormal=pHomInNormal,
 		     pHomInRoh=pHomInRoh,
 		     rohStates=rohStates,
-		     log.emission=log.emission,
-		     log.gt.emission=log.gt.emission,
-		     log.cn.emission=log.cn.emission,
+		     log.emission=NULL,
+		     log.gt.emission=NULL,
+		     log.cn.emission=NULL,
+		     verbose=verbose,
 		     ...)	
 	if(trioHmm){
 		opts <- trioOptions(opts)
@@ -720,8 +711,10 @@ viterbiR <- function(emission, initialP, tau, arm){
 ##setMethod("hmm", "CopyNumberSet", function(object, hmmOptions){
 ##	viterbi(object, hmmOptions)
 ##})
-hmm <- function(object, hmmOptions){
-	viterbi(object, hmmOptions)
+hmm <- function(object, hmm.params, ...){
+	if(missing(hmm.params)) stop("missing hmm.params.  See hmm.setup")
+	if(missing(object)) stop("missing object.")
+	viterbi(object, hmm.params, ...)
 }
 
 

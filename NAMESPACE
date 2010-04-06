@@ -13,32 +13,37 @@ importFrom(methods, "@<-", callNextMethod, new, validObject)
 ##importMethodsFrom(oligoClasses, copyNumber)
 
 ##importMethodsFrom(crlmm, copyNumber, A, B)
-
-importFrom(SNPchip, integer2chromosome)
+##importFrom(SNPchip, integer2chromosome)
 importFrom(stats, update)
-export(calculateEmission.oligoSnpSet,
-       calculateEmission.copynumber,
-       calculateEmission.CNSet,
-       genotypeEmissionCrlmm,
-       getEmission.nps,
-       getEmission.snps,
-       getEmission,
-       hmm,
-       hmmOptions,
-       robustSds,
-       viterbi,
-       viterbi.wrapper,
-       getChromosomeArm)
-exportMethods(calculateEmission, hmm)
+
+
+export(hmm, hmm.setup, robustSds)
+
+##export(calculateEmission.oligoSnpSet,
+##       calculateEmission.copynumber,
+##       calculateEmission.CNSet,
+##       genotypeEmissionCrlmm,
+##       getEmission.nps,
+##       getEmission.snps,
+##       getEmission,
+##       hmm,
+##       hmmOptions,
+##       robustSds,
+##       viterbi,
+##       viterbi.wrapper,
+##       getChromosomeArm)
+##exportMethods(calculateEmission, hmm)
 
 ##with crlmm output
-exportMethods(computeHmm)
-exportMethods(computeEmission)
-export(computeHmm.CNSet,
-       trioOptions,	
-       hmm.SnpSuperSet,
-       computeBpiEmission.SnpSuperSet,
-       isBiparental.matrix,
-       isBiparental.SnpSuperSet,
-       calculateEmission.CopyNumberSet)
+##exportMethods(computeHmm)
+##exportMethods(computeEmission)
+##export(
+##       trioOptions,	
+##       hmm.SnpSuperSet,
+##       computeBpiEmission.SnpSuperSet,
+##       isBiparental.matrix,
+##       isBiparental.SnpSuperSet,
+##       calculateEmission.CopyNumberSet)
+
+##export(computeHmm.CNSet)
        

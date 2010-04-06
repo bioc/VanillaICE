@@ -522,47 +522,47 @@ isBiparental.matrix <- function(object, allowHetParent=TRUE){
 	return(biparental)
 }
 
-computeHmm.CNSet <- function(object, cnOptions){
-	hmmOptions <- cnOptions[["hmmOpts"]]
-	object <- object[order(chromosome(object), position(object)), ]
-	##emission <- hmmOptions[["emission"]]
-	chrom <- unique(chromosome(object))
-##	tPr <- transitionProbability(chromosome=chromosome(object),
-##				     position=position(object),
-##				     TAUP=hmmOptions[["TAUP"]])
-##	emissionPr(object) <- computeEmission(object, hmmOptions)
-	rangedData(object) <- viterbi.CNSet(object,
-					    hmmOptions=hmmOptions,
-					    transitionPr=tPr[, "transitionPr"],
-					    chromosomeArm=tPr[, "arm"])
-	return(object)
-}
+##computeHmm.CNSet <- function(object, cnOptions){
+##	hmmOptions <- cnOptions[["hmmOpts"]]
+##	object <- object[order(chromosome(object), position(object)), ]
+##	##emission <- hmmOptions[["emission"]]
+##	chrom <- unique(chromosome(object))
+####	tPr <- transitionProbability(chromosome=chromosome(object),
+####				     position=position(object),
+####				     TAUP=hmmOptions[["TAUP"]])
+####	emissionPr(object) <- computeEmission(object, hmmOptions)
+##	rangedData(object) <- viterbi.CNSet(object,
+##					    hmmOptions=hmmOptions,
+##					    transitionPr=tPr[, "transitionPr"],
+##					    chromosomeArm=tPr[, "arm"])
+##	return(object)
+##}
 
-viterbi.CNSet <- function(object, hmmOptions, transitionPr, chromosomeArm){
-	state.sequence <- viterbi(object,
-				  hmmOptions)
-##				  emission=emissionPr(object),
-####				  tau=transitionPr,
-##				  initialStateProbs=hmmOptions[["log.initial"]],
-##				  arm=chromosomeArm,
-##				  normalIndex=hmmOptions[["normalIndex"]],
-##				  normal2altered=hmmOptions[["normal2altered"]],
-##				  altered2normal=hmmOptions[["altered2normal"]],
-##				  altered2altered=hmmOptions[["altered2altered"]])
-	state.sequence <- data.frame(state.sequence)
-	rleList <- RleList(state.sequence)
-	rd <- RangedData(rleList)
-##	rdList <- vector("list", length(rle.object))
-##	for(i in seq(along=rdList)){
-##		rdList[[i]] <- RangedData(rle.object[[i]],
-##					  space=paste("chr", transitionPr[, "chromosome"], sep=""),
-##					  state=runValue(rle.object[[i]]),
-##					  sample=sampleNames(object)[i],
-##					  nprobes=runLength(rle.object[[i]]))
-##	}
-##	rangedData <- do.call("c", rdList)
-	return(rd)
-}
+##viterbi.CNSet <- function(object, hmmOptions, transitionPr, chromosomeArm){
+##	state.sequence <- viterbi(object,
+##				  hmmOptions)
+####				  emission=emissionPr(object),
+######				  tau=transitionPr,
+####				  initialStateProbs=hmmOptions[["log.initial"]],
+####				  arm=chromosomeArm,
+####				  normalIndex=hmmOptions[["normalIndex"]],
+####				  normal2altered=hmmOptions[["normal2altered"]],
+####				  altered2normal=hmmOptions[["altered2normal"]],
+####				  altered2altered=hmmOptions[["altered2altered"]])
+##	state.sequence <- data.frame(state.sequence)
+##	rleList <- RleList(state.sequence)
+##	rd <- RangedData(rleList)
+####	rdList <- vector("list", length(rle.object))
+####	for(i in seq(along=rdList)){
+####		rdList[[i]] <- RangedData(rle.object[[i]],
+####					  space=paste("chr", transitionPr[, "chromosome"], sep=""),
+####					  state=runValue(rle.object[[i]]),
+####					  sample=sampleNames(object)[i],
+####					  nprobes=runLength(rle.object[[i]]))
+####	}
+####	rangedData <- do.call("c", rdList)
+##	return(rd)
+##}
 
 calculateEmission.CNSet <- function(object, hmmOptions){
 	EMIT.THR <- hmmOptions[["EMIT.THR"]]
@@ -608,10 +608,11 @@ getEmission.nps <- function(object, hmmOptions){
 	verbose <- hmmOptions[["verbose"]]
 	if(verbose) message("Computing emission probabilities for nonpolymorphic loci.")
 	if(scaleSds){
-		a <- log2(CA(object))
-		sds.a <- apply(a, 2, mad, na.rm=TRUE)
-		sds.a <- sds.a/median(sds.a)
-		sds.a[sds.a < 1] <- 1
+		##a <- log2(CA(object))
+		##sds.a <- apply(a, 2, mad, na.rm=TRUE)
+		##sds.a <- sds.a/median(sds.a)
+		sds.a <- robustSds(log2(CA(object)))
+		##sds.a[sds.a < 1] <- 1
 		sds.a <- matrix(sds.a, nrow(object), ncol(object), byrow=TRUE)
 	} else sds.a <- matrix(0, nrow(object), ncol(object))	
 	emissionProbs <- array(NA, dim=c(nrow(object),
@@ -652,10 +653,11 @@ getEmission.snps <- function(object, hmmOptions){
 	verbose <- hmmOptions[["verbose"]]
 	if(verbose) message("Computing emission probabilities for polymorphic loci.")	
 	if(scaleSds){
-		a <- log2(CA(object) + CB(object))
-		sds.a <- apply(a, 2, mad, na.rm=TRUE)
-		sds.a <- sds.a/median(sds.a)
-		sds.a[sds.a < 1] <- 1
+		##a <- log2(CA(object) + CB(object))
+		##sds.a <- apply(a, 2, mad, na.rm=TRUE)
+		##sds.a <- sds.a/median(sds.a)
+		sds.a <- robustSds(log2(CA(object) + CB(object)))
+		##sds.a[sds.a < 1] <- 1
 		sds.a <- matrix(sds.a, nrow(object), ncol(object), byrow=TRUE)
 	} else sds.a <- sds.b <- matrix(0, nrow(object), ncol(object))
 	emissionProbs <- array(NA, dim=c(nrow(object),
@@ -717,26 +719,26 @@ setMethod("calculateEmission", "CNSet", function(object, hmmOptions){
 	calculateEmission.CNSet(object, hmmOptions)
 })
 
-setMethod("computeEmission", "character", function(object, hmmOptions){
-	filename <- object
-	chrom <- gsub(".rda", "", strsplit(filename, "_")[[1]][[2]])
-	if(hmmOptions[["verbose"]])
-		message("Compute emission probabilities for chromosome ", chrom)
-	if(file.exists(filename)){
-		load(filename)
-		cnSet <- get("cnSet")
-	} else {
-		stop("File ", filename, " does not exist.")
-	}
-	emission <- computeEmission(cnSet, hmmOptions)
-	message("Saving ", file.path(dirname(filename), paste("emission_", chrom, ".rda", sep="")))
-	if(hmmOptions[["save.it"]]){
-		save(emission,
-		     file=file.path(dirname(filename), paste("emission_", chrom, ".rda", sep="")))
-	}
-	return(emission)
-})
+##setMethod("computeEmission", "character", function(object, hmmOptions){
+##	filename <- object
+##	chrom <- gsub(".rda", "", strsplit(filename, "_")[[1]][[2]])
+##	if(hmmOptions[["verbose"]])
+##		message("Compute emission probabilities for chromosome ", chrom)
+##	if(file.exists(filename)){
+##		load(filename)
+##		cnSet <- get("cnSet")
+##	} else {
+##		stop("File ", filename, " does not exist.")
+##	}
+##	emission <- computeEmission(cnSet, hmmOptions)
+##	message("Saving ", file.path(ldPath(), paste("emission_", chrom, ".rda", sep="")))
+##	if(hmmOptions[["save.it"]]){
+##		save(emission,
+##		     file=file.path(ldPath(), paste("emission_", chrom, ".rda", sep="")))
+##	}
+##	return(emission)
+##})
 
-setMethod("computeHmm", "CNSet", function(object, hmmOptions){
-	computeHmm.CNSet(object, hmmOptions)
-})
+##setMethod("computeHmm", "CNSet", function(object, hmmOptions){
+##	computeHmm.CNSet(object, hmmOptions)
+##})

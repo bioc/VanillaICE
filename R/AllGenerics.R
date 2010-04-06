@@ -1,7 +1,4 @@
 setGeneric("calculateEmission", function(object, ...) standardGeneric("calculateEmission"))
-setGeneric("hmm", function(object, ...) standardGeneric("hmm"))
-##setGeneric("transitionProbability", function(object, ...) standardGeneric("transitionProbability"))
-##setGeneric("breaks", function(x, ...) standardGeneric("breaks"))
 setGeneric("computeEmission", function(object, hmmOptions) standardGeneric("computeEmission"))
 setGeneric("computeHmm", function(object, hmmOptions) standardGeneric("computeHmm"))
 setGeneric("emissionPr", function(object) standardGeneric("emissionPr"))
