@@ -47,3 +47,4 @@ export(hmm, hmm.setup, robustSds)
 
 ##export(computeHmm.CNSet)
        
+export(viterbi)
