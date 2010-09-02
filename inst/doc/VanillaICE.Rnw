@@ -48,13 +48,13 @@
 
 <<setup, echo=FALSE>>=
 options(width=70)
-@ 
+@
 
 \begin{abstract}
   This package provides an implementation of a hidden Markov Model for
   high throughput SNP arrays.  Users of this package should already have
   available locus-level estimates of copy number.  Copy number estimates
-  can be relative or absolute. 
+  can be relative or absolute.
 \end{abstract}
 
 \section{Overview}
@@ -62,39 +62,39 @@ options(width=70)
 This vignette requires that you have
 
 \begin{itemize}
-  
+
 \item an absolute estimate of the \emph{total} copy number organized
   such that rows correspond to loci and columns correspond to samples
-  
+
   and / or
-    
+
 \item a matrix of genotype calls  (1=AA, 2 = AB, 3= BB): rows correspond
   to loci and columns correspond to samples
-    
+
 \end{itemize}
-  
+
 \noindent Additional options that can improve the HMM predictions
 include
 
 \begin{itemize}
-    
+
   \item a CRLMM confidence score of the genotype call
-    
+
   \item standard errors of the copy number estimates
-    
+
   \end{itemize}
 
   \noindent Other HMM implementations are available for the joint
   analysis of copy number and genotype, including QuantiSNP
-  \citep{Colella2007} and PennCNV \citep{Wang2007a}.  
-  
+  \citep{Colella2007} and PennCNV \citep{Wang2007a}.
+
   \paragraph{Data considerations.}  The HMM implemented in this package
   is most relevant for heritable diseases for which integer copy numbers
   are expected. For somatic cell diseases such as cancer, we suggest
   circular binary segmentation, as implemented in the \R{} package
   DNAcopy \citep{Olshen2004}.
 
-\paragraph{Citing this software.} 
+\paragraph{Citing this software.}
 % \bibitem{Scharpf2008}
 Robert~B Scharpf, Giovanni Parmigiani, Jonathan Pevsner, and Ingo Ruczinski.
 \newblock Hidden {M}arkov models for the assessment of chromosomal alterations
@@ -110,7 +110,7 @@ approximately 9165 SNPs on chromosome 1 and 100 SNPs on chromosome 2.
 <<data>>=
 library(VanillaICE)
 data(locusLevelData)
-@ 
+@
 
 \noindent (The copy number estimates in the locusLevelData object were
 multiplied by 100 and saved as an integer.) Verify that it is reasonable
@@ -121,7 +121,7 @@ estimates as a function of the physical position.
 par(las=1)
 plot(locusLevelData[["copynumber"]][, 1]/100, pch=".", ylab="copy number", log="y")
 abline(h=1:3, col="grey70")
-@ 
+@
 
 \noindent Next, create an object of
 class \Robject{oligoSnpSet} from the simulated data:
@@ -133,7 +133,7 @@ oligoSet <- new("oligoSnpSet",
 		call=locusLevelData[["genotypes"]],
 		callProbability=locusLevelData[["crlmmConfidence"]],
 		annotation=locusLevelData[["platform"]])
-@ 
+@
 
 If confidence scores or inverse standard errors for the copy number
 estimates are available, these should be supplied to the
@@ -146,7 +146,7 @@ the the function \Robject{robustSds}.
 
 <<eval=FALSE>>=
 sds <- robustSds(log2(locusLevelData[["copynumber"]]/100))
-@ 
+@
 \noindent The inverse of the \Robject{sds} object can be assigned to the
 \Robject{cnConfidence} slot.
 
@@ -155,7 +155,7 @@ sds <- robustSds(log2(locusLevelData[["copynumber"]]/100))
 
 %Several scenarios are outlined for fitting the HMM.  In general, the
 %following elements are required to fit the HMM: initial state
-%probabilities, emission probabilities, and transition probabilities. 
+%probabilities, emission probabilities, and transition probabilities.
 \subsection{Vanilla HMM}
 
 When jointly modeling the copy number and genotype data, we assume that
@@ -169,18 +169,18 @@ physical position.
 <<logscale>>=
 copyNumber(oligoSet) <- log2(copyNumber(oligoSet))
 oligoSet <- oligoSet[order(chromosome(oligoSet), position(oligoSet)), ]
-hmmOpts <- hmm.setup(oligoSet, 
+hmmOpts <- hmm.setup(oligoSet,
 		     copynumberStates=log2(c(1, 2, 2, 3)),
 		     states=c("hem-del", "ROH", "normal", "amp"),
 		     normalIndex=3,
 		     log.initialP=rep(log(1/4), 4),
 		     prGenotypeHomozygous=c(0.99, 0.99, 0.7, 0.7))
-@ 
+@
 
 \noindent The log-scale emission probabilities:
 <<emission.gt>>=
 dim(hmmOpts$log.emission)
-@ 
+@
 \noindent The viterbi algorithm is used to obtain the most likely
 sequence of hidden states given the observed data.  For efficiency, we
 return an object of class \Robject{RangedData} with genomic coordinates
@@ -192,7 +192,7 @@ is zero.
 
 <<fit_van>>=
 fit.van <- hmm(oligoSet, hmmOpts)
-@ 
+@
 
 
 
@@ -200,7 +200,7 @@ fit.van <- hmm(oligoSet, hmmOpts)
 library(RColorBrewer)
 cols <- brewer.pal(5, "YlOrBr")[2:5]
 chr1 <- oligoSet[chromosome(oligoSet)==1,]
-fit.chr1 <- fit.van[space(fit.van)=="chr1", ]
+fit.chr1 <- fit.van[fit.van$chrom==1, ]
 isHet <- snpCall(chr1)==2
 par(las=1)
 plot(position(chr1), copyNumber(chr1), pch=".", cex=2, col="royalblue",
@@ -217,7 +217,7 @@ for(i in 1:nrow(fit.chr1)){
 		border=cols[fit.chr1$state[i]])
 }
 legend("topleft", fill=cols, legend=hmmOpts$states, bty="n")
-@ 
+@
 
 \subsection{ICE HMM}
 
@@ -229,7 +229,7 @@ the \Robject{hmm.setup} function and (ii) indicate which of the states
 are expected to be largely homozygous (\texttt{rohStates}).
 
 <<ice>>=
-hmmOpts <- hmm.setup(oligoSet, 
+hmmOpts <- hmm.setup(oligoSet,
 		     ICE=TRUE,
 		     copynumberStates=log2(c(1, 2, 2, 3)),
 		     states=c("hem-del", "ROH", "normal", "amp"),
@@ -238,10 +238,10 @@ hmmOpts <- hmm.setup(oligoSet,
 		     rohStates=c(TRUE, TRUE, FALSE, FALSE))
 
 fit.ice <- hmm(oligoSet, hmmOpts)
-@ 
+@
 
 <<fig3, fig=TRUE, width=8, echo=FALSE>>=
-fit.chr1 <- fit.ice[space(fit.ice)=="chr1", ]
+fit.chr1 <- fit.ice[fit.ice$chrom==1, ]
 widths <- width(fit.chr1)
 fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
 par(las=1)
@@ -258,7 +258,7 @@ for(i in 1:nrow(fit.chr1)){
 		border=cols[fit.chr1$state[i]])
 }
 legend("topleft", fill=cols, legend=hmmOpts$states, bty="n")
-@ 
+@
 
 
 \subsection{Other options}
@@ -272,13 +272,13 @@ cnSet <- new("CopyNumberSet",
 	     copyNumber=log2(locusLevelData[["copynumber"]]/100),
 	     annotation=locusLevelData[["platform"]])
 cnSet <- cnSet[order(chromosome(cnSet), position(cnSet)), ]
-hmmOpts <- hmm.setup(cnSet, 
+hmmOpts <- hmm.setup(cnSet,
 		      copynumberStates=log2(c(0, 1, 2, 3)),
 		      states=c("hom-del", "hem-del", "normal", "amp"),
 		      normalIndex=3,
 		      log.initialP=rep(log(1/4), 4))
 fit.cn <- hmm(cnSet, hmmOpts)
-@ 
+@
 
 %<<fig4, fig=TRUE, width=8>>=
 %fit.chr1 <- fit.cn[space(fit.cn)=="chr1", ]
@@ -298,10 +298,10 @@ fit.cn <- hmm(cnSet, hmmOpts)
 %		border=cols[fit.chr1$state[i]])
 %}
 %legend("topleft", fill=cols, legend=hmmOpts$states, bty="n")
-%@ 
+%@
 
 \paragraph{Regions of homozygosity.}
-%\subsection{Region of homozygosity (ROH) HMM} 
+%\subsection{Region of homozygosity (ROH) HMM}
 
 A HMM for genotype-only data can be used to find long stretches of
 homozygosity.  Note that hemizygous deletions are also identified as
@@ -316,19 +316,19 @@ snpSet <- new("SnpSet",
 featureData(snpSet) <- addFeatureAnnotation(snpSet)
 fvarLabels(snpSet)
 snpSet <- snpSet[order(chromosome(snpSet), position(snpSet)), ]
-hmmOpts <- hmm.setup(snpSet, 
+hmmOpts <- hmm.setup(snpSet,
 		      states=c("ROH", "normal"),
 		      normalIndex=2,
 		      log.initialP=rep(log(1/2), 2),
 		      prGenotypeHomozygous=c(0.99,0.7),
 		      TAUP=5e7)
 fit.gt <- hmm(snpSet, hmmOpts)
-@ 
+@
 
 \noindent A suggested visualization:
 
 <<fig5, fig=TRUE, width=8, echo=FALSE>>=
-fit.chr1 <- fit.gt[space(fit.gt)=="chr1", ]
+fit.chr1 <- fit.gt[fit.gt$chrom==1, ]
 widths <- width(fit.chr1)
 fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
 gt <- ifelse(snpCall(chr1) == 1 | snpCall(chr1) == 3, 1, 0)
@@ -347,7 +347,7 @@ for(i in 1:nrow(fit.chr1)){
 		border=cols[fit.chr1$state[i]])
 }
 legend("bottomleft", fill=cols, legend=hmmOpts$states, bty="n")
-@ 
+@
 
 \section{Quality control}
 
@@ -364,10 +364,10 @@ neigboring probes. Here, we use the defaults in \Robject{smooth.CNA}.
 if(require("DNAcopy")){
 	##create an outlier
 	copyNumber(cnSet)[50] <- 10
-	copyNumber(cnSet)[45:55] 
-	cnaObj <- CNA(genomdat=copyNumber(cnSet), 
+	copyNumber(cnSet)[45:55]
+	cnaObj <- CNA(genomdat=copyNumber(cnSet),
 		      chrom=chromosome(cnSet),
-		      maploc=position(cnSet), 
+		      maploc=position(cnSet),
 		      data.type="logratio",
 		      sampleid=sampleNames(cnSet))
 	smoothed.cnaObj <- smooth.CNA(cnaObj)
@@ -392,7 +392,7 @@ for an alternative approach that computes emission probabilities
 directly on the bivariate normal log(A) versus log(B) space
 \citep{Korn2008}.  A technical report describing the estimation
 procedure for copy number in \Rpackage{crlmm} is available from the
-author's website \citep{ScharpfCopyNumber}.  
+author's website \citep{ScharpfCopyNumber}.
 
 \section{Session Information}
 
@@ -401,7 +401,7 @@ were:
 
 <<echo=FALSE, results=tex>>=
 toLatex(sessionInfo())
-@  
+@
 
 \bibliography{ice}{}
 \bibliographystyle{plain}
