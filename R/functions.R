@@ -260,7 +260,8 @@ viterbi <- function(object,
 			states <- viterbiSequence[start.index]
 			ir <- IRanges(start=start, end=end)
 			rD[[a]] <- RangedData(ir,
-					      space=rep(paste("chr", unique(chromosome(object)[I]), sep=""), length(ir)),
+					      ##space=rep(paste("chr", unique(chromosome(object)[I]), sep=""), length(ir)),
+					      chrom=rep(unique(chromosome(object)[I]), length(ir)),
 					      ##sampleId=sampleNames(object)[j],
 					      sampleId=colnames(log.E)[j],
 					      state=states,
@@ -286,17 +287,17 @@ viterbi <- function(object,
 	state <- unlist(lapply(rangedData, function(x) x$state))
 	numMarkers <- unlist(lapply(rangedData, function(x) x$numMarkers))
 	LLR <- unlist(lapply(rangedData, function(x) x$LLR))
-	chr <- unlist(lapply(rangedData, function(x) space(x)))
+	chr <- unlist(lapply(rangedData, function(x) x$chrom))
 	starts <- unlist(lapply(rangedData, start))
 	ends <- unlist(lapply(rangedData, end))
 	ir <- IRanges(start=starts, end=ends)
-	rangedData <- RangedData(ir, space=chr,
+	rangedData <- RangedData(ir,
+				 chrom=chr,
 				 sampleId=sampleId,
 				 state=state,
 				 numMarkers=numMarkers,
 				 LLR=LLR)
 	return(rangedData)			
-
 }
 
 
