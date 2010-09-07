@@ -371,7 +371,7 @@ if(require("DNAcopy")){
 		      data.type="logratio",
 		      sampleid=sampleNames(cnSet))
 	smoothed.cnaObj <- smooth.CNA(cnaObj)
-	copyNumber(cnSet) <- matrix(smoothed.cnaObj[[3]], nrow(cnSet),1)
+	copyNumber(cnSet) <- matrix(smoothed.cnaObj@genomdat, nrow(cnSet),1)
 	copyNumber(cnSet)[50]
 }
 @
@@ -382,17 +382,18 @@ improved estimates of copy number uncertainty, many of these
 \textit{post-hoc} approaches for addressing outliers would be less
 critical.
 
-\subsection{Batch effects} See the technical report available from the
-author's website \citep{ScharpfCopyNumber}.
+\subsection{Batch effects} \Rpackage{VanillaICE} can be used in
+conjunction with the \Rpackage{crlmm} package to reduce batch
+effects. See \citep{Scharpf2010} for details regarding the
+\Rpackage{crlmm} package.
 
-\section{Alternatives}
-
-See the \texttt{crlmmDownstream} vignette located in \texttt{inst/test}
-for an alternative approach that computes emission probabilities
-directly on the bivariate normal log(A) versus log(B) space
-\citep{Korn2008}.  A technical report describing the estimation
-procedure for copy number in \Rpackage{crlmm} is available from the
-author's website \citep{ScharpfCopyNumber}.
+%\section{Alternatives}
+%
+%See the \texttt{crlmmDownstream} vignette located in
+%\texttt{inst/test} for an alternative approach that computes emission
+%probabilities directly on the bivariate normal log(A) versus log(B)
+%space \citep{Korn2008}. The estimation procedure for copy number in
+%\Rpackage{crlmm} is described elsewhere \citep{Scharpf2010}.
 
 \section{Session Information}
 
