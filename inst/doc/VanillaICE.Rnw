@@ -371,7 +371,7 @@ if(require("DNAcopy")){
 		      data.type="logratio",
 		      sampleid=sampleNames(cnSet))
 	smoothed.cnaObj <- smooth.CNA(cnaObj)
-	copyNumber(cnSet) <- matrix(smoothed.cnaObj@genomdat, nrow(cnSet),1)
+	copyNumber(cnSet) <- matrix(smoothed.cnaObj[, "NA06993"], nrow(cnSet), 1)
 	copyNumber(cnSet)[50]
 }
 @
