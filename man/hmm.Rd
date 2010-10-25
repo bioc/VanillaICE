@@ -21,7 +21,7 @@ altered2altered=1, TAUP=1e8)
 
 \item{hmm.params}{List. See \code{hmm.setup}}
 
-\item{verbose}{Logical.  Whether to display all messages and warnings.}	
+\item{verbose}{Logical.  Whether to display all messages and warnings.}
 
 \item{normal2altered}{Numeric. Factor for scaling the probability of transitioning
 	      from the normal state to an altered state}
@@ -49,12 +49,12 @@ altered2altered=1, TAUP=1e8)
 }
 
 \details{
-  
+
 }
 
 \value{
 
-	An object of class \code{RangedData}.	
+	An object of class \code{RangedData}.
 
 }
 
@@ -69,22 +69,21 @@ altered2altered=1, TAUP=1e8)
   }
 
 \examples{
-
 data(locusLevelData)
 oligoSet <- new("oligoSnpSet",
 		copyNumber=log2(locusLevelData[["copynumber"]]/100),
 		call=locusLevelData[["genotypes"]],
 		callProbability=locusLevelData[["crlmmConfidence"]],
 		annotation=locusLevelData[["platform"]])
+oligoSet <- oligoSet[!is.na(chromosome(oligoSet)), ]
 oligoSet <- oligoSet[order(chromosome(oligoSet), position(oligoSet)),]
-hmmOpts <- hmm.setup(oligoSet, 
+hmmOpts <- hmm.setup(oligoSet,
 		     copynumberStates=log2(c(1, 2, 2, 3)),
 		     states=c("hem-del", "ROH", "normal", "amp"),
 		     normalIndex=3,
 		     log.initialP=rep(log(1/4), 4),
 		     prGenotypeHomozygous=c(0.99, 0.99, 0.7, 0.7))
 fit <- hmm(oligoSet, hmmOpts, TAUP=5e7)
-
 ## Useful accessors for RangedData
 tmp <- ranges(fit)
 start(fit)
