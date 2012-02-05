@@ -1,11 +1,83 @@
-%\VignetteIndexEntry{Smoothing copy number estimates from crlmm}
-%\VignetteDepends{}
-%\VignetteKeywords{crlmm, SNP 6, copy number, cnv}
+%\VignetteIndexEntry{crlmmDownstream}
+%\VignetteKeywords{copy number, genotype, SNP}
 %\VignettePackage{VanillaICE}
-
-%%% The real .Rnw is under inst/scripts.
-%%% It cannot be added here because it depends on external
-%%% data not yet available as a BioC package
 \documentclass{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[numbers]{natbib}
+\usepackage{color}
+\usepackage[margin=1in]{geometry}
+
+\newcommand{\scscst}{\scriptscriptstyle}
+\newcommand{\scst}{\scriptstyle}
+\newcommand{\Rpackage}[1]{\textit{#1}}
+\newcommand{\Rfunction}[1]{\texttt{#1}}
+\newcommand{\Robject}[1]{\texttt{#1}}
+\newcommand{\Rclass}[1]{\texttt{#1}}
+\newcommand{\R}{\textsf{R}}
+\newcommand{\hmmoptions}{\Robject{HmmOptions}}
+\newcommand{\hmmparam}{\Robject{HmmParameter}}
+\newcommand{\crlmm}{\Rpackage{crlmm}}
+\newcommand{\oligo}{\Rpackage{oligo}}
+
+\title{Integration with the crlmm package for copy number inference}
+\author{Robert Scharpf}
+
 \begin{document}
+
+\maketitle
+
+We load a portion of chromosome 8 from 2 HapMap samples that were
+processed using the \Rpackage{crlmm}.
+
+<<loadData>>=
+library(VanillaICE)
+data(cnSetExample, package="crlmm")
+@
+
+The data \Robject{cnSetExample} is an object of class \Rclass{CNSet}.
+We coerce the \Rclass{CNSet} objectf to an object of class
+\Rclass{oligoSnpSet} containing log R ratios and B allele frequencies.
+
+<<coerce2OligoSnpSet>>=
+oligoSet <- as(cnSetExample, "oligoSnpSet")
+@
+
+Next, we fit a 6-state hidden markov model from estimates of the B
+allele frequency and log R ratios.
+
+<<hmm>>=
+res <- hmm(oligoSet, p.hom=0, TAUP=1e8)
+@
+
+The \texttt{TAUP} parameter scales the transition probability matrix.
+Larger values of \texttt{TAUP} makes it more expensive to transition
+from the normal copy number state to states with altered copy
+number. In the following code chunk, we use a lattice multi-panel
+display to plot each of the altered stated.  We frame each alteration
+by plotting a genomic interval of 200kb on each side (using the
+\texttt{frame=200e3} argument):
+
+<<xyplot>>=
+rd <- res[!state(res)%in%c(3,4), ]
+fig <- VanillaICE:::xyplotLrrBaf(rd, oligoSet,
+				 frame=200e3,
+				 panel=VanillaICE:::xypanelBaf,
+				 scales=list(x="free"),
+				 cex.pch=0.2)
+@
+
+<<latticeFig, echo=false, fig=TRUE, include=FALSE,width=8, height=7>>=
+print(fig)
+@
+
+\begin{figure}[t]
+  \includegraphics[width=0.9\textwidth]{crlmmDownstream-latticeFig}
+  \caption{\label{fig:chr8} Plot of log R ratios (grey) and B allele
+    frequencies (blue). The B allele frequencies have a range of 0-1
+    and were rescaled for ease of viewing alongside the log R
+    ratios. Each panel displays one region with a copy number
+    alteration predicted from the 6-state HMM.}
+\end{figure}
+
 \end{document}

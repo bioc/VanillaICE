@@ -27,10 +27,6 @@ icePlatforms()
 R. Scharpf
 }
 
-
-\seealso{
-  \code{\link{HmmOptionList}}
-}
 \examples{
 icePlatforms()
 }

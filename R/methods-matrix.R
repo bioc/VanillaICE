@@ -1,141 +1,128 @@
 setMethod("cnEmission", signature(object="matrix"),
-	  function(object, stdev, k=5, cnStates, is.log, is.snp,
-		   normalIndex, verbose=TRUE, chrom, ...){
+	  function(object, stdev, cnStates, is.log, is.snp,
+		   normalIndex, prOutlierCN=0.01, verbose=TRUE, ...){
 		  cnEmissionFromMatrix(object=object, stdev=stdev,
-				       k=k,
 				       cnStates=cnStates,
 				       is.log=is.log,
 				       is.snp=is.snp,
 				       normalIndex=normalIndex,
+				       prOutlier=prOutlierCN,
 				       verbose=verbose,
-				       chrom=chrom,
 				       ...)
 	  })
 
-cnEmissionFromMatrix <- function(object, stdev, k=5, cnStates,
-				 is.log, is.snp, normalIndex,
-				 verbose=TRUE,
-				 chrom, ...){
-	stopifnot(length(cnStates) > 1)
-	stopifnot(is.numeric(cnStates))
-	if(missing(stdev)){
-		stdev <- .getSds(object)
-		## use robust estimate of sample sd
-		##s <- apply(object, 2, mad, na.rm=TRUE)
-		##stdev <- matrix(s, nrow(object), ncol(object), byrow=TRUE)
-	} else if(is(stdev, "matrix")) stopifnot(ncol(stdev) == ncol(object))
-	stopifnot(all(dim(object) == dim(stdev)))
-	if(any(colSums(is.na(object)) == nrow(object))){
-		stop("Some samples have all missing values. Exclude these samples before continuing.")
-	}
-	S <- length(cnStates)
+cnEmissionFromMatrix <- function(object,
+				 mus,
+				 sds,
+				 p,
+				 limits, log.it=TRUE, ...){
+	stopifnot(dim(mus) == dim(sds))
+	stopifnot(nrow(mus) == ncol(object))
+	S <- ncol(mus)
 	emission.cn <- array(NA, dim=c(nrow(object), ncol(object), S))
-	rr <- range(object, na.rm=TRUE, finite=TRUE)
-	if(is.log){
-		MIN.CN <- pmax(-10, rr[1])
-		MAX.CN <- pmin(2.5, rr[2])
-	} else {
-		MIN.CN <- pmax(0, rr[1])
-		MAX.CN <- pmin(10, rr[2])
-	}
-	object <- pmin(object, MAX.CN)
-	object <- pmax(object, MIN.CN)
 	for(j in seq_len(ncol(object))){
-		##snp.index <- which(is.snp)
 		cn <- object[, j]
-		snp.index <- which(is.snp & !is.na(cn))
-		if(length(snp.index) > 0){
-			cn <- cn[snp.index]
-			if(is(stdev, "matrix")){
-				s <- stdev[snp.index, j]
-			} else s <- stdev[snp.index]
-			mu.sigma <- updateMu(x=cn, mu=cnStates, sigma=s, normalIndex=normalIndex, is.log=is.log)
-			mu.snp <- mu.sigma[[1]]
-			sigma.snp <- mu.sigma[[2]]
-			old.tmp <- tmp <- rep(NA, length(as.numeric(cnStates)))
-			##prOutlier <- probabilityOutlier(cn, k=k)
-			prOutlier <- rep(0.01, length(cn))
-			for(l in seq_along(cnStates)){
-				e <- (1-prOutlier) * dnorm(x=cn, mean=mu.snp[l], sd=sigma.snp[l]) + prOutlier * dunif(cn, MIN.CN, MAX.CN)
-				emission.cn[snp.index, j, l] <- e
-			}
+		index <- which(!is.na(cn))
+		cn <- cn[index]
+		if(length(index) == 0) stop(paste("copy number is all NA for the ", j, "th sample.", sep=""))
+		mp <- p[[j]] ## mixture probability for sample j
+		for(i in seq_len(S)){
+			e <- (mp[i, 1]) * dnorm(x=cn, mean=mus[j, i], sd=sds[j, i]) +  (1-mp[i,2])* dunif(cn, limits[1], limits[2])
+			emission.cn[index, j, i] <- e
 		}
 	}
-	is.np <- !is.snp
-	if(any(is.np)){
-		for(j in 1:ncol(object)){
-			np.index <- which(is.np & !is.na(object)[, j])
-			if(length(np.index) > 0){
-				cn <- object[np.index, j]
-				if(is(stdev, "matrix")){
-					s <- stdev[np.index, j]
-				} else s <- stdev[np.index, j]
-				mu.sigma <- updateMu(x=cn, mu=cnStates, sigma=s, normalIndex=normalIndex, is.log=is.log)
-				mu.np <- mu.sigma[[1]]
-				sigma.np <- mu.sigma[[2]]
-				##old.tmp <- tmp <- rep(NA, length(as.numeric(cnStates)))
-				##prOutlier <- probabilityOutlier(cn, k=k)
-				prOutlier <- rep(0.01, length(cn))
-				for(l in seq_along(cnStates)){
-					tmp <- (1-prOutlier) * dnorm(x=cn, mean=mu.np[l], sd=sigma.np[l]) + prOutlier * dunif(cn, MIN.CN, MAX.CN)
-					emission.cn[np.index, j, l] <- tmp
-				}
-			}
-		}
+	emission.cn[is.na(emission.cn)] <- 1
+	if(log.it){
+		emission.cn <- log(emission.cn)
 	}
-	logemit <- log(emission.cn)
-	return(logemit)
+	return(emission.cn)
 }
 
 
 
 setMethod("gtEmission", signature(object="matrix"),
-	  function(object, hmm.params, gt.conf, is.snp, cdfName, ...){
-		  ICE <- hmm.params$ICE
-		  states <- hmm.params$states
-		  if(!ICE){
-			  p <- hmm.params$prGtHom
-			  prGenotypeMissing <- hmm.params$prGtMis
-			  verbose <- hmm.params$verbose
-			  stopifnot(length(p) == length(states))
-			  if(!is.numeric(object)) stop("genotypes must be integers (1=AA, 2=AB, 3=BB) or NA (missing)")
-			  emission <- array(object, dim=c(nrow(object), ncol(object), length(states))) ##dimnames=list(featureNames(object), sampleNames(object), states))
-			  missingGT <- any(is.na(object))
-			  for(s in seq(along=states)){
-				  tmp <- object
-				  tmp[tmp == 1 | tmp == 3] <- p[s]
-				  tmp[tmp == 2] <- 1-p[s]
-				  index1 <- is.na(tmp) & !is.snp##!isSnp(object)
-				  index2 <- is.na(tmp) & is.snp##isSnp(object)
-				  if(missingGT){
-					  tmp[index2] <- prGenotypeMissing[s]
-					  tmp[index1] <- 1/length(states)
-				  }
-				  emission[, , s] <- tmp
-			  }
-			  logemit <- log(emission)
-			  ##return(logemit)
-		  } else {
-			  not.valid <- invalidGtConfidence(gt.conf)
-			  if(any(not.valid)){
-				  stop("Invalid genotype confidence scores.\n",
-				       "\tAll confidence scores must be between 0 and 1")
-
-			  }
-			  ##stop('need to update ICE option')
-			  logemit <- array(NA, dim=c(nrow(object), ncol(object), length(states)))
-			  tmp <- genotypeEmissionCrlmm(object, hmm.params=hmm.params, gt.conf=gt.conf, cdfName=cdfName)
-			  rohStates <- which(hmm.params[["rohStates"]])
-			  notRohState <- which(!hmm.params[["rohStates"]])
-			  if(length(rohStates) > 0){
-				  logemit[, , rohStates] <- tmp[, , "ROH"]
-			  }
-			  if(length(notRohState) > 0){
-				  logemit[, , notRohState] <- tmp[, , "normal"]
-			  }
-		  }
-		  return(logemit)
+	  function(object, gt.conf,
+		   is.snp,
+		   rohIndex=c(2L, 4L),
+		   S=6L,
+		   annotationPkg,
+		   ICE=FALSE,
+		   prGtHom=c(0.7,0.99),
+		   prGtMis=rep(1/S, S),
+		   prHetCalledHom=0.001,
+		   prHetCalledHet=0.995,
+		   prHomInNormal=0.8,
+		   prHomInRoh=0.999, ...){
+		  gtEmissionFromMatrix(object, gt.conf=gt.conf,
+				       is.snp=is.snp,
+				       rohIndex=rohIndex,
+				       S=S,
+				       annotationPkg=annotationPkg, ICE=ICE,
+				       prGtHom=prGtHom,
+				       prGtMis=prGtMis,
+				       prHetCalledHom=prHetCalledHom,
+				       prHetCalledHet=prHetCalledHet,
+				       prHomInNormal=prHomInNormal,
+				       prHomInRoh=prHomInRoh,...)
 	  })
+
+gtEmissionFromMatrix <- function(object,
+				 S,
+				 gt.conf,
+				 is.snp,
+				 normalIndex=3L,
+				 rohIndex=c(2L, 4L),
+				 ICE=FALSE,
+				 prGtHom=c(0.7, 0.99),
+				 prGtMis=rep(1/S,S),
+				 prHetCalledHom=0.001,
+				 prHetCalledHet=0.995,
+				 prHomInNormal=0.8,
+				 prHomInRoh=0.999,
+				 annotationPkg,
+				 log.it=TRUE,
+				 ...){
+	if(!ICE){
+		p <- prGtHom
+		prGenotypeMissing <- prGtMis
+		stopifnot(length(p) == S)
+		if(!is.numeric(object)) stop("genotypes must be integers (1=AA, 2=AB, 3=BB) or NA (missing)")
+		emission <- array(NA, dim=c(nrow(object), ncol(object), S))
+		missingGT <- any(is.na(object))
+		for(s in seq_len(S)){
+			tmp <- object
+			tmp[tmp == 1 | tmp == 3] <- p[s]
+			tmp[tmp == 2] <- 1-p[s]
+			index1 <- is.na(tmp) & !is.snp
+			index2 <- is.na(tmp) & is.snp
+			if(missingGT){
+				tmp[index2] <- prGenotypeMissing[s]
+				tmp[index1] <- 1/S
+			}
+			emission[, , s] <- tmp
+		}
+		if(log.it) emit <- log(emission) else emit <- emission
+	} else {
+		not.valid <- invalidGtConfidence(gt.conf)
+		if(any(not.valid)){
+			stop("Invalid genotype confidence scores.\n",
+			     "\tIf ICE is TRUE, all confidence scores must be between 0 and 1")
+		}
+		logemit <- array(NA, dim=c(nrow(object), ncol(object), S))
+		pkg <- strsplit(annotationPkg, "Crlmm")[[1]][[1]]
+		tmp <- genotypeEmissionCrlmm(object, gt.conf=gt.conf,
+					     cdfName=pkg,
+					     prHetCalledHom,
+					     prHetCalledHet,
+					     prHomInNormal,
+					     prHomInRoh)
+		logemit[, , rohIndex] <- tmp[, , "ROH"]
+		logemit[, , -rohIndex] <- tmp[, , "normal"]
+		if(log.it) emit <- logemit else emit <- exp(logemit)
+	}
+	return(emit)
+}
+
 
 
 ##mosaicProb <- function(bf, sd.mosaic, sd0, sd.5, sd1){
@@ -226,14 +213,14 @@ updateSigma <- function(x, is.snp, nUpdates=10, sigma0){
 }
 
 setMethod("bafEmission", signature(object="matrix"),
-	  function(object, is.snp, prOutlier=1e-3, p.hom=0.95, ...){
+	  function(object, is.snp, prOutlierBAF=1e-3, p.hom=0.95, log.it=TRUE, ...){
 		  bafEmissionFromMatrix(object=object,
 					is.snp=is.snp,
-					prOutlier=prOutlier,
-					p.hom=p.hom,...)
+					prOutlier=prOutlierBAF,
+					p.hom=p.hom, log.it=log.it, ...)
 	  })
 
-bafEmissionFromMatrix <- function(object, is.snp, prOutlier=1e-3, p.hom=0.95, ...){
+bafEmissionFromMatrix <- function(object, is.snp, prOutlier=1e-3, p.hom=0.95, log.it=TRUE, ...){
 	states <- 1:6
 	S <- 6
 	if("pb" %in% names(list(...))){
@@ -329,15 +316,18 @@ bafEmissionFromMatrix <- function(object, is.snp, prOutlier=1e-3, p.hom=0.95, ..
 	emission[i, , 3] <- emit.normal
 	emission[i, , 5] <- emit5
 	emission[i, , 6] <- emit6
-	emit <- emission[is.snp, 1, ]
+	##emit <- emission[is.snp, 1, ]
 	##emit <- cbind(round(emit, 2), obj)
-	colnames(emit)[ncol(emit)] <- "baf"
+	##colnames(emit)[ncol(emit)] <- "baf"
 	## assign 1 as the emission probablily for all nonpolymorphic markers
 	## (across all states)
 	np.index <- which(!is.snp)
 	emission[np.index, , ] <- 1
-	logemit <- log(emission)
-	return(logemit)
+	emission[is.na(emission)] <- 1
+	if(log.it){
+		emission <- log(emission)
+	}
+	return(emission)
 }
 
 simulateSingleDupBaf <- function(b, is.snp, from, to, ...){

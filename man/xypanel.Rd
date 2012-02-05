@@ -5,7 +5,8 @@
 \usage{
 xypanel(x, y, gt, is.snp, range, col.hom = "grey20", fill.hom =
 "lightblue", col.het = "grey20", fill.het = "salmon", col.np = "grey20",
-fill.np = "grey60", show.state=TRUE, cex.state=1,  col.state="blue",..., subscripts)
+fill.np = "grey60", show.state=TRUE, cex.state=1,  col.state="blue",
+cex.pch=0.3, ..., subscripts)
 }
 \arguments{
   \item{x}{Physical position in megabases.}
@@ -37,13 +38,14 @@ fill.np = "grey60", show.state=TRUE, cex.state=1,  col.state="blue",..., subscri
     \code{show.state} is \code{FALSE}.}
   \item{col.state}{Character. color for state label. Ignored if
     \code{show.state} is \code{FALSE}.}
+  \item{cex.pch}{\code{numeric}: relative size for plotting symbols}
   \item{\dots}{
     Additional arguments passed to lattice functions \code{xyplot},
     \code{lpoints}, and \code{lrect}.
-}
+  }
   \item{subscripts}{
-%%     ~~Describe \code{subscripts} here~~
-}
+    See the panel functions in lattice for more information.
+  }
 }
 \details{
 

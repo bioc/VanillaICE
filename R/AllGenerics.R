@@ -1,21 +1,30 @@
-##setGeneric("calculateEmission", function(object, ...) standardGeneric("calculateEmission"))
-
-##setGeneric("computeEmission", function(object, hmmOptions) standardGeneric("computeEmission"))
-##setGeneric("computeHmm", function(object, hmmOptions) standardGeneric("computeHmm"))
-##setGeneric("plot", function(object, hmm.params, ...) standardGeneric("plot"))
-setGeneric("hmm", function(object, hmm.params, use.baf=FALSE, k=5, ...) standardGeneric("hmm"))
-setGeneric("hmm2", function(object, hmm.params, use.baf=FALSE, k=5,  ...) standardGeneric("hmm2"))
-##setGeneric("snpsetClass", function(object) standardGeneric("snpsetClass"))
-##setGeneric("scaleSds", function(object) standardGeneric("scaleSds"))
-##setGeneric("emit", function(object, hmm.params) standardGeneric("emit"))
-setGeneric("cnEmission", function(object, stdev, k=5, cnStates,
-				  is.log, is.snp, normalIndex, verbose=TRUE, ...) standardGeneric("cnEmission"))
+##setGeneric("hmm", function(object, hmm.params, use.baf=FALSE, ...) standardGeneric("hmm"))
+setGeneric("hmm", function(object, ...) standardGeneric("hmm"))
+setGeneric("hmm2", function(object, hmm.params, use.baf=FALSE, ...) standardGeneric("hmm2"))
+setGeneric("cnEmission", function(object, stdev, ...) standardGeneric("cnEmission"))
 setGeneric("gtEmission", function(object, hmm.params, gt.conf, is.snp, cdfName, ...) standardGeneric("gtEmission"))
-setGeneric("bafEmission", function(object, is.snp, cdfName, prOutlier=1e-3, p.hom=0.95, ...) standardGeneric("bafEmission"))
+setGeneric("bafEmission", function(object, ...) standardGeneric("bafEmission"))
 
 setGeneric("sd", useAsDefault=function(x, na.rm=FALSE) stats::sd(x, na.rm))
 setGeneric("xyplot2", function(x, data, range, frame=50e3L, ...) standardGeneric("xyplot2"))
 setGeneric("xyplot", useAsDefault=function(x, data, ...) lattice::xyplot(x, data, ...))
+setGeneric("cloud", useAsDefault=function(x, data, ...) lattice::cloud(x, data, ...))
+
+setGeneric("nStates", function(object) standardGeneric("nStates"))
+setGeneric("normalIndex", function(object) standardGeneric("normalIndex"))
+setGeneric("emission", function(object) standardGeneric("emission"))
+setGeneric("backwardVariable", function(object) standardGeneric("backwardVariable"))
+setGeneric("forwardVariable", function(object) standardGeneric("forwardVariable"))
+setGeneric("transitionProb", function(object) standardGeneric("transitionProb"))
+setGeneric("viterbiStatePath", function(object) standardGeneric("viterbiStatePath"))
+setGeneric("scaleFactor", function(object) standardGeneric("scaleFactor"))
+setGeneric("fit", function(object) standardGeneric("fit"))
+setGeneric("initialProb", function(object) standardGeneric("initialProb"))
+setGeneric("normal2altered", function(object) standardGeneric("normal2altered"))
+setGeneric("altered2normal", function(object) standardGeneric("altered2normal"))
+setGeneric("altered2altered", function(object) standardGeneric("altered2altered"))
+setGeneric("delta", function(object) standardGeneric("delta"))
+setGeneric("pAA", function(object) standardGeneric("pAA"))
 
 
 

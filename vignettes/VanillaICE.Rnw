@@ -174,24 +174,18 @@ and physical position.  The \Rfunction{hmm} method will order the
 \Robject{oligoSnpSet} object automatically, so the following step is
 not required.
 
-<<logscale>>=
-oligoSet <- chromosomePositionOrder(oligoSet)
-hmmOpts <- hmm.setup(oligoSet, is.log=TRUE)
-@
-
 \noindent The viterbi algorithm is used to obtain the most likely
 sequence of hidden states given the observed data.  For efficiency, we
-return an object of class \Robject{RangedDataHMM} with genomic coordinates
-of the normal and altered regions.  We also return the log-likelihood
-ratio (LLR) of the predicted sequence in an interval versus the null of
-normal copy number. For intervals with typical copy number (2) and
-percent heterozygosity (the 3rd state in the above codechunk), the LLR
-is zero.
+return an object of class \Robject{RangedDataHMM} with genomic
+coordinates of the normal and altered regions.  We also return the
+log-likelihood ratio (LLR) of the predicted sequence in an interval
+versus the null of normal copy number. For intervals with typical copy
+number (2) and percent heterozygosity (the 3rd state in the above
+codechunk), the LLR is zero.
 
 <<fit_van>>=
-## first 2 chromosomes
 oligoSet <- oligoSet[chromosome(oligoSet) <= 2, ]
-fit.van <- hmm(oligoSet, hmmOpts)
+fit.van <- hmm(oligoSet)
 @
 
 Next we plot the data for chromosome 1 and overlay the predictions
@@ -199,8 +193,8 @@ from the hidden markov model. See Figure \ref{fig:chr1}.
 
 <<fig2, fig=TRUE, width=8, echo=FALSE, include=FALSE>>=
 if(require(RColorBrewer)){
-	cols <- brewer.pal(5, "YlOrBr")[2:5]
-} else cols <- rainbow(n=5)
+	cols <- brewer.pal(6, "YlOrBr")
+} else cols <- rainbow(n=6)
 chr1 <- oligoSet[chromosome(oligoSet)==1,]
 fit.chr1 <- fit.van[fit.van$chrom == 1, ]
 ##fit.chr1 <- fit.van[fit.van$chrom==1, ]
@@ -219,7 +213,7 @@ for(i in 1:nrow(fit.chr1)){
 		y=y, col=cols[fit.chr1$state[i]],
 		border=cols[fit.chr1$state[i]])
 }
-legend("topleft", fill=cols, legend=hmmOpts$states, bty="n")
+legend("topleft", fill=cols, legend=c("hom-del", "hem-del", "N", "N-noHets", "sDup", "dDup"), bty="n")
 @
 \begin{figure}[t]
   \includegraphics[width=0.9\textwidth]{VanillaICE-fig2}
@@ -279,10 +273,10 @@ variable for displaying multiple panels of a single sample must be
 called 'range'. We plot a 2 Mb window surrounding each of the
 alterations in the simulated data by specifying \texttt{frame=2e6}.
 <<xyplotExample,fig=TRUE,include=FALSE, width=9, height=6,results=hide>>=
-ranges.altered <- fit.van[state(fit.van) != 4, ]
+ranges.altered <- fit.van[!state(fit.van) %in% c(3,4) & coverage2(fit.van) > 5, ]
 xy.example <- xyplot(cn ~ x | range, oligoSet, range=ranges.altered, frame=2e6,
-		     scales=list(x="free"), ylim=c(-0.5,4),
-		     panel=xypanel, cex=0.4, pch=21, border="grey",
+		     scales=list(x="free"), ylim=c(-1,3),
+		     panel=xypanel, cex.pch=0.4, pch=21, border="grey",
 		     ylab=expression(log[2]("copy number")))
 @
 \noindent See \texttt{?xyplot} for additional details.
@@ -308,29 +302,25 @@ call to \Rfunction{xyplot}.
 
 \subsection{ICE HMM}
 
+This will likely be phased out in favor of using B allele frequencies
+instead of genotype calls / call probabilities.
+
 To compute emission probabilities that incorporate the
-\Rpackage{crlmm} genotype confidence scores, (i) set \Robject{ICE} to
-\texttt{TRUE} in the \Robject{hmm.setup} function and (ii) indicate
-which of the states are expected to be largely homozygous
-(\texttt{rohStates}).  Note that this option is limited too a few
-platforms and the Affy 100k platforms is not one of them.
+\Rpackage{crlmm} genotype confidence scores, we set \Robject{ICE} to
+\texttt{TRUE}.  This option is limited too a few platforms and the
+Affy 100k platforms is not one of them.
 
 <<ice>>=
-hmmOpts <- hmm.setup(oligoSet, ICE=TRUE, rohStates=c(FALSE, TRUE, TRUE, FALSE, FALSE))
-res <- tryCatch(hmm(oligoSet, hmmOpts),
-		error=function(e) "platform not supported")
-print(res)
-## supported platforms
 VanillaICE:::icePlatforms()
 @
 
-For the purpose of illustration, we assign 'genomewidesnp6' to the
-annotation slot since this platform is supported.
+For illustration, we assign 'genomewidesnp6' to the annotation slot
+since this platform is supported.
 
 <<iceIllustration>>=
 ann <- annotation(oligoSet)
 annotation(oligoSet) <- "genomewidesnp6"
-fit.ice <- hmm(oligoSet, hmmOpts)
+fit.ice <- hmm(oligoSet, ICE=TRUE)
 fit.ice
 annotation(oligoSet) <- ann
 @
@@ -353,24 +343,26 @@ for(i in 1:nrow(fit.chr1)){
 		y=y, col=cols[state(fit.chr1)[i]],
 		border=cols[state(fit.chr1)[i]])
 }
-legend("topleft", fill=cols, legend=hmmOpts$states, bty="n")
+legend("topleft", fill=cols, legend=c("hom-del","hem-del", "N", "N/no hets", "s-dup", "d-dup"), bty="n")
 @
 
 
 \subsection{Other options}
 
-
-\paragraph{Copy number.} A HMM for copy number only (e.g., if
-genotypes are ignored or are unavailable) can be fit as follows.
-
-<<copyNumberOnly>>=
-cnSet <- new("CopyNumberSet",
-	     copyNumber=log2(locusLevelData[["copynumber"]]/100),
-	     annotation=locusLevelData[["platform"]])
-cnSet <- cnSet[chromosome(cnSet) <= 2 & !is.na(chromosome(cnSet)), ]
-hmmOpts <- hmm.setup(cnSet, is.log=TRUE)
-fit.cn <- hmm(cnSet, hmmOpts)
-@
+%
+% really no reason for this with genotyping arrays
+%
+%\paragraph{Copy number.} A HMM for copy number only (e.g., if
+%genotypes are ignored or are unavailable) can be fit as follows.
+%
+%<<copyNumberOnly>>=
+%cnSet <- new("CopyNumberSet",
+%	     copyNumber=log2(locusLevelData[["copynumber"]]/100),
+%	     annotation=locusLevelData[["platform"]])
+%cnSet <- cnSet[chromosome(cnSet) <= 2 & !is.na(chromosome(cnSet)), ]
+%fit.cn <- hmm(cnSet, hmmOpts)
+%@
+%
 
 \paragraph{Regions of homozygosity.}
 %\subsection{Region of homozygosity (ROH) HMM}
@@ -381,14 +373,8 @@ homozygosity.  Note that hemizygous deletions are also identified as
 hemizygous deletions tends to be all homozygous calls).
 
 <<genotypesOnly>>=
-snpSet <- new("SnpSet",
-	      call=locusLevelData[["genotypes"]],
-	      callProbability=locusLevelData[["crlmmConfidence"]],
-	      annotation=locusLevelData[["platform"]])
-featureData(snpSet) <- GenomeAnnotatedDataFrameFrom(assayData(snpSet), locusLevelData[["platform"]])
-snpSet <- snpSet[chromosome(snpSet) < 3, ]
-hmmOpts <- hmm.setup(snpSet)
-fit.gt <- hmm(snpSet, hmmOpts)
+snpSet <- as(oligoSet, "SnpSet")
+fit.gt <- hmm(snpSet, prGtHom=c(0.7, 0.99), normalIndex=1L, S=2L)
 @
 
 \noindent A suggested visualization:
@@ -412,48 +398,51 @@ for(i in 1:nrow(fit.chr1)){
 		y=y, col=cols[fit.chr1$state[i]],
 		border=cols[fit.chr1$state[i]])
 }
-legend("bottomleft", fill=cols, legend=hmmOpts$states, bty="n")
+legend("bottomleft", fill=cols, legend=c("region of homozygosity", "Normal"), bty="n")
 @
 
-\section{Quality control}
-
-\subsection{Outliers}
-
-%% could remove this section and discuss Uniform-Gaussian mixture
-Copy number outliers can cause the HMM to become too jumpy.  One
-approach to reduce the influence of outliers is to some
-\textit{light}-smoothing prior to fitting the HMM, as suggested in the
-\R{} package \texttt{DNAcopy}. For instance, one could identify outliers
-by some criteria and then average the outliers using the estimates from
-neigboring probes. Here, we use the defaults in \Robject{smooth.CNA}.
-
-<<smoothing>>=
-if(require("DNAcopy")){
-	##create an outlier
-	copyNumber(cnSet)[50] <- 10
-	copyNumber(cnSet)[45:55]
-	cnaObj <- CNA(genomdat=copyNumber(cnSet),
-		      chrom=chromosome(cnSet),
-		      maploc=position(cnSet),
-		      data.type="logratio",
-		      sampleid=sampleNames(cnSet))
-	smoothed.cnaObj <- smooth.CNA(cnaObj)
-	copyNumber(cnSet) <- matrix(smoothed.cnaObj[, "NA06993"], nrow(cnSet), 1)
-	copyNumber(cnSet)[50]
-}
-@
-
-\noindent One could also increase the value of \Robject{TAUP} in the
-viterbi algorithm to encourage a fit with fewer jumps. Note that with
-improved estimates of copy number uncertainty, many of these
-\textit{post-hoc} approaches for addressing outliers would be less
-critical.
-
-\subsection{Batch effects} \Rpackage{VanillaICE} can be used in
-conjunction with the \Rpackage{crlmm} package to reduce batch
-effects. See \citep{Scharpf2010} for details regarding the
-\Rpackage{crlmm} package.
-
+%\section{Quality control}
+%
+%\subsection{Noisey data}
+%
+%\subsection{Outliers}
+%
+%%% could remove this section and discuss Uniform-Gaussian mixture
+%Copy number outliers can cause the HMM to become too jumpy.  One
+%approach to reduce the influence of outliers is to some
+%\textit{light}-smoothing prior to fitting the HMM, as suggested in the
+%\R{} package \texttt{DNAcopy}. For instance, one could identify
+%outliers by some criteria and then average the outliers using the
+%estimates from neigboring probes. Here, we use the defaults in
+%\Robject{smooth.CNA}.
+%
+%<<smoothing>>=
+%if(require("DNAcopy")){
+%	##create an outlier
+%	copyNumber(cnSet)[50] <- 10
+%	copyNumber(cnSet)[45:55]
+%	cnaObj <- CNA(genomdat=copyNumber(cnSet),
+%		      chrom=chromosome(cnSet),
+%		      maploc=position(cnSet),
+%		      data.type="logratio",
+%		      sampleid=sampleNames(cnSet))
+%	smoothed.cnaObj <- smooth.CNA(cnaObj)
+%	copyNumber(cnSet) <- matrix(smoothed.cnaObj[, "NA06993"], nrow(cnSet), 1)
+%	copyNumber(cnSet)[50]
+%}
+%@
+%
+%\noindent One could also increase the value of \Robject{TAUP} in the
+%viterbi algorithm to encourage a fit with fewer jumps. Note that with
+%improved estimates of copy number uncertainty, many of these
+%\textit{post-hoc} approaches for addressing outliers would be less
+%critical.
+%
+%\subsection{Batch effects} \Rpackage{VanillaICE} can be used in
+%conjunction with the \Rpackage{crlmm} package to reduce batch
+%effects. See \citep{Scharpf2010} for details regarding the
+%\Rpackage{crlmm} package.
+%
 %\section{Alternatives}
 %
 %See the \texttt{crlmmDownstream} vignette located in

@@ -26,118 +26,60 @@ setMethod("hmm2", signature(object="oligoSnpSet", hmm.params="HmmOptionList"),
 })
 
 
-
-
-setMethod("hmm", signature(object="oligoSnpSet", hmm.params="HmmOptionList"),
-	  function(object, hmm.params, use.baf=FALSE, k=5, ...){
-		  v2 <- hmm.params$verbose
-		  marker.index <- validChromosomeIndex(object)
-		  object <- object[marker.index, ]
-		  ice <- hmm.params$ICE
-		  if(ice) checkAnnotation(object)
-		  missingGT <- any(is.na(calls(object)))
-		  if(missingGT){
-			  if(v2 > 0) message("Some genotypes are NAs.  The default assumes that prGenotypeMissing is the same for each state -- see hmmOptions")
-		  }
-##		  if("k" %in% names(list(...))){
-##			  k <- list(...)[["k"]]
-##		  } else k <- 3
-		  if(v2 > 0)  message("Using a running median of ", k, " markers to estimate the outlier probability.")
-		  is.ordered <- checkOrder(object)
-		  if(!is.ordered) object <- order(object)
-		  marker.index.list <- split(seq(length=nrow(object)), chromosome(object))
-		  chromosomes <- unique(chromosome(object))
-		  if(is.null(hmm.params$sample.index)){
-			  sample.index <- seq(length=ncol(object))
-		  } else sample.index <- hmm.params$sample.index
-		  if(v2 > 0) {
-			  pb <- txtProgressBar(min=0, max=ncol(object), style=3)
-		  }
-		  res <- vector("list", ncol(object))
-		  for(j in seq_along(sample.index)){
-			  jj <- sample.index[j]
-			  tmp <- vector("list", length(chromosomes))
-			  for(m in seq_along(chromosomes)){
-				  CHR <- chromosomes[m]
-				  i <- marker.index.list[[m]]
-				  obj <- object[i, jj]
-				  tmp[[m]] <- hmm2(object=obj, hmm.params=hmm.params, use.baf=use.baf, k=k, ...)
-			  }
-			  if(length(tmp) > 1){
-				  rdlist <- RangedDataList(tmp)
-				  rd <- tryCatch(stack(rdlist),
-						 error=function(e) NULL)
-				  if(is.null(rd)) return(tmp)
-				  ix <- match("sample", colnames(rd))
-				  if(length(ix) > 0) rd <- rd[, -ix]
-				  rm(rdlist)
-			  } else rd <- tmp[[1]]
-			  res[[j]] <- rd
-			  rm(tmp, rd); gc()
-			  if(v2 > 0) setTxtProgressBar(pb, j)
-		  }
-		  if(v2 > 0) close(pb)
-		  if(length(res) > 1){
-			  ##rdlist <- lapply(res, function(x) as(x, "RangedData"))
-			  rdlist <- RangedDataList(res)
-			  rd <- stack(rdlist)
-			  ix <- match("sample", colnames(rd))
-			  if(length(ix) > 0) rd <- rd[, -ix]
-			  rm(rdlist)
-		  } else rd <- res[[1]]
-		  rangedData <- RangedDataHMM(ranges=ranges(rd),
-					      chromosome=rd$chromosome,
-					      sampleId=rd$sampleId,
-					      state=rd$state,
-					      coverage=rd$coverage,
-					      LLR=rd$LLR)
-		  return(rangedData)
-	  })
-
-
-
-##setMethod("emit", signature(object="oligoSnpSet", hmm.params="HmmOptionList"),
-##	  function(object, hmm.params){
-##		  ICE <- hmm.params$ICE
-##		  ##EMIT.THR <- hmm.params[["EMIT.THR"]]
-##		  states <- hmm.params$states
-##		  verbose <- hmm.params$verbose
-##		  normalIndex <- hmm.params$normalIndex
-##		  if(all(is.na(cnConfidence(object)))){
-##			  message("cnConfidence missing.  Using MAD")
-##			  sds <- robustSds2(copyNumber(object))
-##			  cnConfidence(object) <- 1/sds
-##		  }
-##		  ##log.cn.emission <- calculateEmission.copynumber2(object,
-##		  ##                                                 hmm.params)
-##		  log.cn.emission <- calculateEmission(object, hmm.params)
-##		  if(!ICE){
-##			  log.gt.emission <- calculateEmission.genotype(object, hmm.params)
-##		  } else {
-##			  ##assumed order
-##			  ## ROH, normal
-##			  stop('need to update')
-##			  log.gt.emission <- array(NA, dim=c(nrow(object), ncol(object), length(states)),
-##						   dimnames=list(featureNames(object),
-##						   sampleNames(object),
-##						   states))
-##			  tmp <- genotypeEmissionCrlmm(object, hmm.params)
-##			  rohStates <- which(hmm.params[["rohStates"]])
-##			  notRohState <- which(!hmm.params[["rohStates"]])
-##			  for(j in rohStates){
-##				  log.gt.emission[, , j] <- tmp[, , "ROH"]
-##			  }
-##			  for(j in notRohState){
-##				  log.gt.emission[, , j] <- tmp[, , "normal"]
-##			  }
-##		  }
-##		  log.emission <- log.gt.emission+log.cn.emission
-##		  if(any(is.na(log.emission))){
-##			  if(verbose==2) message("Converting missing values in the emission matrix to 0")
-##			  log.emission[is.na(log.emission)] <- 0
-##		  }
-##		  return(log.emission)
-##})
+hmmOligoSnpSet <- function(object,
+			   cnStates=c(0, 1, 2, 2, 3, 4),
+			   normalIndex=3L,
+			   rohIndex=normalIndex+1L,
+			   prOutlierCN=0.01,
+			   prOutlierBAF=1e-3,
+			   p.hom=0.05,
+			   TAUP=1e8,
+			   is.log,
+			   initialProb=rep(1/length(cnStates), length(cnStates)),
+			   center=TRUE,
+			   reestimation=TRUE,
+			   nupdates=10,
+			   tolerance=1, ...){
+	##if(missing(is.log)) stop("must specify is.log (TRUE if copy number is on the log-scale)")
+	if(cnStates[normalIndex] != cnStates[rohIndex]){
+		stop("the copy number for the normal state and the copy number for regions of homozogyosity should be the same")
+	}
+	marker.index <- validChromosomeIndex(object)
+	object <- object[marker.index, ]
+	if(missing(is.log)) is.log <- guessCnScale(copyNumber(object)[sample(which(chromosome(object) < 23), min(10e3, nrow(object))), sample(seq_len(ncol(object)), min(2, ncol(object))), drop=FALSE])
+	if(is.log) cnStates <- logCnStates()
+	limits <- copyNumberLimits(is.log)
+	copyNumber(object) <- thresholdCopyNumber(copyNumber(object), limits)
+	object <- chromosomePositionOrder(object)
+	arm <- .getArm(chromosome(object), position(object))
+	index <- split(seq_len(nrow(object)), arm)
+	v2fit <- foreach(i=index, .packages="VanillaICE", .inorder=TRUE) %do% {
+		viterbi2Wrapper(r=copyNumber(object)[i, , drop=FALSE],
+				gt=calls(object)[i, , drop=FALSE],
+				pos=position(object)[i],
+				is.snp=isSnp(object)[i],
+				chrom=unique(chromosome(object)[i]),
+				cnStates=cnStates,
+				prOutlierBAF=prOutlierBAF,
+				p.hom=p.hom,
+				TAUP=TAUP,
+				is.log=is.log,
+				center=center,
+				reestimation=reestimation,
+				limits=limits,
+				normalIndex=normalIndex,
+				rohIndex=rohIndex,
+				initialProb=initialProb,
+				nupdates=nupdates,
+				tolerance=tolerance)
+	}
+	rd <- stackRangedData(lapply(v2fit, "[[", 1))
+	if(FALSE){
+		loglik <- lapply(v2fit, "[[", 2)
+		names(loglik) <- paste("chr", names(index))
+	}
+	return(rd)
+}
 
 
 setMethod("sd", signature(x="oligoSnpSet"),
@@ -166,3 +108,6 @@ setMethod("sd", signature(x="oligoSnpSet"),
 	  function(x, na.rm=FALSE){
 		  getSds(x, na.rm=TRUE)
 	   })
+
+
+
