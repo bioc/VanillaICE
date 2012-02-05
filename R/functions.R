@@ -1201,3 +1201,75 @@ tnorm <- function(x, mean, sd, lower=0, upper=1){
 	}
 	res
 }
+
+hmmBeadStudioSet <- function(object,
+			     cnStates=c(-1.5, -0.5, 0, 0, 0.4, 0.8),
+			     medianWindow=5,
+			     prOutlierCN=0.01,
+			     prOutlierBAF=1e-3,
+			     p.hom=0.05,
+			     TAUP=1e8,
+			     states=1:6, ...){
+	is.ordered <- checkOrder(object)
+	if(!is.ordered){
+		object <- chromosomePositionOrder(object)
+	}
+	na.chrom <- is.na(chromosome(object))
+	if(any(na.chrom)){
+		object <- object[!na.chrom, ]
+	}
+	arm <- .getArm(chromosome(object), position(object))
+	suffLengths <- all(table(arm) > 1000)
+	if(!suffLengths){
+		index <- as.integer(which(table(arm) < 1000))
+		arm[arm == index] <- index+1L ## its the parm that tends to be small. collapse p and q
+	}
+	armlist <- split(arm, arm)
+	lrrlist <- split(lrr(object), arm)
+	lrrlist <- lapply(lrrlist, as.matrix)
+	baflist <- split(baf(object), arm)
+	baflist <- lapply(baflist, as.matrix)
+	chrlist <- split(chromosome(object), arm)
+	poslist <- split(position(object), arm)
+	snplist <- split(isSnp(object), arm)
+	emitb <- foreach(x=baflist,
+			 is.snp=snplist,
+			 .packages="VanillaICE") %do% {
+				 bafEmission(object=x,
+					     is.snp=is.snp,
+					     prOutlier=prOutlierBAF,
+					     p.hom=p.hom, ...)
+			 }
+	emitr <- foreach(x=lrrlist,
+			 is.snp=snplist,
+			 chrom=chrlist,
+			 .packages="VanillaICE") %do% {
+				 cnEmission(object=x,
+					    is.snp=is.snp,
+					    ##prOutlier=prOutlierCN,
+					    cnStates=cnStates,
+					    is.log=TRUE,
+					    normalIndex=3,
+					    ...)
+			 }
+	emitlist <- foreach(b=emitb, r=emitr) %do% (b[, 1, ] + r[, 1, ])
+	e <- 0.5
+	pis <- rep(0, 6)
+	pis[3] <- e
+	pis[-3] <- (1-e)/5
+	log.initial <- log(pis)
+	rdl <- foreach(arm=armlist,
+		       pos=poslist,
+		       chrom=chrlist,
+		       LE=emitlist, .packages="VanillaICE") %dopar% {
+			       viterbi3(LE=LE,
+					arm=arm,
+					pos=pos,
+					chrom=chrom,
+					log.initial=log.initial,
+					states=1:6,
+					id=sampleNames(object),
+					TAUP=TAUP)
+		       }
+	rd <- stackRangedData(rdl)
+}
