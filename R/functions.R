@@ -830,10 +830,12 @@ updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10){
 				next()
 			}
 			mu.new[i] <- sum(gamma[, i] * x, na.rm=TRUE)/total.gamma[i]
+			mu.new <- constrainMu(mu.new)
+			mu.new <- makeNonDecreasing(mu.new)
 			sigma.new[i] <- sqrt(sum(gamma[,i]*(x-mu.new[i])^2, na.rm=TRUE)/total.gamma[i])
 		}
 		sigma.new[normalIndex] <- sqrt(sum(gamma[,normalIndex]*(x-mu.new[normalIndex])^2, na.rm=TRUE)/total.gamma[normalIndex])
-		mu.new <- makeNonDecreasing(mu.new)
+		##mu.new <- makeNonDecreasing(mu.new)
 		sigma.new[sigma.new < 0.1] <- 0.1
 		pi.new <- apply(gamma, 2, mean, na.rm=TRUE)
 		pi. <- pi.new
@@ -1287,4 +1289,18 @@ makeNonDecreasing <- function(x){
 	}
 	x[index+1] <- x[index]
 	return(x)
+}
+
+constrainMu <- function(mu, is.log){
+	if(is.log){
+		mu[1] <- ifelse(mu[1] > -1, -1, mu[1])
+		mu[2] <- ifelse(mu[2] > -0.2, -0.2, mu[2])
+		mu[3] <- ifelse(mu[3] < -0.1, -0.1, mu[3])
+		mu[3] <- ifelse(mu[3] > -0.1, 0.1, mu[3])
+		mu[4] <- ifelse(mu[4] < -0.1, -0.1, mu[4])
+		mu[4] <- ifelse(mu[4] > -0.1, 0.1, mu[4])
+		mu[5] <- ifelse(mu[5] < 0.2, 0.2, mu[5])
+		mu[6] <- iflese(mu[6] < 0.5, 0.5, mu[6])
+		return(mu)
+	}
 }
