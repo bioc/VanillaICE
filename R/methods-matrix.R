@@ -49,7 +49,7 @@ cnEmissionFromMatrix <- function(object, stdev, k=5, cnStates,
 			if(is(stdev, "matrix")){
 				s <- stdev[snp.index, j]
 			} else s <- stdev[snp.index]
-			mu.sigma <- updateMu(x=cn, mu=cnStates, sigma=s, normalIndex=normalIndex)
+			mu.sigma <- updateMu(x=cn, mu=cnStates, sigma=s, normalIndex=normalIndex, is.log=is.log)
 			mu.snp <- mu.sigma[[1]]
 			sigma.snp <- mu.sigma[[2]]
 			old.tmp <- tmp <- rep(NA, length(as.numeric(cnStates)))
@@ -69,7 +69,7 @@ cnEmissionFromMatrix <- function(object, stdev, k=5, cnStates,
 				if(is(stdev, "matrix")){
 					s <- stdev[np.index, j]
 				} else s <- stdev[np.index, j]
-				mu.sigma <- updateMu(x=cn, mu=cnStates, sigma=s, normalIndex=normalIndex)
+				mu.sigma <- updateMu(x=cn, mu=cnStates, sigma=s, normalIndex=normalIndex, is.log=is.log)
 				mu.np <- mu.sigma[[1]]
 				sigma.np <- mu.sigma[[2]]
 				##old.tmp <- tmp <- rep(NA, length(as.numeric(cnStates)))

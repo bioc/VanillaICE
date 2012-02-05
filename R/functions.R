@@ -775,7 +775,7 @@ genotypeEmissionCrlmm <- function(object, hmm.params, gt.conf, cdfName){
 ##  A better approach (though more computationally intensive),
 ##  would be to estimate gamma from the forward and backward variables
 ##  in the viterbi algorithm
-updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10){
+updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10, is.log){
 	if(nUpdates==0) return(mu)
 	## assume CN is a vector.  Fit EM independently for each
 	## sample
@@ -830,7 +830,7 @@ updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10){
 				next()
 			}
 			mu.new[i] <- sum(gamma[, i] * x, na.rm=TRUE)/total.gamma[i]
-			mu.new <- constrainMu(mu.new)
+			mu.new <- constrainMu(mu.new, is.log)
 			mu.new <- makeNonDecreasing(mu.new)
 			sigma.new[i] <- sqrt(sum(gamma[,i]*(x-mu.new[i])^2, na.rm=TRUE)/total.gamma[i])
 		}
@@ -1157,6 +1157,7 @@ hmm3 <- function(filenames, cdfname, universe=c("hg18", "hg19", ""),
 		 cnStates=c(-1.5, -0.5, 0, 0, 0.4, 0.8),
 		 prOutlier=1e-3,
 		 p.hom=0.05,
+		 chromosome,
 		 ...){
 	## 2. read in annotation
 	if(universe != "")
@@ -1165,6 +1166,7 @@ hmm3 <- function(filenames, cdfname, universe=c("hg18", "hg19", ""),
 		colClasses <- getColClasses(filenames[1], lrr.colname=lrr.colname, baf.colname=baf.colname)
 	features <- keyOffFirstFile(filename=filenames[1], cdfname=cdfname, universe=universe, colClasses=colClasses,
 				    lrr.colname=lrr.colname, baf.colname=baf.colname, ...)
+	if(!missing(chromosome)) features <- features[features[, "chrom"] %in% chromosome, ]
 	rd <- list()
 	if(samplesPerProcess > 1) message("Currently, files are not split to separate processes")
 	## perhaps replace using a nested foreach...
@@ -1291,6 +1293,7 @@ makeNonDecreasing <- function(x){
 	return(x)
 }
 
+##could put priors on mu instead
 constrainMu <- function(mu, is.log){
 	if(is.log){
 		mu[1] <- ifelse(mu[1] > -1, -1, mu[1])
@@ -1300,7 +1303,7 @@ constrainMu <- function(mu, is.log){
 		mu[4] <- ifelse(mu[4] < -0.1, -0.1, mu[4])
 		mu[4] <- ifelse(mu[4] > -0.1, 0.1, mu[4])
 		mu[5] <- ifelse(mu[5] < 0.2, 0.2, mu[5])
-		mu[6] <- iflese(mu[6] < 0.5, 0.5, mu[6])
+		mu[6] <- ifelse(mu[6] < 0.5, 0.5, mu[6])
 		return(mu)
 	}
 }
