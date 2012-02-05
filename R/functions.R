@@ -772,6 +772,9 @@ genotypeEmissionCrlmm <- function(object, hmm.params, gt.conf, cdfName){
 
 ##
 ## AD-HOC
+##  A better approach (though more computationally intensive),
+##  would be to estimate gamma from the forward and backward variables
+##  in the viterbi algorithm
 updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10){
 	if(nUpdates==0) return(mu)
 	## assume CN is a vector.  Fit EM independently for each
@@ -781,8 +784,6 @@ updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10){
 	## compute the responsibilities
 	##
 	s <- sigma <- sigma[1]
-	sigma <- rep(sigma, L)
-	sigma[1] <- sigma[1]*2 ## homozygous deletion has larger variance
 	##pi <- exp(log.initialPr)
 	dup.index <- which(duplicated(mu))
 	S <- length(mu)
@@ -790,6 +791,8 @@ updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10){
 		mu <- unique(mu)
 		L <- length(mu)
 	} else L <- S
+	sigma <- rep(sigma, L)
+	sigma[1] <- sigma[1]*2 ## homozygous deletion has larger variance
 	## fix normal copy number
 	mu[normalIndex] <- median(x, na.rm=TRUE)
 	pi. <- rep(1/L, L)
@@ -816,7 +819,7 @@ updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10){
 		##
 		## update the means with contraints
 		##
-		mu.new <- rep(NA, length(mu))
+		sigma.new <- mu.new <- rep(NA, length(mu))
 		##mu.new[3] <- mu[3]
 		mu.new[normalIndex] <- mu[normalIndex]
 		##I <- c(1,2, 4, 5)
@@ -827,22 +830,25 @@ updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10){
 				next()
 			}
 			mu.new[i] <- sum(gamma[, i] * x, na.rm=TRUE)/total.gamma[i]
-			sigma.new[i] <- sqrt(sum(gamma[,i]*(x-mu.new[i])^2)/total.gamma[i])
+			sigma.new[i] <- sqrt(sum(gamma[,i]*(x-mu.new[i])^2, na.rm=TRUE)/total.gamma[i])
 		}
+		sigma.new[normalIndex] <- sqrt(sum(gamma[,normalIndex]*(x-mu.new[normalIndex])^2, na.rm=TRUE)/total.gamma[normalIndex])
 		mu.new <- makeNonDecreasing(mu.new)
-		sigma.new[sigma.new < 0.5*s] <- 0.5*s
+		sigma.new[sigma.new < 0.1] <- 0.1
 		pi.new <- apply(gamma, 2, mean, na.rm=TRUE)
 		pi. <- pi.new
 		##dp <- abs(sum(mu - mu.new)) + abs(sum(pi.new-pi))
 		mu <- mu.new
 		sigma <- sigma.new
-		if(dp < epsilon) break()
 	}
 	if(length(dup.index) > 0){
-		tmp <- rep(NA, S)
+		s <- tmp <- rep(NA, S)
 		tmp[-dup.index] <- mu
+		s[-dup.index] <- sigma
 		tmp[dup.index] <- tmp[dup.index-1]
+		s[dup.index] <- s[dup.index-1]
 		mu <- tmp
+		sigma <- s
 	}
 	return(list(mu, sigma))
 }
@@ -1065,7 +1071,7 @@ hmmOneSample <- function(filename,
 			 medianWindow=5,
 			 cnStates=c(-1.5, -0.5, 0, 0, 0.4, 0.8),
 			 prOutlier=1e-3,
-			 p.hom=0.6,
+			 p.hom=0.05,
 			 ...){
 	dat <- read.bsfiles(filenames=filename,
 			    lrr.colname=lrr.colname,
@@ -1148,7 +1154,7 @@ hmm3 <- function(filenames, cdfname, universe=c("hg18", "hg19", ""),
 		 medianWindow=5,
 		 cnStates=c(-1.5, -0.5, 0, 0, 0.4, 0.8),
 		 prOutlier=1e-3,
-		 p.hom=0.6,
+		 p.hom=0.05,
 		 ...){
 	## 2. read in annotation
 	if(universe != "")
@@ -1264,6 +1270,7 @@ hmmBeadStudioSet <- function(object,
 
 makeNonDecreasing <- function(x){
 	d <- diff(x)
+	if(all(d >= 0)) return(x)
 	index <- which(d < 0)
 	if(index[1] == 1){
 		x[1] <- x[2]
