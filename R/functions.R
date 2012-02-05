@@ -804,10 +804,12 @@ updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10, is.log){
 	##num <- vector("list", L-1)
 	num <- matrix(NA, length(x), L)
 	epsilon <- 0.01
+	pout <- 0.01; qout <- 1-pout
 	for(iter in seq_len(nUpdates)){
 		if(iter > nUpdates) break()
 		for(i in seq_len(L)){
-			den[, i] <- pi.[i]*dnorm(x, mean=mu[i], sd=sigma[i])
+			## the density does not get ridiculously small for unusual observations
+			den[, i] <- pi.[i]*(qout*dnorm(x, mean=mu[i], sd=sigma[i]) + pout*dunif(x, -3, 3))
 		}
 		D <- rowSums(den, na.rm=TRUE)
 		for(i in seq_len(L)){
@@ -822,9 +824,10 @@ updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10, is.log){
 		##
 		sigma.new <- mu.new <- rep(NA, length(mu))
 		##mu.new[3] <- mu[3]
-		mu.new[normalIndex] <- mu[normalIndex]
+		##mu.new[normalIndex] <- mu[normalIndex]
 		##I <- c(1,2, 4, 5)
-		I <- seq_along(mu)[-normalIndex]
+		##I <- seq_along(mu)[-normalIndex]
+		I <- seq_along(mu)
 		for(i in I){
 			if(sum(gamma[, i],na.rm=TRUE) < 0.0001) {
 				mu.new[i] <- mu[i]
@@ -1295,13 +1298,13 @@ makeNonDecreasing <- function(x){
 	return(x)
 }
 
-##could put priors on mu instead
+## ad-hoc.  Do we want to put priors on the means?
 constrainMu <- function(mu, is.log){
 	if(is.log){
 		mu[1] <- ifelse(mu[1] > -1, -1, mu[1])
-		mu[2] <- ifelse(mu[2] > -0.2, -0.2, mu[2])
+		mu[2] <- ifelse(mu[2] > -0.25, -0.25, mu[2])
 		mu[3] <- ifelse(mu[3] < -0.1, -0.1, mu[3])
-		mu[3] <- ifelse(mu[3] > -0.1, 0.1, mu[3])
+		mu[3] <- ifelse(mu[3] > 0.1, 0.1, mu[3])
 		mu[4] <- ifelse(mu[4] < 0.2, 0.2, mu[4])
 		mu[5] <- ifelse(mu[5] < 0.5, 0.5, mu[5])
 		return(mu)
