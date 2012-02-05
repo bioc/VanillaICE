@@ -159,7 +159,7 @@ viterbi.wrapper <- function(log.emission,
 	chr.names <- as.character(chr.names[!is.na(chr.names)])
 	positionList <- positionList[match(chr.names, names(positionList))]
 	for(i in seq(along=chr.names)){
-		chromosomeArm[[i]] <- as.integer(ifelse(positionList[[i]] <= chrAnn[uchrom[i], "centromereEnd"], 0, 1))
+		chromosomeArm[[i]] <- as.integer(ifelse(positionList[[i]] <= chrAnn[uchrom[i], "centromereStart"], 0, 1))
 	}
 	chromosomeArm <- unlist(chromosomeArm)
 	chrom <- chrom[marker.index]
