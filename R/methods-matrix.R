@@ -53,7 +53,8 @@ cnEmissionFromMatrix <- function(object, stdev, k=5, cnStates,
 			mu.snp <- mu.sigma[[1]]
 			sigma.snp <- mu.sigma[[2]]
 			old.tmp <- tmp <- rep(NA, length(as.numeric(cnStates)))
-			prOutlier <- probabilityOutlier(cn, k=k)
+			##prOutlier <- probabilityOutlier(cn, k=k)
+			prOutlier <- rep(0.01, length(cn))
 			for(l in seq_along(cnStates)){
 				e <- (1-prOutlier) * dnorm(x=cn, mean=mu.snp[l], sd=sigma.snp[l]) + prOutlier * dunif(cn, MIN.CN, MAX.CN)
 				emission.cn[snp.index, j, l] <- e
@@ -73,7 +74,8 @@ cnEmissionFromMatrix <- function(object, stdev, k=5, cnStates,
 				mu.np <- mu.sigma[[1]]
 				sigma.np <- mu.sigma[[2]]
 				##old.tmp <- tmp <- rep(NA, length(as.numeric(cnStates)))
-				prOutlier <- probabilityOutlier(cn, k=k)
+				##prOutlier <- probabilityOutlier(cn, k=k)
+				prOutlier <- rep(0.01, length(cn))
 				for(l in seq_along(cnStates)){
 					tmp <- (1-prOutlier) * dnorm(x=cn, mean=mu.np[l], sd=sigma.np[l]) + prOutlier * dunif(cn, MIN.CN, MAX.CN)
 					emission.cn[np.index, j, l] <- tmp
