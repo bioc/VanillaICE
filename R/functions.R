@@ -1305,8 +1305,8 @@ constrainMu <- function(mu, is.log){
 		mu[2] <- ifelse(mu[2] > -0.25, -0.25, mu[2])
 		mu[3] <- ifelse(mu[3] < -0.1, -0.1, mu[3])
 		mu[3] <- ifelse(mu[3] > 0.1, 0.1, mu[3])
-		mu[4] <- ifelse(mu[4] < 0.2, 0.2, mu[4])
-		mu[5] <- ifelse(mu[5] < 0.5, 0.5, mu[5])
+		mu[4] <- ifelse(mu[4] < 0.35, 0.35, mu[4])
+		mu[5] <- ifelse(mu[5] < 0.75, 0.75, mu[5])
 		return(mu)
 	}
 }
