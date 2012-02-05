@@ -49,11 +49,13 @@ cnEmissionFromMatrix <- function(object, stdev, k=5, cnStates,
 			if(is(stdev, "matrix")){
 				s <- stdev[snp.index, j]
 			} else s <- stdev[snp.index]
-			mu.snp <- updateMu(x=cn, mu=cnStates, sigma=s, normalIndex=normalIndex)
+			mu.sigma <- updateMu(x=cn, mu=cnStates, sigma=s, normalIndex=normalIndex)
+			mu.snp <- mu.sigma[[1]]
+			sigma.snp <- mu.sigma[[2]]
 			old.tmp <- tmp <- rep(NA, length(as.numeric(cnStates)))
 			prOutlier <- probabilityOutlier(cn, k=k)
 			for(l in seq_along(cnStates)){
-				e <- (1-prOutlier) * dnorm(x=cn, mean=mu.snp[l], sd=s) + prOutlier * dunif(cn, MIN.CN, MAX.CN)
+				e <- (1-prOutlier) * dnorm(x=cn, mean=mu.snp[l], sd=sigma.snp[l]) + prOutlier * dunif(cn, MIN.CN, MAX.CN)
 				emission.cn[snp.index, j, l] <- e
 			}
 		}
@@ -67,11 +69,13 @@ cnEmissionFromMatrix <- function(object, stdev, k=5, cnStates,
 				if(is(stdev, "matrix")){
 					s <- stdev[np.index, j]
 				} else s <- stdev[np.index, j]
-				mu.np <- updateMu(x=cn, mu=cnStates, sigma=s, normalIndex=normalIndex)
+				mu.sigma <- updateMu(x=cn, mu=cnStates, sigma=s, normalIndex=normalIndex)
+				mu.np <- mu.sigma[[1]]
+				sigma.np <- mu.sigma[[2]]
 				##old.tmp <- tmp <- rep(NA, length(as.numeric(cnStates)))
 				prOutlier <- probabilityOutlier(cn, k=k)
 				for(l in seq_along(cnStates)){
-					tmp <- (1-prOutlier) * dnorm(x=cn, mean=mu.np[l], sd=s) + prOutlier * dunif(cn, MIN.CN, MAX.CN)
+					tmp <- (1-prOutlier) * dnorm(x=cn, mean=mu.np[l], sd=sigma.np[l]) + prOutlier * dunif(cn, MIN.CN, MAX.CN)
 					emission.cn[np.index, j, l] <- tmp
 				}
 			}

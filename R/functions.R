@@ -772,7 +772,7 @@ genotypeEmissionCrlmm <- function(object, hmm.params, gt.conf, cdfName){
 
 ##
 ## AD-HOC
-updateMu <- function(x, mu, sigma, is.snp, normalIndex, nUpdates=10){
+updateMu <- function(x, mu, sigma, normalIndex, nUpdates=10){
 	if(nUpdates==0) return(mu)
 	## assume CN is a vector.  Fit EM independently for each
 	## sample
@@ -780,7 +780,9 @@ updateMu <- function(x, mu, sigma, is.snp, normalIndex, nUpdates=10){
 	##
 	## compute the responsibilities
 	##
-	sigma <- sigma[1]
+	s <- sigma <- sigma[1]
+	sigma <- rep(sigma, L)
+	sigma[1] <- sigma[1]*2 ## homozygous deletion has larger variance
 	##pi <- exp(log.initialPr)
 	dup.index <- which(duplicated(mu))
 	S <- length(mu)
@@ -790,7 +792,7 @@ updateMu <- function(x, mu, sigma, is.snp, normalIndex, nUpdates=10){
 	} else L <- S
 	## fix normal copy number
 	mu[normalIndex] <- median(x, na.rm=TRUE)
-	pi <- rep(1/L, L)
+	pi. <- rep(1/L, L)
 	## fix the sd.  Update the means via em.
 	##gamma <- vector("list", L)
 	gamma <- matrix(NA, length(x), L)
@@ -801,12 +803,12 @@ updateMu <- function(x, mu, sigma, is.snp, normalIndex, nUpdates=10){
 	for(iter in seq_len(nUpdates)){
 		if(iter > nUpdates) break()
 		for(i in seq_len(L)){
-			den[, i] <- pi[i]*dnorm(x, mean=mu[i], sd=sigma)
+			den[, i] <- pi.[i]*dnorm(x, mean=mu[i], sd=sigma[i])
 		}
 		D <- rowSums(den, na.rm=TRUE)
 		for(i in seq_len(L)){
-			num <- den[, i] ##pi[i] * dnorm(x, mu[i], sigma)
-			gamma[, i] <- num/D
+			num <- den[, i] ##pi.[i] * dnorm(x, mu[i], sigma)
+			gamma[, i] <- num/D  ## probability obs belongs to state i
 		}
 		rs <- rowSums(gamma, na.rm=TRUE)
 		gamma <- gamma/rs
@@ -824,30 +826,16 @@ updateMu <- function(x, mu, sigma, is.snp, normalIndex, nUpdates=10){
 				mu.new[i] <- mu[i]
 				next()
 			}
-			tmp <- sum(gamma[, i] * x, na.rm=TRUE)/total.gamma[i]
-			if(i > 1 & i < L){
-				## mu[i-1]+sigma < mu[i] < mu[i+1] - sigma
-				i1 <- tmp < (mu[i-1] + 1.5*sigma)
-				i2 <- tmp > (mu[i+1] - 1.5*sigma)
-				if(i1 | i2){
-					if(i1)## & tmp < (mu[i+1] -sigma)){
-						mu.new[i] <- mu[i-1]+1.5*sigma
-					if(i2)
-						mu.new[i] <- mu[i+1]-1.5*sigma
-				} else mu.new[i] <- tmp
-			}
-			if(i == 1){
-				mu.new[1] <- ifelse(tmp < (mu[2] - 1.5*sigma), tmp, mu[2]-1.5*sigma)
-			}
-			if(i == L){
-				mu.new[L] <- ifelse(tmp > mu[L-1] + 1.5*sigma, tmp, mu[L-1]+1.5*sigma)
-			}
+			mu.new[i] <- sum(gamma[, i] * x, na.rm=TRUE)/total.gamma[i]
+			sigma.new[i] <- sqrt(sum(gamma[,i]*(x-mu.new[i])^2)/total.gamma[i])
 		}
+		mu.new <- makeNonDecreasing(mu.new)
+		sigma.new[sigma.new < 0.5*s] <- 0.5*s
 		pi.new <- apply(gamma, 2, mean, na.rm=TRUE)
-		pi <- pi.new
+		pi. <- pi.new
 		##dp <- abs(sum(mu - mu.new)) + abs(sum(pi.new-pi))
-		dp <- abs(sum(mu-mu.new))
 		mu <- mu.new
+		sigma <- sigma.new
 		if(dp < epsilon) break()
 	}
 	if(length(dup.index) > 0){
@@ -856,7 +844,7 @@ updateMu <- function(x, mu, sigma, is.snp, normalIndex, nUpdates=10){
 		tmp[dup.index] <- tmp[dup.index-1]
 		mu <- tmp
 	}
-	return(mu)
+	return(list(mu, sigma))
 }
 
 
@@ -1272,4 +1260,24 @@ hmmBeadStudioSet <- function(object,
 					TAUP=TAUP)
 		       }
 	rd <- stackRangedData(rdl)
+}
+
+makeNonDecreasing <- function(x){
+	d <- diff(x)
+	index <- which(d < 0)
+	if(index[1] == 1){
+		x[1] <- x[2]
+		index <- index[-1]
+		if(length(index) ==0)
+			return(x)
+	}
+	l <- length(index)
+	if(l == length(x)-1){
+		i <- index[l]
+		x[length(x)] <- x[length(x)-1]
+		index <- index[-l]
+		if(length(index) == 0) return(x)
+	}
+	x[index+1] <- x[index]
+	return(x)
 }
