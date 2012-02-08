@@ -180,7 +180,7 @@ R. Scharpf
 \examples{
 	path <- system.file("extdata", package="VanillaICE")
 	filename <- list.files(path, pattern="LRRandBAF", full.names=TRUE)
-	rd <- hmm3(filename, annotationPkg="genomewidesnp6Crlmm")
+	rd <- hmm3(filename, annotationPkg="genomewidesnp6Crlmm", universe="")
 }
 \keyword{smooth}
 \keyword{models}

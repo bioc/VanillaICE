@@ -293,7 +293,7 @@ computeLoglikFromViterbi2 <- function(object, chrom, id, pos, log.it=TRUE){
 		LLR[k] <- computeLoglikForRange(from=start(rl)[k],
 						to=end(rl)[k],
 						viterbiSequence=viterbiSequence,
-						normalIndex=normalIndex(object),
+						normalIndex=normalStateIndex(object),
 						log.initial=log.initial,
 						log.emission=log.emission,
 						lP.N2N=lP.N2N,
@@ -1114,7 +1114,8 @@ artificialData <- function(states, nmarkers){
 }
 
 mask <- function(query, subject){
-	index <- matchMatrix(findOverlaps(query, subject))[, 1]
+	##index <- matchMatrix(findOverlaps(query, subject))[, 1]
+	index <- queryHits(findOverlaps(query, subject))
 	query <- query[-index, ]
 }
 
@@ -1371,9 +1372,8 @@ computeTransitionProb <- function(x, TAUP, S){
 }
 
 
-
 copyNumberLimits <- function(is.log){
-	if(is.log) return(c(-3,3)) else return(c(0,10))
+	if(is.log) return(c(-2.5, 3)) else return(c(0,10))
 }
 
 thresholdCopyNumber <- function(object, limits){
@@ -1400,84 +1400,12 @@ guessCnScale <- function(x){
 	is.log
 }
 
-logCnStates <- function() c(-1.5, -0.5, 0, 0, 0.4, 0.8)
+logCnStates <- function() c(-2, -0.5, 0, 0, 0.4, 0.8)
 
 rescale <- function(x, l, u){
 	b <- 1/(u-l)
 	a <- l*b
 	(x+a)/b
-}
-
-hmmBeadStudioSet <- function(object,
-			     cnStates=c(-1.5, -0.5, 0, 0, 0.4, 0.8),
-			     medianWindow=5,
-			     prOutlierCN=0.01,
-			     prOutlierBAF=1e-3,
-			     p.hom=0.05,
-			     TAUP=1e8,
-			     states=1:6, ...){
-	is.ordered <- checkOrder(object)
-	if(!is.ordered){
-		object <- chromosomePositionOrder(object)
-	}
-	na.chrom <- is.na(chromosome(object))
-	if(any(na.chrom)){
-		object <- object[!na.chrom, ]
-	}
-	arm <- .getArm(chromosome(object), position(object))
-	suffLengths <- all(table(arm) > 1000)
-	if(!suffLengths){
-		index <- as.integer(which(table(arm) < 1000))
-		arm[arm == index] <- index+1L ## its the parm that tends to be small. collapse p and q
-	}
-	armlist <- split(arm, arm)
-	lrrlist <- split(lrr(object), arm)
-	lrrlist <- lapply(lrrlist, as.matrix)
-	baflist <- split(baf(object), arm)
-	baflist <- lapply(baflist, as.matrix)
-	chrlist <- split(chromosome(object), arm)
-	poslist <- split(position(object), arm)
-	snplist <- split(isSnp(object), arm)
-	emitb <- foreach(x=baflist,
-			 is.snp=snplist,
-			 .packages="VanillaICE") %do% {
-				 bafEmission(object=x,
-					     is.snp=is.snp,
-					     prOutlier=prOutlierBAF,
-					     p.hom=p.hom, ...)
-			 }
-	emitr <- foreach(x=lrrlist,
-			 is.snp=snplist,
-			 chrom=chrlist,
-			 .packages="VanillaICE") %do% {
-				 cnEmission(object=x,
-					    is.snp=is.snp,
-					    ##prOutlier=prOutlierCN,
-					    cnStates=cnStates,
-					    is.log=TRUE,
-					    normalIndex=3,
-					    ...)
-			 }
-	emitlist <- foreach(b=emitb, r=emitr) %do% (b[, 1, ] + r[, 1, ])
-	e <- 0.5
-	pis <- rep(0, 6)
-	pis[3] <- e
-	pis[-3] <- (1-e)/5
-	log.initial <- log(pis)
-	rdl <- foreach(arm=armlist,
-		       pos=poslist,
-		       chrom=chrlist,
-		       LE=emitlist, .packages="VanillaICE") %dopar% {
-			       viterbi3(LE=LE,
-					arm=arm,
-					pos=pos,
-					chrom=chrom,
-					log.initial=log.initial,
-					states=1:6,
-					id=sampleNames(object),
-					TAUP=TAUP)
-		       }
-	rd <- stackRangedData(rdl)
 }
 
 makeNonDecreasing <- function(x){
@@ -1501,15 +1429,3 @@ makeNonDecreasing <- function(x){
 	return(x)
 }
 
-## ad-hoc.  Do we want to put priors on the means?
-constrainMu <- function(mu, is.log){
-	if(is.log){
-		mu[1] <- ifelse(mu[1] > -1, -1, mu[1])
-		mu[2] <- ifelse(mu[2] > -0.25, -0.25, mu[2])
-		mu[3] <- ifelse(mu[3] < -0.1, -0.1, mu[3])
-		mu[3] <- ifelse(mu[3] > 0.1, 0.1, mu[3])
-		mu[4] <- ifelse(mu[4] < 0.35, 0.35, mu[4])
-		mu[5] <- ifelse(mu[5] < 0.75, 0.75, mu[5])
-		return(mu)
-	}
-}

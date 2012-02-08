@@ -56,7 +56,7 @@ setValidity("Viterbi2", function(object){
 		return("viterbiStatePath should have the same length as the number of features")
 	}
 	if(ns > 0){
-		ni <- normalIndex(object)
+		ni <- normalStateIndex(object)
 		if(ni <= 0 | ni > ns){
 			return("the index for the normal state (normalIndex) \n must be an integer greater than zero and \n less than or equal to the number of states")
 		}
@@ -105,7 +105,7 @@ fitViterbi2 <- function(object){
 		  object@normal2altered,
 		  object@altered2normal,
 		  object@altered2altered,
-		  normalIndex(object),
+		  normalStateIndex(object),
 		  scaleFactor(object))
 	new("Viterbi2",
 	    emission=emission(object),
@@ -120,7 +120,7 @@ fitViterbi2 <- function(object){
 	    normal2altered=object@normal2altered,
 	    altered2normal=object@altered2normal,
 	    altered2altered=object@altered2altered,
-	    normalIndex=normalIndex(object),
+	    normalIndex=normalStateIndex(object),
 	    scaleFactor=tmp[[14]])
 }
 
@@ -256,13 +256,16 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 	taus <- computeTransitionProb(x=pos, TAUP=TAUP, S=S)
 	sds <- apply(r, 2, mad, na.rm=TRUE)
 	r <- centerCopyNumber(r, is.snp) + cnStates[normalIndex]
-	r <- VanillaICE:::thresholdCopyNumber(r, limits=limits)
+	r <- thresholdCopyNumber(r, limits=limits)
 	loglik <- matrix(NA, nupdates, J)
 	viterbiList <- vector("list", J)
 	for(i in seq_len(nupdates)){
 		if(i == 1){
 			mus <- matrix(cnStates, J, S, byrow=TRUE)
 			sigmas <- matrix(sds, J, S, byrow=FALSE)
+			## homozygous deletions often have a higher variance.
+			## Initialize the variance for this state to have a bigger variance
+			sigmas[, 1] <- sigmas[, 1] * 4
 			p <- replicate(J, matrix(c(0.99, 0.01), S, 2, byrow=TRUE), simplify=FALSE)
 		} else {
 			mu.sigma <- foreach(j = seq_len(J)) %do% {

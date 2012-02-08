@@ -18,7 +18,7 @@ setMethod("viterbiStatePath", signature(object="Vit"),
 		  object@viterbiStatePath
 	  })
 
-setMethod("normalIndex", signature(object="Vit"),
+setMethod("normalStateIndex", signature(object="Vit"),
 	  function(object){
 		  object@normalIndex
 	  })

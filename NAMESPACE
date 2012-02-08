@@ -24,6 +24,9 @@ importFrom(lattice, xyplot, simpleKey, panel.grid, panel.xyplot, lrect, ltext,
 importFrom(grid, grid.newpage, viewport, pushViewport, upViewport, dataViewport, unit)
 ## crlmm
 importMethodsFrom(crlmm, coerce)
+## IRanges
+importMethodsFrom(IRanges, as.matrix)
+
 
 ##----------------------------------------------------------------------------
 ## export

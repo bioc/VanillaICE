@@ -56,7 +56,7 @@ setValidity("Viterbi", function(object){
 		return("viterbiStatePath should have the same length as the number of features")
 	}
 	if(ns > 0){
-		ni <- normalIndex(object)
+		ni <- normalStateIndex(object)
 		if(ni <= 0 | ni > ns){
 			return("the index for the normal state (normalIndex) \n must be an integer greater than zero and \n less than or equal to the number of states")
 		}
@@ -93,7 +93,7 @@ fitViterbi <- function(object){
 		  object@normal2altered,
 		  object@altered2normal,
 		  object@altered2altered,
-		  normalIndex(object),
+		  normalStateIndex(object),
 		  pAA(object))
 	new("Viterbi",
 	    emission=emission(object),
@@ -107,6 +107,6 @@ fitViterbi <- function(object){
 	    normal2altered=object@normal2altered,
 	    altered2normal=object@altered2normal,
 	    altered2altered=object@altered2altered,
-	    normalIndex=normalIndex(object),
+	    normalIndex=normalStateIndex(object),
 	    pAA=pAA(object))
 }

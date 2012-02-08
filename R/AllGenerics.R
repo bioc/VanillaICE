@@ -11,7 +11,7 @@ setGeneric("xyplot", useAsDefault=function(x, data, ...) lattice::xyplot(x, data
 setGeneric("cloud", useAsDefault=function(x, data, ...) lattice::cloud(x, data, ...))
 
 setGeneric("nStates", function(object) standardGeneric("nStates"))
-setGeneric("normalIndex", function(object) standardGeneric("normalIndex"))
+setGeneric("normalStateIndex", function(object) standardGeneric("normalStateIndex"))
 setGeneric("emission", function(object) standardGeneric("emission"))
 setGeneric("backwardVariable", function(object) standardGeneric("backwardVariable"))
 setGeneric("forwardVariable", function(object) standardGeneric("forwardVariable"))

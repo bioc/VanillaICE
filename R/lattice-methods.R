@@ -1,6 +1,6 @@
 dataFrameFromRange <- function(range, object, frame, range.index){
 	rm <- findOverlaps(range, featureData(object), maxgap=frame) ## RangesMatching
-	mm <- matchMatrix(rm)
+	mm <- as.matrix(rm)
 	mm.df <- data.frame(mm)
 	mm.df$featureNames <- featureNames(object)[mm.df$subject]
 	marker.index <- mm.df$subject
@@ -105,7 +105,7 @@ setMethod("xyplot", signature(x="formula", data="BeadStudioSet"),
 setMethod("xyplot2", signature(x="formula", data="CNSet", range="RangedDataCNV"),
 	  function(x, data, range, frame=50e3L, ...){
 		  z <- findOverlaps(range, data, maxgap=frame)
-		  mm <- matchMatrix(z)
+		  mm <- as.matrix(z)
 		  mm.df <- data.frame(mm)
 		  mm.df$featureNames <- featureNames(data)[mm.df$subject]
 		  marker.index <- unique(mm.df$subject)
@@ -158,7 +158,7 @@ cloud2 <- function(x, data, range, frame=50e3L, ...){
 		  dfList <- vector("list", nrow(range))
 		  for(i in seq_len(nrow(range))){
 			  rm <- findOverlaps(range[i, ], featureData(data), maxgap=frame) ## RangesMatching
-			  mm <- matchMatrix(rm)
+			  mm <- as.matrix(rm)
 			  mm.df <- data.frame(mm)
 			  mm.df$featureNames <- featureNames(data)[mm.df$subject]
 			  marker.index <- mm.df$subject
@@ -319,6 +319,9 @@ xypanelBaf <- function(x, y,
 	panel.grid(v=0, h=4, "grey", lty=2)
 	panel.xyplot(x[1], y[1], col="white", cex=cex.pch, ...) ## set it up, but don't plot
 	is.snp <- is.snp[subscripts]
+	ylim <- current.panel.limits()$ylim
+	y[y>ylim[2]] <- ylim[2]
+
 	lpoints(x[!is.snp], y[!is.snp], col=col.np,
 		fill=fill.np, cex=cex.pch, ...)
 	## use whatever col.hom to color SNPs
@@ -328,7 +331,6 @@ xypanelBaf <- function(x, y,
 	st <- start(range)[j]/1e6
 	lrect(xleft=st, xright=end(range)[j]/1e6,
 	      ybottom=-10, ytop=10, ...)
-	ylim <- current.panel.limits()$ylim
 	if(show.state){
 		## left justify the label to the start of the range
 		y.max <- ylim[2]
@@ -376,4 +378,6 @@ xyplotLrrBaf <- function(rd, object, frame, ...){
 	       baf=df$baf,
 	       is.snp=df$is.snp, range=rd, ...)
 }
+
+
 

@@ -43,10 +43,12 @@ test_hmm_fromBeadStudioFiles <- function(){
 	path <- system.file("extdata", package="VanillaICE")
 	fname <- file.path(path, "LRRandBAF.txt")
 	if(FALSE){
-		bsSet <- BeadStudioSet(fname, annotationPkg="genomewidesnp6Crlmm", universe="")
 		bsSet <- BeadStudioSet(fname, annotationPkg="gw6crlmm", universe="hg18")
+		## will not work on BioC
+		res <- hmm3(fname, annotationPkg="gw6crlmm", universe="hg18")
 	}
-	res <- hmm3(fname, annotationPkg="gw6crlmm", universe="hg18")
+	bsSet <- BeadStudioSet(fname, annotationPkg="genomewidesnp6Crlmm", universe="")
+	res <- hmm3(fname, annotationPkg="genomewidesnp6Crlmm", universe="")
 	checkTrue(validObject(res))
 }
 
@@ -82,10 +84,11 @@ test_hmm_cnset <- function(){
 					  frame=200e3,
 					  panel=VanillaICE:::xypanelBaf,
 					  scales=list(x="free"),
-					  cex.pch=0.2)
+					  cex.pch=0.2,
+					  p.hom=0.05)
 	}
-	checkIdentical(state(rd), as.integer(c(5,2,5,2,5,4,2,4,4,1)))
-	checkEquals(coverage2(rd), as.integer(c(3282, 179, 27, 25, 140, 322, 27, 425, 181, 6)), tolerance=0.05)
+	checkIdentical(state(rd), as.integer(c(5,2,5,2,5,2,4,4,1)))
+	checkEquals(coverage2(rd), as.integer(c(3282, 179, 27, 25, 140, 27, 425, 181, 6)), tolerance=0.05)
 }
 
 
