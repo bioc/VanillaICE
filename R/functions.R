@@ -1293,17 +1293,24 @@ hmm3 <- function(filenames,
 		 nupdates=10,
 		 tolerance=1,
 		 chromosome=1:22,
+		 returnBeadStudioSet=FALSE,
 		 ...){
 	stopifnot(normalIndex==3L)
 	stopifnot(rohIndex==4L)
 	message("Constructing BeadStudioSet")
-	bsSet <- BeadStudioSet(filenames=filenames,
-			       lrr.colname=lrr.colname,
-			       baf.colname=baf.colname,
-			       sep=sep,
-			       universe=universe,
-			       annotationPkg=annotationPkg,
-			       chromosome=chromosome)
+	if(isPackageLoaded("ff")){
+		dat <- read.bsfiles(filenames=filenames[1])
+		fd <- GenomeAnnotatedDataFrameFrom(dat, annotationPkg, universe="hg18")
+		## follow TrioSetListLD construction
+	} else {
+		bsSet <- BeadStudioSet(filenames=filenames,
+				       lrr.colname=lrr.colname,
+				       baf.colname=baf.colname,
+				       sep=sep,
+				       universe=universe,
+				       annotationPkg=annotationPkg,
+				       chromosome=chromosome)
+	}
 	message("Fitting HMM to each chromosome")
 	res <- hmm(bsSet,
 		   cnStates=cnStates,
@@ -1318,7 +1325,11 @@ hmm3 <- function(filenames,
 		   center=center,
 		   nupdates=nupdates,
 		   tolerance=tolerance, ...)
-	return(res$rangedData)
+	if(returnBeadStudioSet){
+		return(list(beadStudioSet=bsSet, rangedData=res))
+	} else {
+		return(res)
+	}
 }
 
 makeNonDecreasing <- function(x){

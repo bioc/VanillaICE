@@ -102,25 +102,26 @@ hmmBeadStudioSet <- function(object,
 	index <- split(seq_len(nrow(object)), arm)
 	##indexChrom <- as.integer(sapply(names(index), function(x) strsplit(x, "[pq]")[[1]][[2]]))
 	##index <- index[order(indexChrom)]
-	v2fit <- foreach(i=index, .packages="VanillaICE") %do% {
-		viterbi2Wrapper(r=copyNumber(object)[i, , drop=FALSE],
-				b=baf(object)[i, , drop=FALSE],
-				pos=position(object)[i],
-				is.snp=isSnp(object)[i],
-				chrom=unique(chromosome(object)[i]),
-				cnStates=cnStates,
-				prOutlierBAF=prOutlierBAF,
-				p.hom=p.hom,
-				TAUP=TAUP,
-				is.log=is.log,
-				center=center,
-				reestimation=reestimation,
-				limits=limits,
-				normalIndex=normalIndex,
-				rohIndex=rohIndex,
-				initialProb=initialProb,
-				nupdates=nupdates,
-				tolerance=tolerance)
+	if(is.null(getCluster())) registerDoSEQ() ## to avoid warnings
+	v2fit <- foreach(i=index, .packages="VanillaICE") %dopar% {
+		VanillaICE:::viterbi2Wrapper(r=copyNumber(object)[i, , drop=FALSE],
+					     b=baf(object)[i, , drop=FALSE],
+					     pos=position(object)[i],
+					     is.snp=isSnp(object)[i],
+					     chrom=unique(chromosome(object)[i]),
+					     cnStates=cnStates,
+					     prOutlierBAF=prOutlierBAF,
+					     p.hom=p.hom,
+					     TAUP=TAUP,
+					     is.log=is.log,
+					     center=center,
+					     reestimation=reestimation,
+					     limits=limits,
+					     normalIndex=normalIndex,
+					     rohIndex=rohIndex,
+					     initialProb=initialProb,
+					     nupdates=nupdates,
+					     tolerance=tolerance)
 	}
 	rd <- stackRangedData(lapply(v2fit, "[[", 1))
 	if(FALSE){

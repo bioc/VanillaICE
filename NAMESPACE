@@ -40,7 +40,5 @@ exportMethods(hmm, sd, xyplot, xyplot2)
 exportClasses(HmmOptionList)
 export(hmm.setup, HmmOptionList)
 
-
-
-
-
+export(copyNumberLimits, rowMAD, viterbi2Wrapper, rescale)
+exportMethods(emission)

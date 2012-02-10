@@ -20,7 +20,7 @@ lrr.colname = "Log.R.Ratio", baf.colname = "B.Allele", sep="\t",
 TAUP=1e8, cnStates = c(-1.5, -0.5, 0, 0, 0.4, 0.8), normalIndex=3L,
 rohIndex=normalIndex+1L, prOutlierBAF=1e-3, prOutlierCN=0.01, p.hom = 1,
 is.log=TRUE, initialProb=rep(1/length(cnStates), length(cnStates)),
-center=TRUE, nupdates=10, tolerance=1, chromosome=1:22, ...)
+center=TRUE, nupdates=10, tolerance=1, chromosome=1:22, returnBeadStudioSet=FALSE, ...)
 }
 
 \arguments{
@@ -154,7 +154,13 @@ center=TRUE, nupdates=10, tolerance=1, chromosome=1:22, ...)
   than \code{tolerance} for all samples, the number of updates is
   \code{i}. }
 
-\item{chromosome}{\code{integer} vector indicating which chromosomes to process.}
+\item{chromosome}{\code{integer} vector indicating which chromosomes to
+  process.}
+
+\item{returnBeadStudioSet}{\code{logical}: whether to return a list
+  containing an object of class \code{BeadStudioSet} and the
+  \code{RangedDataHMM} object.}
+
 \item{\dots}{
 
     Currently ignored.
@@ -165,7 +171,9 @@ center=TRUE, nupdates=10, tolerance=1, chromosome=1:22, ...)
 
 \value{
 
-  A object of class \code{RangedDataHMM}.
+  An object of class \code{RangedDataHMM}. If \code{returnBeadStudioSet}
+  is TRUE, a list containing the \code{BeadStudioSet} object and
+  \code{RangedDataHMM} object are returned.
 
 }
 
