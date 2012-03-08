@@ -15,3 +15,13 @@ GenomeAnnotatedDataFrameFromArray <- function(object, annotationPkg, ...){
 	}
 	res
 }
+
+GenomeAnnotatedDataFrameFromList <- function(object, annotationPkg){
+	nms <- ls(object)
+	elt <- object[[nms[1]]]
+	fdlist <- vector("list", length(elt))
+	for(i in seq_along(elt)){
+		fdlist[[i]] <- GenomeAnnotatedDataFrameFrom(elt[[i]], annotationPkg)
+	}
+	return(fdlist)
+}

@@ -46,10 +46,11 @@ hmmOligoSnpSet <- function(object,
 	}
 	marker.index <- validChromosomeIndex(object)
 	object <- object[marker.index, ]
-	if(missing(is.log)) is.log <- guessCnScale(copyNumber(object)[sample(which(chromosome(object) < 23), min(10e3, nrow(object))), sample(seq_len(ncol(object)), min(2, ncol(object))), drop=FALSE])
+	if(missing(is.log)) is.log <- guessCnScale(copyNumber(object)[sample(which(chromosome(object) < 23), min(10e3, nrow(object))), sample(seq_len(ncol(object)), min(2, ncol(object))), drop=FALSE]/100)
 	if(is.log) cnStates <- logCnStates()
 	limits <- copyNumberLimits(is.log)
-	copyNumber(object) <- thresholdCopyNumber(copyNumber(object), limits)
+	## following is expensive for large data
+	copyNumber(object) <- thresholdCopyNumber(copyNumber(object)/100, limits)
 	object <- chromosomePositionOrder(object)
 	arm <- .getArm(chromosome(object), position(object))
 	index <- split(seq_len(nrow(object)), arm)

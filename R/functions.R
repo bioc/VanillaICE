@@ -152,7 +152,8 @@ viterbi.wrapper <- function(log.emission,
 	data(chromosomeAnnotation, package="SNPchip", envir=environment())
 	chromosomeAnnotation$centromereMid <- (chromosomeAnnotation$centromereStart+chromosomeAnnotation$centromereEnd)/2
 	chrAnn <- as.matrix(chromosomeAnnotation)
-	uchrom <- unique(SNPchip:::integer2chromosome(chrom))
+	##uchrom <- unique(SNPchip:::integer2chromosome(chrom))
+	uchrom <- as.character(chrom)
 	uchrom <- uchrom[!is.na(uchrom)]
 	positionList <- split(as.integer(pos[marker.index]), chrom[marker.index])
 	chromosomeArm <- vector("list", length(uchrom))
@@ -493,7 +494,7 @@ stackRangedData <- function(object){
 		if(is(object, "RangedDataHMM")) return(object)
 	}
 	rangedData <- RangedDataHMM(ranges=ranges(object),
-				    chromosome=object$chromosome,
+				    chromosome=object$chrom,
 				    sampleId=object$sampleId,
 				    state=object$state,
 				    coverage=object$coverage,
@@ -842,10 +843,7 @@ genotypeEmissionCrlmm <- function(object,
 
 
 ##
-## AD-HOC
-##  A better approach (though more computationally intensive),
-##  would be to estimate gamma from the forward and backward variables
-##  in the viterbi algorithm
+## update mu and sigma using the forward backward variables
 ##
 ## Should updateMu drop copy-neutral ROH (as is currently done?)
 ##
@@ -882,7 +880,7 @@ updateMu <- function(x,
 		h <- fv*bv
 		m <- matrix(rowSums(h, na.rm=TRUE), length(x), length(mu), byrow=FALSE)
 		h <- h/m
-		rm(m, fv, bv); gc()
+		rm(m, fv, bv);
 	}
 	d1 <- matrix(NA, length(x), L)
 	na.index <- which(is.na(x))
@@ -942,6 +940,91 @@ updateMu <- function(x,
 	}
 	return(list(mu, sigma, p))
 }
+
+##pdateBaf <- function(x,
+##		      mu,
+##		      sigma,
+##		      normalIndex,
+##		      rohIndex=normalIndex+1,
+##		      nUpdates=3,
+##		      fv,
+##		      bv){
+##	if(nUpdates==0) return(mu)
+##	min.sd <- 0.02
+##	s <- sigma
+##	L <- S <- 6
+##	p <- matrix(0, L, 2)
+##	p[, 1] <- 0.99
+##	p[, 2] <- 1-p[, 1]
+##	sigma <- rep(sigma, L)
+##	g2 <- g1 <- matrix(NA, length(x), L)
+##	missing.fv <- missing(fv)
+##	if(!missing.fv){
+##		fv <- matrix(fv, length(x), length(mu))
+##		bv <- matrix(bv, length(x), length(mu))
+##		h <- fv*bv
+##		m <- matrix(rowSums(h, na.rm=TRUE), length(x), length(mu), byrow=FALSE)
+##		h <- h/m
+##		rm(m, fv, bv); gc()
+##	}
+##	d1 <- matrix(NA, length(x), L)
+##	na.index <- which(is.na(x))
+##	anyNA <- length(na.index) > 0
+##	for(iter in seq_len(nUpdates)){
+##		if(iter > nUpdates) break()
+##		for(i in seq_len(L)){
+##			d.norm <- p[i, 1]*dnorm(x, mean=mu[i], sd=sigma[i])
+##			d.unif <- p[i, 2]*dunif(x, limits[1], limits[2])
+##			d1[, i] <- d.norm/(d.norm+d.unif)
+##		}
+##		d1[na.index, ] <- dunif(rep(0, length(na.index)), limits[1], limits[2])
+##		if(missing.fv){
+##			g1 <- d1
+##			g2 <- 1-d1
+##		} else {
+##			g1 <- h * d1
+##			g2 <- h * (1-d1)
+##		}
+##		##
+##		## While the outlier component of the mixture is the
+##		## same for each state, the probability of being an
+##		## outlier will differ.  This makes sense as a small
+##		## value should have a relatively large outlier
+##		## probability for the normal distribution and
+##		## relatively small for a deletion
+##		##
+##		total.g1 <- apply(g1, 2, sum, na.rm=TRUE)
+##		## denom.eq52:
+##		denom.eq52 <- apply(g1 + g2, 2, sum, na.rm=TRUE)
+##		##notg <- 1-g
+##		##total.notg <- apply(notg, 2, sum, na.rm=TRUE)
+##		##mix.den <- total.g + total.notg
+##		##
+##		## p[i, j] is the expected number of times in state i
+##		## using mixture component k relative to the expected
+##		## number of times in state i
+##		##
+##		p.new <- p
+##		p.new[, 1] <- total.g1/denom.eq52
+##		p.new[, 2] <- 1-p.new[,1]
+##		sigma.new <- mu.new <- rep(NA, L)
+##		I <- seq_len(L)
+##		for(i in I){
+##			mu.new[i] <- sum(g1[, i] * x, na.rm=TRUE)/total.g1[i]
+##		}
+##		mu.new[-rohIndex] <- constrainMu(mu.new[-rohIndex], is.log)
+##		mu.new[rohIndex] <- mu.new[normalIndex]
+##		mu.new <- makeNonDecreasing(mu.new)
+##		for(i in I){
+##			sigma.new[i] <- sqrt(sum(g1[,i]*(x-mu.new[i])^2, na.rm=TRUE)/total.g1[i])
+##		}
+##		sigma.new[sigma.new < min.sd] <- min.sd
+##		mu <- mu.new
+##		sigma <- sigma.new
+##		p <- p.new
+##	}
+##	return(list(mu, sigma, p))
+##
 
 tnorm <- function(x, mean, sd, lower=0, upper=1){
        phi <- function(x, mu, sigma) dnorm(x, mu, sigma)
@@ -1101,11 +1184,11 @@ artificialData <- function(states, nmarkers){
 	rownames(dat) <- rownames(genotypes) <- featureNames(oligoSet)[i]
 	##pos <- seq(1, by=3e3, length.out=length(copynumber))
 	object <- new("oligoSnpSet",
-		      copyNumber=dat,
+		      copyNumber=integerMatrix(dat, scale=100),
 		      call=as.matrix(genotypes),
 		      callProbability=snpCallProbability(oligoSet)[i, , drop=FALSE])
 	##baf(object) <- b
-	assayDataElement(object, "baf") <- b
+	assayDataElement(object, "baf") <- integerMatrix(b, scale=1000)
 	##df <- data.frame(position=pos, chromosome=rep(1L, length(pos)), isSnp=
 	fData(object)$position <- as.integer(pos[i])
 	fData(object)$chromosome <- 1L
@@ -1274,12 +1357,7 @@ hmmOneSample <- function(filename,
 	return(rd)
 }
 
-hmm3 <- function(filenames,
-		 annotationPkg,
-		 universe=c("", "hg18", "hg19"),
-		 lrr.colname="Log.R.Ratio",
-		 baf.colname="B.Allele",
-		 sep="\t",
+hmm3 <- function(object,
 		 TAUP=1e8,
 		 cnStates=c(-1.5, -0.5, 0, 0, 0.4, 0.8),
 		 normalIndex=3L,
@@ -1297,39 +1375,26 @@ hmm3 <- function(filenames,
 		 ...){
 	stopifnot(normalIndex==3L)
 	stopifnot(rohIndex==4L)
-	message("Constructing BeadStudioSet")
-	if(isPackageLoaded("ff")){
-		dat <- read.bsfiles(filenames=filenames[1])
-		fd <- GenomeAnnotatedDataFrameFrom(dat, annotationPkg, universe="hg18")
-		## follow TrioSetListLD construction
-	} else {
-		bsSet <- BeadStudioSet(filenames=filenames,
-				       lrr.colname=lrr.colname,
-				       baf.colname=baf.colname,
-				       sep=sep,
-				       universe=universe,
-				       annotationPkg=annotationPkg,
-				       chromosome=chromosome)
-	}
 	message("Fitting HMM to each chromosome")
-	res <- hmm(bsSet,
-		   cnStates=cnStates,
-		   normalIndex=normalIndex,
-		   rohIndex=rohIndex,
-		   prOutlierCN=prOutlierCN,
-		   prOutlierBAF=prOutlierBAF,
-		   p.hom=p.hom,
-		   TAUP=TAUP,
-		   is.log=is.log,
-		   initialProb=initialProb,
-		   center=center,
-		   nupdates=nupdates,
-		   tolerance=tolerance, ...)
-	if(returnBeadStudioSet){
-		return(list(beadStudioSet=bsSet, rangedData=res))
-	} else {
-		return(res)
+	if(isPackageLoaded("ff")) pkgs <- c("ff", "VanillaICE") else pkgs <- "VanillaICE"
+	if(is.null(getCluster())) registerDoSEQ()
+	rdl <- foreach(obj=object, .packages=pkgs) %dopar% {
+		hmm(object=obj,
+		    cnStates=cnStates,
+		    normalIndex=normalIndex,
+		    rohIndex=rohIndex,
+		    prOutlierCN=prOutlierCN,
+		    prOutlierBAF=prOutlierBAF,
+		    p.hom=p.hom,
+		    TAUP=TAUP,
+		    is.log=is.log,
+		    initialProb=initialProb,
+		    center=center,
+		    nupdates=nupdates,
+		    tolerance=tolerance, ...)
 	}
+	rd <- stackRangedDataList(rd)
+	rd
 }
 
 makeNonDecreasing <- function(x){

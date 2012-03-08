@@ -110,6 +110,7 @@ SNPs.
 
 <<data>>=
 library(VanillaICE)
+library(SNPchip)
 data(locusLevelData)
 @
 
@@ -129,8 +130,9 @@ class \Robject{oligoSnpSet} from the simulated data:
 
 %get rid of this
 <<createLocusSet>>=
+cn <- log2(locusLevelData[["copynumber"]]/100)
 oligoSet <- new("oligoSnpSet",
-		copyNumber=log2(locusLevelData[["copynumber"]]/100),
+		copyNumber=integerMatrix(cn),
 		call=locusLevelData[["genotypes"]],
 		callProbability=locusLevelData[["crlmmConfidence"]],
 		annotation=locusLevelData[["platform"]])
@@ -185,6 +187,7 @@ codechunk), the LLR is zero.
 
 <<fit_van>>=
 oligoSet <- oligoSet[chromosome(oligoSet) <= 2, ]
+##trace(VanillaICE:::hmmOligoSnpSet, browser)
 fit.van <- hmm(oligoSet)
 @
 
@@ -200,9 +203,9 @@ fit.chr1 <- fit.van[fit.van$chrom == 1, ]
 ##fit.chr1 <- fit.van[fit.van$chrom==1, ]
 isHet <- snpCall(chr1)==2
 par(las=1)
-plot(position(chr1), copyNumber(chr1), pch=".", cex=2, col="royalblue",
+plot(position(chr1), copyNumber(chr1)/100, pch=".", cex=2, col="royalblue",
      ylab="log2 copy number")
-points(position(chr1)[isHet], copyNumber(chr1)[isHet], col="red", pch=".", cex=2)
+points(position(chr1)[isHet], copyNumber(chr1)[isHet]/100, col="red", pch=".", cex=2)
 abline(h=log2(1:3), col="grey70")
 sts <- start(fit.chr1); ends <- end(fit.chr1)
 xx <- range(c(sts,ends))
@@ -219,23 +222,18 @@ legend("topleft", fill=cols, legend=c("hom-del", "hem-del", "N", "N-noHets", "sD
   \includegraphics[width=0.9\textwidth]{VanillaICE-fig2}
   \caption{\label{fig:chr1} Plot of artificial data for one chromosome.}
 \end{figure}
-To find which markers are included in each genomic interval
-returned by the \Rfunction{hmm} method, one can use the
-\Rfunction{findOverlaps} method in the \Rpackage{oligoClasses}. This
-method returns the 'match matrix'.  The first column in the match
-matrix are indices of the genomic intervals (rows) of the
-\Rclass{RangedDataHMM} object; the second column in the match matrix
-is a vector of indices for the markers in the \Robject{oligoSet}
-object.  For example, the second interval in the
-\Robject{RangedDataHMM} object \Robject{fit.van} contains 102
-markers.
+To find which markers are included in each genomic interval returned
+by the \Rfunction{hmm} method, one can use the
+\Rfunction{findOverlaps} method in the \Rpackage{oligoClasses}. For
+example, the second interval in the \Robject{RangedDataHMM} object
+\Robject{fit.van} contains 102 markers.
 <<range2>>=
 fit.van[2, ]
 @
 To find the names of the 102 markers that are included in
 this genomic interval, one could do the following
 <<findOverlaps>>=
-mm <- matchMatrix(findOverlaps(fit.van, oligoSet))
+mm <- as.matrix(findOverlaps(fit.van, oligoSet))
 markersInRange <- featureNames(oligoSet)[mm[,1]==2]
 @
 Multipanel displays can be useful for visualizing the low-level data
@@ -246,14 +244,14 @@ by-sample.
 \paragraph{By locus.} To plot the genomic data for a set of ranges at
 a given locus, we provide an unevaluated code chunk below (our example
 contains only a single sample):
-<<multipanelSingeLocus,eval=FALSE>>=
+<<multipanelSingleLocus,eval=FALSE>>=
 xyplot(cn ~ x | id, oligoSet, range=RangedDataObject, ylim=c(-0.5,4), panel=xypanel)
 @
 
 \noindent Note that the default in the above command is to use a
 common x- and y-scale for each panel.  To allow the x-axes to change
 for each panel, one could set the x-scales to 'free':
-<<multipanelSingeLocus,eval=FALSE>>=
+<<multipanelSingleLocus,eval=FALSE>>=
 xyplot(cn ~ x | id, oligoSet, range=RangedDataObject, ylim=c(-0.5,4), scales=list(x="free"),
        panel=xypanel)
 @
@@ -331,8 +329,8 @@ fit.chr1 <- fit.ice[chromosome(fit.ice)==1, ]
 widths <- width(fit.chr1)
 fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
 par(las=1)
-plot(position(chr1), copyNumber(chr1), pch=".", ylab="log2 copy number", xlab="physical position", cex=2, col="royalblue")
-points(position(chr1)[isHet], copyNumber(chr1)[isHet], col="red", pch=".", cex=2)
+plot(position(chr1), copyNumber(chr1)/100, pch=".", ylab="log2 copy number", xlab="physical position", cex=2, col="royalblue")
+points(position(chr1)[isHet], copyNumber(chr1)[isHet]/100, col="red", pch=".", cex=2)
 abline(h=log2(1:3), col="grey70")
 sts <- start(fit.chr1); ends <- end(fit.chr1)
 xx <- range(c(sts,ends))

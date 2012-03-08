@@ -10,7 +10,7 @@ THISPKG <- "VanillaICE"
 ##}
 
 .onAttach <- function(libname, pkgname) {
-	packageStartupMessage("Welcome to VanillaICE version ", packageDescription(THISPKG, field="Version"))
+	packageStartupMessage("Welcome to VanillaICE version ", packageDescription(THISPKG, fields="Version"))
 }
 
 .onUnload <- function(libpath){

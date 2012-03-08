@@ -60,11 +60,11 @@ by plotting a genomic interval of 200kb on each side (using the
 
 <<xyplot>>=
 rd <- res[!state(res)%in%c(3,4), ]
-fig <- VanillaICE:::xyplotLrrBaf(rd, oligoSet,
-				 frame=200e3,
-				 panel=VanillaICE:::xypanelBaf,
-				 scales=list(x="free"),
-				 cex.pch=0.2)
+fig <- SNPchip:::xyplotLrrBaf(rd, oligoSet,
+			      frame=200e3,
+			      panel=SNPchip:::xypanelBaf,
+			      scales=list(x="free"),
+			      cex.pch=0.2)
 @
 
 <<latticeFig, echo=false, fig=TRUE, include=FALSE,width=8, height=7>>=

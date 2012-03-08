@@ -236,15 +236,18 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 			    rohIndex=normalIndex+1L,
 			    nupdates=10,
 			    tolerance=1,
-			    returnViterbiObject=FALSE,...){
+			    returnViterbiObject=FALSE, ...){
 	S <- length(cnStates)
 	J <- ncol(r)
 	## todo: reestimation of mixture probs for BAFs
 	if(!missing(b)){
-		emitb <- bafEmission(object=b,
-				     is.snp=is.snp,
-				     prOutlier=prOutlierBAF,
-				     p.hom=p.hom, log.it=FALSE,...)
+		emitb <- array(NA, dim=c(nrow(b), J, S))
+		for(j in seq_len(J)){
+			emitb[, j, ] <- bafEmission(object=b[, j, drop=FALSE],
+						    is.snp=is.snp,
+						    prOutlier=prOutlierBAF,
+						    p.hom=p.hom, log.it=FALSE,...)[, 1, ]
+		}
 	} else {
 		stopifnot(rohIndex==4L)
 		emitb <- gtEmission(object=gt,
@@ -266,6 +269,7 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 			## homozygous deletions often have a higher variance.
 			## Initialize the variance for this state to have a bigger variance
 			sigmas[, 1] <- sigmas[, 1] * 4
+			sigmas[, 2] <- sigmas[, 2] * 2
 			p <- replicate(J, matrix(c(0.99, 0.01), S, 2, byrow=TRUE), simplify=FALSE)
 		} else {
 			mu.sigma <- foreach(j = seq_len(J)) %do% {

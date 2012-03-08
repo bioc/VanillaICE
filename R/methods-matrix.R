@@ -163,8 +163,12 @@ gtEmissionFromMatrix <- function(object,
 ##	return(tau)
 ##}
 
-updateSigma <- function(x, is.snp, nUpdates=10, sigma0){
+updateSigma <- function(x, is.snp, nUpdates=5, sigma0){
 	##x <- x[is.snp & x > 0 & x < 1]
+	if(sum(is.snp,na.rm=TRUE) < 10){
+		## do not update
+		return(sigma0)
+	}
 	x <- x[is.snp]
 	x <- x[x > 0 & x < 1]
 	mu <- c(0, 0.5, 1)
@@ -194,7 +198,7 @@ updateSigma <- function(x, is.snp, nUpdates=10, sigma0){
 		##
 		##sigma2 <- rep(NA,L)
 		for(i in seq_len(L)){
-			sd.new[i] <- sqrt(sum(gamma[,i]*(x - mu[i])^2,na.rm=TRUE)/(sum(gamma[,i],na.rm=TRUE)))
+			sd.new[i] <- sqrt(sum(gamma[,i]*(x - mu[ i])^2,na.rm=TRUE)/(sum(gamma[,i],na.rm=TRUE)))
 		}
 		##total.gamma <- apply(gamma, 2, sum, na.rm=TRUE)
 		pi.new <- apply(gamma, 2, mean, na.rm=TRUE)
@@ -208,7 +212,9 @@ updateSigma <- function(x, is.snp, nUpdates=10, sigma0){
 	any.nan <- any(is.nan(sds))
 	any.na <- any(is.na(sds))
 	allvalid <- !any.nan & !any.na
-	stopifnot(allvalid)
+	if(!allvalid){
+		stop("NA's or non-finite standard deviations for BAFs. Error occurs in function updateSigma")
+	}
 	return(sds)
 }
 
@@ -220,7 +226,8 @@ setMethod("bafEmission", signature(object="matrix"),
 					p.hom=p.hom, log.it=log.it, ...)
 	  })
 
-bafEmissionFromMatrix <- function(object, is.snp, prOutlier=1e-3, p.hom=0.95, log.it=TRUE, ...){
+bafEmissionFromMatrix <- function(object, is.snp, prOutlier=1e-3,
+				  p.hom=0.95, log.it=TRUE, ...){
 	states <- 1:6
 	S <- 6
 	if("pb" %in% names(list(...))){
@@ -232,7 +239,8 @@ bafEmissionFromMatrix <- function(object, is.snp, prOutlier=1e-3, p.hom=0.95, lo
 	##if(ncol(object) > 1 | sum(is.snp) < 1000){
 	##  Assume mu is known, but sigma is not.
 	##sds <- updateSigma(object, is.snp, sigma0=c(0.02, 0.04, 0.02))
-	sds <- apply(object, 2, updateSigma, is.snp=is.snp, sigma0=c(0.02,0.04, 0.02))
+	sds <- apply(object, 2, updateSigma, is.snp=is.snp, sigma0=c(0.02, 0.04, 0.02),
+		     nUpdates=5)
 ##	} else {
 ##		tmp <- kmeans(object[is.snp, ], centers=c(0,0.5,1))
 ##		sds <- sapply(split(object[is.snp, ], tmp$cluster), mad, na.rm=TRUE)

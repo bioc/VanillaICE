@@ -17,24 +17,22 @@ importMethodsFrom(oligoClasses, checkOrder)
 importFrom(stats, update, sd)
 ##msm
 importFrom(msm, rtnorm)
-## lattice
-importFrom(lattice, xyplot, simpleKey, panel.grid, panel.xyplot, lrect, ltext,
-	   lpoints, panel.number, current.panel.limits)
-## grid
-importFrom(grid, grid.newpage, viewport, pushViewport, upViewport, dataViewport, unit)
+
 ## crlmm
 importMethodsFrom(crlmm, coerce)
 ## IRanges
 importMethodsFrom(IRanges, as.matrix)
 
+## SNPchip
+## importMethodsFrom(SNPchip, xyplot, xyplot2)
+## importFrom(SNPchip, xypanel)
+
 
 ##----------------------------------------------------------------------------
 ## export
 ##----------------------------------------------------------------------------
-export(BeadStudioSet, centerAutosomesAt,
-       robustSds, xypanel)
-export(icePlatforms,sd,arrangeSideBySide, hmm3, read.bsfiles)
-exportMethods(hmm, sd, xyplot, xyplot2)
+export(BeadStudioSet, centerAutosomesAt, robustSds, icePlatforms, sd, read.bsfiles)
+exportMethods(hmm, sd)
 
 ## export deprecated classes and functions
 exportClasses(HmmOptionList)
@@ -42,3 +40,6 @@ export(hmm.setup, HmmOptionList)
 
 export(copyNumberLimits, rowMAD, viterbi2Wrapper, rescale)
 exportMethods(emission)
+
+exportClasses(BeadStudioSetList)
+export(BeadStudioSetList)
