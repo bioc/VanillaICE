@@ -36,7 +36,8 @@ exportMethods(hmm, sd)
 
 ## export deprecated classes and functions
 exportClasses(HmmOptionList)
-export(hmm.setup, HmmOptionList)
+export(hmm.setup, HmmOptionList, hmmBeadStudioSet, hmmOligoSnpSet,
+       hmmSnpSet)
 
 export(copyNumberLimits, rowMAD, viterbi2Wrapper, rescale)
 exportMethods(emission)

@@ -53,9 +53,10 @@ options(width=70)
 
 \begin{abstract}
   This package provides an implementation of a hidden Markov Model for
-  high throughput SNP arrays.  Users of this package should already have
-  available locus-level estimates of copy number.  Copy number estimates
-  can be relative or absolute.
+  high throughput SNP arrays.  Users of this package should already
+  have available locus-level estimates of copy number and B allele
+  frequencies or genotype calls.  Copy number estimates can be
+  relative or absolute.
 \end{abstract}
 
 \section{Overview}
@@ -69,31 +70,25 @@ This vignette requires that you have
 
   and / or
 
-\item a matrix of genotype calls  (1=AA, 2 = AB, 3= BB): rows correspond
-  to loci and columns correspond to samples
+\item a matrix of B allele frequencies or genotype calls (1=AA, 2 =
+  AB, 3= BB): rows correspond to loci and columns correspond to
+  samples
 
 \end{itemize}
 
-\noindent Additional options that can improve the HMM predictions
-include
+If Affymetrix CEL files or Illumina Idat files were processed with the
+\R{} package \Rpackage{crlmm}, see the vignette
+\texttt{crlmmDownstream} included with this package.
 
-\begin{itemize}
+\noindent Other HMM implementations for the joint analysis of copy
+number and genotype include QuantiSNP \citep{Colella2007} and PennCNV
+\citep{Wang2007a}.
 
-  \item a CRLMM confidence score of the genotype call
-
-  \item standard errors of the copy number estimates
-
-  \end{itemize}
-
-  \noindent Other HMM implementations are available for the joint
-  analysis of copy number and genotype, including QuantiSNP
-  \citep{Colella2007} and PennCNV \citep{Wang2007a}.
-
-  \paragraph{Data considerations.}  The HMM implemented in this package
-  is most relevant for heritable diseases for which integer copy numbers
-  are expected. For somatic cell diseases such as cancer, we suggest
-  circular binary segmentation, as implemented in the \R{} package
-  DNAcopy \citep{Olshen2004}.
+\paragraph{Data considerations.}  The HMM implemented in this package
+is most relevant for heritable diseases for which integer copy numbers
+are expected. For somatic cell diseases such as cancer, we suggest
+circular binary segmentation, as implemented in the \R{} package
+DNAcopy \citep{Olshen2004}.
 
 \paragraph{Citing this software.}
 % \bibitem{Scharpf2008}
@@ -114,19 +109,16 @@ library(SNPchip)
 data(locusLevelData)
 @
 
-\noindent The copy number estimates in the locusLevelData object were
-multiplied by 100 and saved as an integer. Verify that it is
-reasonable to assume integer copy number for the HMM by plotting the
-locus-level estimates as a function of the physical position.
+\noindent The copy number estimates in the \Robject{locusLevelData}
+object were multiplied by 100 and saved as an integer. An object of
+class \Robject{oligoSnpSet} is instantiated from the simulated data in
+the next code chunk.  Note that the assay data elements for the
+\Robject{oligoSnpSet} object should be integers.  The
+\Rfunction{integerMatrix} scales the copy number matrix by a factor of
+100 (by default) and returns a matrix of integers. When available, B
+allele frequencies should be scaled by a factor of 1000.  For example,
 
-<<integerCopynumber, fig=TRUE,include=TRUE, width=8>>=
-par(las=1)
-plot(locusLevelData[["copynumber"]][, 1]/100, pch=".", ylab="copy number", log="y")
-abline(h=1:3, col="grey70")
-@
-
-\noindent Next, create an object of
-class \Robject{oligoSnpSet} from the simulated data:
+\verb+ integerMatrix(bAlleleFreq, scale=1000) \verb+
 
 %get rid of this
 <<createLocusSet>>=
@@ -140,61 +132,55 @@ oligoSet <- oligoSet[!is.na(chromosome(oligoSet)), ]
 oligoSet <- oligoSet[chromosome(oligoSet) < 3, ]
 @
 
-If confidence scores or inverse standard errors for the copy number
-estimates are available, these should be supplied to the
-\Robject{cnConfidence} slot in the \Robject{assayData}.  For
-illustration, in the following code chunk we transform the copy number
-estimates to the log scale and calculate a robust estimate of the
-standard deviation across autosomes.  If uncertainty estimates are not
-available for copy number, the HMM will calculate the median absolute
-deviation (MAD).  See the the function \Robject{robustSds}.
-
-<<sdMethod>>=
-sds <- sd(oligoSet)
-@
-\noindent The inverse of the \Robject{sds} object can be assigned to the
-\Robject{cnConfidence} slot.
-
-<<assignSds>>=
-cnConfidence(oligoSet) <- 1/sds
-@
+%If confidence scores or inverse standard errors for the copy number
+%estimates are available, these can be supplied to the
+%\Robject{cnConfidence} slot in the \Robject{assayData}.  For
+%illustration, in the following code chunk we transform the copy number
+%estimates to the log scale and calculate a robust estimate of the
+%standard deviation across autosomes.  If uncertainty estimates are not
+%available for copy number, the HMM will calculate the median absolute
+%deviation (MAD).  See the the function \Robject{robustSds}.
+%
+%<<sdMethod>>=
+%sds <- sd(oligoSet)
+%@
+%\noindent The inverse of the \Robject{sds} object can be assigned to the
+%\Robject{cnConfidence} slot.
+%
+%<<assignSds>>=
+%cnConfidence(oligoSet) <- 1/sds
+%@
 
 \section{Fitting the HMM}
 
-%Several scenarios are outlined for fitting the HMM.  In general, the
-%following elements are required to fit the HMM: initial state
-%probabilities, emission probabilities, and transition probabilities.
-\subsection{Vanilla HMM}
+When jointly modeling the copy number and genotypes/allele
+frequencies, we assume that the genotype and copy number estimates are
+independent conditional on the underlying hidden state.  The method
+\Rfunction{hmm} is defined for several classes, including objects of
+class \Rclass{oligoSnpSet} and \Rclass{BeadStudioSet}.
 
-When jointly modeling the copy number and genotype data, we assume
-that the genotype estimates and copy number estimates are independent
-conditional on the underlying hidden state.  The emission
-probabilities for the genotypes are then calculated using either (i)
-assumptions of the probability of observing a homozygous genotype call
-given the underlying state. Next we order the markers by chromosome
-and physical position.  The \Rfunction{hmm} method will order the
-\Robject{oligoSnpSet} object automatically, so the following step is
-not required.
+% The emission probabilities for the genotypes are calculated using
+% either (i) assumptions of the probability of observing a homozygous
+% genotype call given the underlying state or (ii) incorporating crlmm
+% confidence estimates of the genotype calls (\texttt{ICE} option).
 
 \noindent The viterbi algorithm is used to obtain the most likely
-sequence of hidden states given the observed data.  For efficiency, we
-return an object of class \Robject{RangedDataHMM} with genomic
-coordinates of the normal and altered regions.  We also return the
-log-likelihood ratio (LLR) of the predicted sequence in an interval
-versus the null of normal copy number. For intervals with typical copy
-number (2) and percent heterozygosity (the 3rd state in the above
-codechunk), the LLR is zero.
+sequence of hidden states given the observed data.  The value returned
+is an object of class \Robject{RangedDataHMM} with genomic coordinates
+of the normal and altered regions.  We also return the log-likelihood
+ratio (LLR) of the predicted sequence in an interval versus the
+likelihood of diploid copy number. For intervals inferred to have
+diploid copy number, the LLR is zero.
 
 <<fit_van>>=
 oligoSet <- oligoSet[chromosome(oligoSet) <= 2, ]
-##trace(VanillaICE:::hmmOligoSnpSet, browser)
 fit.van <- hmm(oligoSet)
 @
 
-Next we plot the data for chromosome 1 and overlay the predictions
-from the hidden markov model. See Figure \ref{fig:chr1}.
+Figure \ref{fig:chr1} plots the data for chromosome 1 and the
+predictions from the hidden markov model:
 
-<<fig2, fig=TRUE, width=8, echo=FALSE, include=FALSE>>=
+<<fig2,fig=TRUE,width=8,echo=FALSE,include=FALSE>>=
 if(require(RColorBrewer)){
 	cols <- brewer.pal(6, "YlOrBr")
 } else cols <- rainbow(n=6)
@@ -324,7 +310,7 @@ annotation(oligoSet) <- ann
 @
 
 
-<<fig3, fig=TRUE, width=8, echo=FALSE>>=
+<<fig3, fig=TRUE, width=8, echo=FALSE, eval=FALSE>>=
 fit.chr1 <- fit.ice[chromosome(fit.ice)==1, ]
 widths <- width(fit.chr1)
 fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]

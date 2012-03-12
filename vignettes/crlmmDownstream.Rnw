@@ -21,14 +21,14 @@
 \newcommand{\oligo}{\Rpackage{oligo}}
 
 \title{Integration with the crlmm package for copy number inference}
-\author{Robert Scharpf}
+\author{Robert Schgarpf}
 
 \begin{document}
 
 \maketitle
 
 We load a portion of chromosome 8 from 2 HapMap samples that were
-processed using the \Rpackage{crlmm}.
+processed using the \Rpackage{crlmm} package.
 
 <<loadData>>=
 library(VanillaICE)
@@ -60,10 +60,11 @@ by plotting a genomic interval of 200kb on each side (using the
 
 <<xyplot>>=
 rd <- res[!state(res)%in%c(3,4), ]
-fig <- SNPchip:::xyplotLrrBaf(rd, oligoSet,
+fig <- SNPchip:::xyplotLrrBaf(rd[1:6, ], oligoSet,
 			      frame=200e3,
 			      panel=SNPchip:::xypanelBaf,
 			      scales=list(x="free"),
+			      par.strip.text=list(cex=0.6),
 			      cex.pch=0.2)
 @
 

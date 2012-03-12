@@ -1,7 +1,6 @@
 hmmSnpSet <- function(object,
 		      ICE=FALSE,
 		      chromosome=1:22,
-		      annotationPkg,
 		      normalIndex=1L,
 		      rohIndex=normalIndex+1L,
 		      S=2L,
@@ -10,7 +9,7 @@ hmmSnpSet <- function(object,
 		      prHetCalledHom=0.001,
 		      prHetCalledHet=0.995,
 		      prHomInNormal=0.8,
-		      prHomInRoh=0.999, ...){ ## additional arguments to Viterbi construction
+		      prHomInRoh=0.999, TAUP=1e8, ...){ ## additional arguments to Viterbi construction
 	object <- object[chromosome(object) %in% chromosome, ]
 	marker.index <- validChromosomeIndex(object)
 	object <- object[marker.index, ]
@@ -32,7 +31,8 @@ hmmSnpSet <- function(object,
 				 prHetCalledHom=prHetCalledHom,
 				 prHetCalledHet=prHetCalledHet,
 				 prHomInNormal=prHomInNormal,
-				 prHomInRoh=prHomInRoh, ...)
+				 prHomInRoh=prHomInRoh,
+				 TAUP=TAUP,...)
 	}
 	rd <- stackRangedData(rd)
 	return(rd)

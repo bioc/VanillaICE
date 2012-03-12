@@ -1,0 +1,159 @@
+\name{hmmBeadStudioSet}
+\alias{hmmBeadStudioSet}
+\alias{hmmOligoSnpSet}
+%- Also NEED an '\alias' for EACH other topic documented here.
+\title{
+   HMM functions for oligoSnpSet and BeadStudioSet containers
+}
+\description{
+
+   HMM functions for \code{oligoSnpSet} and \code{BeadStudioSet}
+   containers. These functions are exported in the package's namespace
+   to provide documentation of arguments that can be passed from the
+   \code{hmm} method for these containers.  The \code{hmmBeadStudioSet}
+   function is always called when the object passed to the \code{hmm}
+   method is a \code{BeadStudioSet}.  By contrast, the \code{hmm} method
+   for \code{oligoSnpSet} objects will only call the
+   \code{hmmOligoSnpSet} function if B allele frequences (assay data
+   element "baf") is not included in the list of assay data elements.
+   Specifically, if assay data element "baf" is in the list of assay
+   data elements of a \code{oligoSnpSet} container, the \code{hmm}
+   method for the \code{oligoSnpSet} class calls the
+   \code{hmmBeadStudioSet} function.
+
+}
+\usage{
+hmmBeadStudioSet(object, cnStates = logCnStates(), normalIndex = 3L,rohIndex = normalIndex + 1L, prOutlierCN = 0.01, prOutlierBAF = 0.001,p.hom = 0.05, TAUP = 1e+08, is.log, initialProb =rep(1/length(cnStates), length(cnStates)), center = TRUE, reestimation =TRUE, nupdates = 10, tolerance = 1, ...)
+hmmOligoSnpSet(object, cnStates = c(0, 1, 2, 2, 3, 4), normalIndex = 3L, rohIndex = normalIndex + 1L, prOutlierCN = 0.01, prOutlierBAF = 0.001, p.hom = 0.05, TAUP = 1e+08, is.log, initialProb = rep(1/length(cnStates), length(cnStates)), center = TRUE, reestimation = TRUE, nupdates = 10, tolerance = 1, ...)
+}
+%- maybe also 'usage' for other objects documented here.
+\arguments{
+  \item{object}{
+    A \code{oligoSnpSet} or \code{BeadStudioSet}.
+}
+\item{cnStates}{
+
+  A vector of starting values (numeric) specifying the means of the
+  Normal distribution assumed for latent copy numbers. The means must be
+  specified for states homozygous deletion (zero copies), hemizygous
+  deletion (1 copy), normal (2 copies), normal and no heterozygotes (2
+  copies), single copy duplication (3 copies), and two+ copy duplication
+  (4+ copies). The starting values are updated via EM.
+
+}
+
+\item{normalIndex}{
+
+  Integer indicating the state index for diploid copy number. This
+    should nearly always be '3' if the 6-state HMM (see \code{cnStates})
+    is fit as recommended.
+
+  }
+
+  \item{rohIndex}{
+
+    The state index (integer) for diploid copy number without
+    heterozygotes. This should be '4'.  It is important to include this
+    state even if homozygous regions with diploid copy number are not of
+    interest.
+
+}
+
+\item{prOutlierCN}{
+
+    The probability that a copy number estimate is an outlier.  This is
+    an initial estimate that is updated for each copy number state via
+    EM.
+
+}
+
+  \item{prOutlierBAF}{
+
+        The probability that a B allele frequency is an outlier.  This
+    is an initial estimate that is updated for each copy number state
+    via EM.
+
+  }
+
+  \item{p.hom}{
+
+
+  }
+
+
+  \item{TAUP}{
+
+    Scalar for the transition probability matrix.  Larger values
+    discourage transitions from the normal state. (The transition
+    probabilities are a function of the distance between adjacent
+    markers.  These probabilities are not updated as part of the EM
+    step.)
+
+  }
+
+  \item{is.log}{
+
+    A \code{logical} indicating whether the copy number estimates are on
+    the log scale.  Note that the assay data elements in
+    \code{oligoSnpSet} and \code{BeadStudioSet} should be represented as
+    integers (copy number or relative copy number * 100). If
+    \code{is.log} is TRUE, we assume that after division by 100 the
+    assay data element containing the copy numbers (or relative copy
+    numbers) is on the log-scale.  The scale has implications on what is
+    considered to be extreme.
+
+  }
+
+  \item{initialProb}{
+
+    Vector of initial state probabilities.  This is required to be the
+    same length as \code{cnStates}.
+
+  }
+
+  \item{center}{
+
+    Whether to center the copy number for each chromosomal arm at the
+    theoretical mean for the diploid copy number state.  This may not be
+    appropriate for some datasets (e.g., trisomy 21, cancer
+    applications).  A safer approach is to set this argument to
+    \code{FALSE} and center all autosomes at the theoretical mean for
+    two copies prior to fitting the HMM.
+
+  }
+
+  \item{reestimation}{ Logical, but currently ignored.  }
+
+  \item{nupdates}{
+
+    The maximum number of reestimation steps for updating the mean,
+    variance, and outlier probabilities of the Gaussian-Uniform mixture
+    for each copy number state.
+
+  }
+
+  \item{tolerance}{
+
+    If the difference in the log likelihood between successive EM
+    updates is less than tolerance, the number of updates can be less
+    than \code{nupdates}.
+
+  }
+
+  \item{\dots}{
+    Presently ignored
+  }
+}
+\value{
+  A \code{RangedData}-derived object.
+}
+
+\author{
+R. Scharpf
+}
+
+\seealso{
+  \code{\link{hmmSnpSet}}
+}
+\keyword{smooth}
+

@@ -258,7 +258,9 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 	}
 	taus <- computeTransitionProb(x=pos, TAUP=TAUP, S=S)
 	sds <- apply(r, 2, mad, na.rm=TRUE)
-	r <- centerCopyNumber(r, is.snp) + cnStates[normalIndex]
+	if(center){
+		r <- centerCopyNumber(r, is.snp) + cnStates[normalIndex]
+	}
 	r <- thresholdCopyNumber(r, limits=limits)
 	loglik <- matrix(NA, nupdates, J)
 	viterbiList <- vector("list", J)
