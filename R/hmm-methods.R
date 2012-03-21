@@ -27,7 +27,7 @@ setMethod("hmm", signature(object="BeadStudioSetList"),
 	  function(object, ...){
 		  message("Fitting HMM to each chromosome")
 		  if(isPackageLoaded("ff")) pkgs <- c("ff", "VanillaICE") else pkgs <- "VanillaICE"
-		  if(is.null(getCluster())) registerDoSEQ()
+		  if(!getDoParRegistered()) registerDoSEQ()
 		  if(ncol(object[[1]]) < ocSamples()){
 			  rdl <- foreach(obj=object, .packages=pkgs) %dopar% {
 				  hmm(object=obj, ...)

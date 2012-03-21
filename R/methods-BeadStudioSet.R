@@ -156,7 +156,7 @@ hmmBeadStudioSet <- function(object,
 		## better to combine arms for estimates of mean/sd
 		index <- list(marker.index)
 	}
-	if(is.null(getCluster())) {
+	if(!getDoParRegistered()) {
 		registerDoSEQ()
 		pkgs <- "VanillaICE"
 	}  else {

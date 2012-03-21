@@ -1377,7 +1377,7 @@ hmm3 <- function(object,
 	stopifnot(rohIndex==4L)
 	message("Fitting HMM to each chromosome")
 	if(isPackageLoaded("ff")) pkgs <- c("ff", "VanillaICE") else pkgs <- "VanillaICE"
-	if(is.null(getCluster())) registerDoSEQ()
+	if(!parStatus()) registerDoSEQ()
 	rdl <- foreach(obj=object, .packages=pkgs) %dopar% {
 		hmm(object=obj,
 		    cnStates=cnStates,

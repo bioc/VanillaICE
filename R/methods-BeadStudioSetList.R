@@ -52,7 +52,7 @@ BeadStudioSetList <- function(fnames,
 			      sampleIds,
 			      phenoData,
 			      ...){
-	if(is.null(getCluster())) registerDoSEQ()
+	if(!getDoParRegistered()) registerDoSEQ()
 	dat <- read.bsfiles(filenames=fnames[1])
 	##
 	## build featureDataList
