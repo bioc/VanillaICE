@@ -1,27 +1,39 @@
 useDynLib("VanillaICE", .registration=TRUE)
+
 ## methods
-importClassesFrom(methods, ANY, character, data.frame, "function", integer, matrix, numeric)
 importMethodsFrom(methods, initialize, show)
 importFrom(methods, "@<-", callNextMethod, new, validObject)
+
 ##utils
-importFrom(utils, setTxtProgressBar, txtProgressBar)
+importFrom(utils, setTxtProgressBar, txtProgressBar, packageDescription)
+
 ##Biobase (do we need this)
-importMethodsFrom(Biobase, sampleNames)
-importFrom(Biobase,rowMedians,"assayDataElement<-")
-## oligoClasses (do we need this)
-importMethodsFrom(oligoClasses, open, close, coverage2, state)
-importMethodsFrom(oligoClasses, baf, lrr, "baf<-", "lrr<-")
-importFrom(oligoClasses, chromosomePositionOrder, RangedDataHMM)
-importMethodsFrom(oligoClasses, checkOrder)
+import(Biobase)
+##importMethodsFrom(Biobase, sampleNames)
+##importFrom(Biobase, rowMedians,"assayDataElement<-", "assayData<-")
+
 ##stats
 importFrom(stats, update, sd)
+
+## IRanges
+import(IRanges)
+importMethodsFrom(IRanges, as.matrix)
+
+## oligoClasses (do we need this)
+import(oligoClasses)
+##importMethodsFrom(oligoClasses, open, close, coverage2, state)
+##importMethodsFrom(oligoClasses, baf, lrr, "baf<-", "lrr<-")
+##importFrom(oligoClasses, chromosomePositionOrder, RangedDataHMM)
+##importMethodsFrom(oligoClasses, checkOrder)
+
 ##msm
 importFrom(msm, rtnorm)
 
 ## crlmm
-importMethodsFrom(crlmm, coerce)
-## IRanges
-importMethodsFrom(IRanges, as.matrix)
+##importMethodsFrom(crlmm, coerce)
+
+##foreach
+import(foreach)
 
 ## SNPchip
 ## importMethodsFrom(SNPchip, xyplot, xyplot2)

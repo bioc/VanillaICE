@@ -104,8 +104,11 @@ This package includes simulated genotype and copy number data for 9165
 SNPs.
 
 <<data>>=
+library(oligoClasses)
 library(VanillaICE)
-library(SNPchip)
+library2(SNPchip)
+library2(Biobase)
+library2(IRanges)
 data(locusLevelData)
 @
 

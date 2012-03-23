@@ -31,7 +31,11 @@ We load a portion of chromosome 8 from 2 HapMap samples that were
 processed using the \Rpackage{crlmm} package.
 
 <<loadData>>=
+library(oligoClasses)
 library(VanillaICE)
+library2(crlmm)
+library2(SNPchip)
+library2(IRanges)
 data(cnSetExample, package="crlmm")
 @
 
@@ -60,12 +64,12 @@ by plotting a genomic interval of 200kb on each side (using the
 
 <<xyplot>>=
 rd <- res[!state(res)%in%c(3,4), ]
-fig <- SNPchip:::xyplotLrrBaf(rd[1:6, ], oligoSet,
+fig <- SNPchip:::xyplotLrrBaf(rd[1:2, ], oligoSet,
 			      frame=200e3,
 			      panel=SNPchip:::xypanelBaf,
 			      scales=list(x="free"),
 			      par.strip.text=list(cex=0.6),
-			      cex.pch=0.2)
+			      pch=".")
 @
 
 <<latticeFig, echo=false, fig=TRUE, include=FALSE,width=8, height=7>>=

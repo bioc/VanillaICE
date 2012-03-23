@@ -163,6 +163,7 @@ hmmBeadStudioSet <- function(object,
 		pkgs <- c("ff", "VanillaICE")
 	}## to avoid warnings
 	## parallelization should be in the calling hmm method, not here.
+	i <- NULL
 	v2fit <- foreach(i=index, .packages="VanillaICE") %do% {
 		viterbi2Wrapper(r=copyNumber(object)[i, , drop=FALSE]/100,
 				b=baf(object)[i, , drop=FALSE]/1000,

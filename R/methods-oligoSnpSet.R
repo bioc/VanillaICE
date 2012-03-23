@@ -54,6 +54,7 @@ hmmOligoSnpSet <- function(object,
 	object <- chromosomePositionOrder(object)
 	arm <- .getArm(chromosome(object), position(object))
 	index <- split(seq_len(nrow(object)), arm)
+	i <- NULL
 	v2fit <- foreach(i=index, .packages="VanillaICE", .inorder=TRUE) %do% {
 		viterbi2Wrapper(r=copyNumber(object)[i, , drop=FALSE],
 				gt=calls(object)[i, , drop=FALSE],

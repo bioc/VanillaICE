@@ -63,6 +63,7 @@ sd(x, na.rm=FALSE)
 }
 
 \examples{
+  library(oligoClasses)
   data(oligoSetExample)
   sds <- sd(oligoSet)
 }

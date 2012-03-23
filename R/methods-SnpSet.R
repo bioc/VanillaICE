@@ -18,6 +18,7 @@ hmmSnpSet <- function(object,
 	index <- split(seq_len(nrow(object)), arm)
 	chr <- sapply(index, function(i, chr) unique(chr[i]), chr=chromosome(object))
 	if(ICE) checkAnnotationForICE(object)
+	chrom <- i <- NULL
 	rd <- foreach(i=index, chrom=chr) %do% {
 		viterbiForSnpSet(gt=calls(object)[i, , drop=FALSE],
 				 is.snp=isSnp(object)[i],
@@ -81,6 +82,7 @@ viterbiForSnpSet <- function(gt, S=2L,
 			   ...)
 		viterbiList[[j]] <- fit(tmp)
 	}
+	id <- object <- NULL
 	rdlist <- foreach(object = viterbiList,
 			  id=colnames(gt)) %do% {
 				  computeLoglikFromViterbi2(object=object,

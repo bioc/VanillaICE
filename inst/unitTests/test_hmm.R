@@ -57,6 +57,7 @@ test_hmm_genotypesOnly <- function(){
 
 	## test ICE hmm
 	## annotation package not supported
+	library(Biobase)
 	checkException(hmm(snpSet, S=2L, ICE=TRUE, normalIndex=1L))
 	annotation(snpSet) <- "genomewidesnp6Crlmm"
 	snpCallProbability(snpSet)[c(1049,1050)] <- p2i(0.5)
@@ -64,26 +65,29 @@ test_hmm_genotypesOnly <- function(){
 }
 
 test_hmm_cnset <- function(){
+	library(oligoClasses)
+	library2(crlmm)
 	data(cnSetExample, package="crlmm")
 	oligoset <- as(cnSetExample, "oligoSnpSet")
 	## this object is not ordered by physical position
 	## make sure the right answer is returned even though
 	## its not ordered
 	oligoset <- chromosomePositionOrder(oligoset)
+	##trace(hmmBeadStudioSet, browser)
 	res <- hmm(oligoset, p.hom=0)
 	rd <- res[state(res)!=3, ]
 	if(FALSE){
-		VanillaICE:::xyplotLrrBaf(rd, oligoset,
-					  frame=200e3,
-					  panel=VanillaICE:::xypanelBaf,
-					  scales=list(x="free"),
-					  cex.pch=0.2,
-					  p.hom=0.05)
+		SNPchip:::xyplotLrrBaf(rd, oligoset,
+				       frame=200e3,
+				       panel=SNPchip:::xypanelBaf,
+				       scales=list(x="free"))
+				       ##cex=0.2)
+
 		i <- subjectHits(findOverlaps(rd[6, ], oligoset))
 		b <- baf(oligoset)[i, 2]
 		b <- b/1000
 		hist(b, breaks=100)
 	}
-	checkIdentical(state(rd), as.integer(c(5,2,5,2,5,4, 2,4,4,1)))
-	checkEquals(coverage2(rd), as.integer(c(3282, 179, 27, 25, 140, 322, 27, 425, 181, 6)), tolerance=0.05)
+	checkIdentical(state(rd), as.integer(c(5,2,4, 2)))
+	checkEquals(coverage2(rd), as.integer(c(775, 36, 45, 4)))
 }

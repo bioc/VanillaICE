@@ -77,6 +77,7 @@ BeadStudioSetList <- function(fnames,
 	if(missing(sampleIds)) sampleIds <- basename(fnames)
 	if(isPackageLoaded("ff")){
 		outdir <- ldPath()
+		i <- NULL
 		bafAndLrrList <- foreach(i=marker.index, .packages=c("ff", "VanillaICE")) %dopar% {
 			VanillaICE:::initializeLrrAndBafMatrix(nrow=length(i),
 							       ncol=length(fnames),

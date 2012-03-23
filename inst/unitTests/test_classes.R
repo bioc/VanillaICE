@@ -18,9 +18,10 @@ test_BeadStudioSetList <- function(){
 				  genomeBuild="")
 	checkTrue(validObject(obj1))
 
+	library(oligoClasses)
 	library(ff)
 	ldPath(tempdir())
-	registerDoSEQ()
+	foreach:::registerDoSEQ()
 	obj2 <- BeadStudioSetList(fnames=fname,
 				  ##annotationPkg="gw6crlmm",
 				  annotationPkg="genomewidesnp6Crlmm",

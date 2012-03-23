@@ -375,38 +375,38 @@ simulateSingleDupBaf <- function(b, is.snp, from, to, ...){
 	return(b.all)
 }
 
-simulateSingleDupLrr <- function(r, is.snp, cnStates=c(-1.5, -0.5, 0, 0, 0.4, 0.8),
-				 from, to, ...){
-	stdev <- .getSds(r)
-	if(is(stdev, "matrix")) stopifnot(ncol(stdev) == ncol(object))
-	stopifnot(all(dim(r) == dim(stdev)))
-	if(any(colSums(is.na(r)) == nrow(r))){
-		stop("Some samples have all missing values. Exclude these samples before continuing.")
-	}
-	S <- length(cnStates)
-	for(j in seq_len(ncol(r))){
-		##snp.index <- which(is.snp)
-		cn <- r[, j]
-		snp.index <- which(is.snp & !is.na(cn))
-		if(length(snp.index) > 0){
-			cn <- cn[snp.index]
-			if(is(stdev, "matrix")){
-				s <- stdev[snp.index, j]
-			} else s <- stdev[snp.index]
-			prOutlier <- probabilityOutlier(cn, k=k)
-			for(l in seq_along(cnStates)){
-				e <- (1-prOutlier) * dnorm(x=cn, mean=mu.snp[l], sd=s) + prOutlier * dunif(cn, MIN.CN, MAX.CN)
-			}
-		}
-	}
-	simR <- rep(NA, length(index))
-	simR[z==1] <- sample(d1, nZ[1])
-	simR[z==2] <- sample(d2, nZ[2])
-	simB[z==3] <- sample(d3, nZ[3])
-	simB[z==4] <- sample(d4, nZ[4])
-	##het <- rtnorm(length(index), 0.5, sds[2], lower=0, upper=1)
-	return(r.all)
-}
+##simulateSingleDupLrr <- function(r, is.snp, cnStates=c(-1.5, -0.5, 0, 0, 0.4, 0.8),
+##				 from, to, ...){
+##	stdev <- .getSds(r)
+##	if(is(stdev, "matrix")) stopifnot(ncol(stdev) == ncol(object))
+##	stopifnot(all(dim(r) == dim(stdev)))
+##	if(any(colSums(is.na(r)) == nrow(r))){
+##		stop("Some samples have all missing values. Exclude these samples before continuing.")
+##	}
+##	S <- length(cnStates)
+##	for(j in seq_len(ncol(r))){
+##		##snp.index <- which(is.snp)
+##		cn <- r[, j]
+##		snp.index <- which(is.snp & !is.na(cn))
+##		if(length(snp.index) > 0){
+##			cn <- cn[snp.index]
+##			if(is(stdev, "matrix")){
+##				s <- stdev[snp.index, j]
+##			} else s <- stdev[snp.index]
+##			prOutlier <- probabilityOutlier(cn, k=k)
+##			for(l in seq_along(cnStates)){
+##				e <- (1-prOutlier) * dnorm(x=cn, mean=mu.snp[l], sd=s) + prOutlier * dunif(cn, MIN.CN, MAX.CN)
+##			}
+##		}
+##	}
+##	simR <- rep(NA, length(index))
+##	simR[z==1] <- sample(d1, nZ[1])
+##	simR[z==2] <- sample(d2, nZ[2])
+##	simB[z==3] <- sample(d3, nZ[3])
+##	simB[z==4] <- sample(d4, nZ[4])
+##	##het <- rtnorm(length(index), 0.5, sds[2], lower=0, upper=1)
+##	return(r.all)
+##
 
 
 simulateDoubleDupBaf <- function(b, is.snp, from, to, ...){

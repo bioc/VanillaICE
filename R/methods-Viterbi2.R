@@ -274,6 +274,7 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 			sigmas[, 2] <- sigmas[, 2] * 2
 			p <- replicate(J, matrix(c(0.99, 0.01), S, 2, byrow=TRUE), simplify=FALSE)
 		} else {
+			j <- NULL
 			mu.sigma <- foreach(j = seq_len(J)) %do% {
 				updateMu(x=r[, j],
 					 mu=mus[j, ],
@@ -320,6 +321,7 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 		}
 	}
 	if(!returnViterbiObject){
+		id <- object <- NULL
 		res <- foreach(object=viterbiList, id=colnames(r)) %do% {
 			computeLoglikFromViterbi2(object=object,
 						  chrom=chrom, id=id,
