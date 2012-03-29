@@ -1229,10 +1229,11 @@ constrainMu <- function(mu, is.log){
 	return(mu)
 }
 
-computeTransitionProb <- function(x, TAUP, S){
+computeTransitionProb <- function(x, TAUP, S, tauMAX=0.9995){
 	p <- exp(-2*diff(x)/TAUP)
 	minimum <- 1-1/((S-1)) + 0.01
 	p <- pmax(p, minimum)
+	p <- pmin(p, tauMAX)
 	return(as.matrix(p))
 }
 

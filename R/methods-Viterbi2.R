@@ -246,7 +246,7 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 			emitb[, j, ] <- bafEmission(object=b[, j, drop=FALSE],
 						    is.snp=is.snp,
 						    prOutlier=prOutlierBAF,
-						    p.hom=p.hom, log.it=FALSE,...)[, 1, ]
+						    p.hom=p.hom, log.it=FALSE, ...)[, 1, ]
 		}
 	} else {
 		stopifnot(rohIndex==4L)
@@ -256,6 +256,8 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 				    prGtHom=c(2/3, 0.99, 0.7, 0.99, 1/2, 2/5),
 				    S=S, log.it=FALSE)
 	}
+	##.index=subjectHits(findOverlaps(segs1[2, ], featureData(trioSetff)))
+	##apply(emitb[.index, 3, ], 2, sum)
 	taus <- computeTransitionProb(x=pos, TAUP=TAUP, S=S)
 	sds <- apply(r, 2, mad, na.rm=TRUE)
 	if(center){
@@ -320,17 +322,39 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 			}
 		}
 	}
+	##.index=subjectHits(findOverlaps(segs1[2,], featureData(trioSetff)))
+##	eoff <- e[.index, 3, ]
+##	bb <- b[.index, 3]
+##	ii=which(eoff[, 5] < 0.01)
+##	tmp=cbind(bb, round(eoff, 3))
+##	bb[eoff[, 5] < 1e-3]
+##	loff <- log(eoff)
+##	evit <- emission(viterbiList[[3]])
+##	evit <- matrix(evit, nrow(eoff), 6)
+##	loff <- log(eoff)
+##	lvit <- log(evit)
+##	apply(loff[.index, ], 2, sum)
+##	evit[evit < 1e-5] <- 1e-5
+##	lvit <- log(evit)
+##	apply(lvit[.index, ], 2, sum)
+
+	##apply(e[.index, 3, ], 2, sum)
 	if(!returnViterbiObject){
 		id <- object <- NULL
 		res <- foreach(object=viterbiList, id=colnames(r)) %do% {
 			computeLoglikFromViterbi2(object=object,
-						  chrom=chrom, id=id,
+						  chrom=chrom,
+						  id=id,
 						  pos=pos)
 		}
 		res <- stackRangedData(res)
 		##return(list(viterbi=viterbiObject, loglik=loglik))
 		return(list(rangedData=res, loglik=loglik))
 	} else {
+		## e = log(emission(viterbiList[[3]]))
+		## e = matrix(e, nrow(r), 6)
+		##.index=subjectHits(findOverlaps(segs1[2,], featureData(trioSetff)))
+		##apply(e[.index, 3, ], 2, sum)
 		return(viterbiList)
 	}
 }

@@ -89,5 +89,5 @@ test_hmm_cnset <- function(){
 		hist(b, breaks=100)
 	}
 	checkIdentical(state(rd), as.integer(c(5,2,4, 2)))
-	checkEquals(coverage2(rd), as.integer(c(775, 36, 45, 4)))
+	checkEquals(coverage2(rd), as.integer(c(775, 36, 45, 4)), tolerance=5)
 }

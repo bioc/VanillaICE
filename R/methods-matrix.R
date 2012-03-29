@@ -273,13 +273,10 @@ bafEmissionFromMatrix <- function(object, is.snp, prOutlier=1e-3,
 	TN0 <- tnorm(obj, 0, sd0)
 	TN1 <- tnorm(obj, 1, sd1)
 	TN.5 <- tnorm(obj, 0.5, sd.5)
-	TN.3 <- tnorm(obj, 1/3, sd0)
-	TN.6 <- tnorm(obj, 2/3, sd0)
-	TN.25 <- tnorm(obj, 0.25, sd0)
-	TN.3 <- tnorm(obj, 1/3, sd0)
-	TN.6 <- tnorm(obj, 2/3, sd0)
-	TN.25 <- tnorm(obj, 0.25, sd0)
-	TN.75 <- tnorm(obj, 0.75, sd0)
+	TN.3 <- tnorm(obj, 1/3, sd.5)
+	TN.6 <- tnorm(obj, 2/3, sd.5)
+	TN.25 <- tnorm(obj, 0.25, sd.5)
+	TN.75 <- tnorm(obj, 0.75, sd.5)
 	p <- pb[i]
 	if(any(is.na(p)))
 		p[is.na(p)] <- 0.5
