@@ -227,7 +227,8 @@ setMethod("show", signature(object="Viterbi2"), function(object){
 
 viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 			    chrom,
-			    prOutlierBAF=1e-3, p.hom=0.05, TAUP=1e8,
+			    prOutlierBAF=list(initial=1e-3, max=0.01),
+			    p.hom=0.05, TAUP=1e8,
 			    is.log, center=TRUE,
 			    reestimation=TRUE,
 			    limits,
@@ -235,20 +236,11 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 			    normalIndex=3L,
 			    rohIndex=normalIndex+1L,
 			    nupdates=10,
-			    tolerance=1,
+			    tolerance=5,
 			    returnViterbiObject=FALSE, ...){
 	S <- length(cnStates)
 	J <- ncol(r)
-	## todo: reestimation of mixture probs for BAFs
-	if(!missing(b)){
-		emitb <- array(NA, dim=c(nrow(b), J, S))
-		for(j in seq_len(J)){
-			emitb[, j, ] <- bafEmission(object=b[, j, drop=FALSE],
-						    is.snp=is.snp,
-						    prOutlier=prOutlierBAF,
-						    p.hom=p.hom, log.it=FALSE, ...)[, 1, ]
-		}
-	} else {
+	if(missing(b)){
 		stopifnot(rohIndex==4L)
 		emitb <- gtEmission(object=gt,
 				    is.snp=is.snp,
@@ -275,6 +267,11 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 			sigmas[, 1] <- sigmas[, 1] * 4
 			sigmas[, 2] <- sigmas[, 2] * 2
 			p <- replicate(J, matrix(c(0.99, 0.01), S, 2, byrow=TRUE), simplify=FALSE)
+			musBAF <- matrix(c(0, 1/4, 1/3, 0.5, 2/3, 3/4, 1), J, 7, byrow=TRUE)
+			sdsBAF <- matrix(c(0.02, rep(0.05, 5), 0.02), J, 7, byrow=TRUE)
+			colnames(musBAF) <- colnames(sdsBAF) <- c("A", "AAAB", "AAB", "AB", "ABB", "ABBB", "B")
+			prOutlierMax <- prOutlierBAF[["max"]]
+			prOutlierBAF <- matrix(rep(prOutlierBAF[["initial"]], length(musBAF)), J, 7, byrow=TRUE)
 		} else {
 			j <- NULL
 			mu.sigma <- foreach(j = seq_len(J)) %do% {
@@ -294,6 +291,30 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 			sigmas <- lapply(mu.sigma, "[[", 2)
 			sigmas <- do.call("rbind", sigmas)
 			p <- lapply(mu.sigma, "[[", 3)
+			if(!missing(b)){
+				mu.sigmaBAF <- foreach(j=seq_len(J)) %do% {
+					updateBaf(x=b[, j],
+						  cnStates=cnStates,
+						  mus=musBAF[j, ],
+						  sigmas=sdsBAF[j, ],
+						  normalIndex=normalIndex,
+						  fv=forwardVariable(viterbiList[[j]]),
+						  bv=backwardVariable(viterbiList[[j]]),
+						  prOutlier=prOutlierBAF[j, ],
+						  prOutlierMax=prOutlierMax,
+						  nUpdates=1)
+				}
+				##j <- 3
+				##fv=forwardVariable(viterbiList[[j]])
+				##bv=backwardVariable(viterbiList[[j]])
+				##fv=matrix(fv, nrow(b), 6)
+				##bv=matrix(bv, nrow(b), 6)
+				##stopifnot(all.equal(rowSums(bv),1))
+				##stopifnot(all.equal(rowSums(fv),1))
+				musBAF <- do.call("rbind", lapply(mu.sigmaBAF, "[[", 1))
+				sdsBAF <- do.call("rbind", lapply(mu.sigmaBAF, "[[", 2))
+				prOutlierBAF <- do.call("rbind", lapply(mu.sigmaBAF, "[[", 3)) ## outlier probability
+			}
 		}
 		emitr <- cnEmissionFromMatrix(object=r,
 					      mus=mus,
@@ -301,6 +322,15 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 					      p=p,
 					      limits=limits,
 					      log.it=FALSE, ...)
+		if(!missing(b)){
+			emitb <- bafEmissionFromMatrix2(BAF=b,
+							is.snp=is.snp,
+							mus=musBAF,
+							sds=sdsBAF,
+							prOutlier=prOutlierBAF,
+							p.hom=p.hom,
+							log.it=FALSE, ...)
+		}
 		e <- emitb*emitr
 		viterbiList <- list()
 		for(j in seq_len(J)){
@@ -316,15 +346,23 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 		}
 		if(i > 1){
 			llr <- loglik[i, ]-loglik[i-1, ]
-			if(all(llr < tolerance)){
-				loglik <- loglik[1:i, ]
-				break()
-			}
-		}
+			check.break <- all(abs(llr) < tolerance)
+		} else check.break <- FALSE
+		if(check.break) break()
 	}
-	##.index=subjectHits(findOverlaps(segs1[2,], featureData(trioSetff)))
-##	eoff <- e[.index, 3, ]
+	loglik <- loglik[seq_len(i), ]
+	##.index=subjectHits(findOverlaps(ir[1,], featureData(trioSet)))
 ##	bb <- b[.index, 3]
+##	rr <- r[.index, 3]
+##	eb <- round(emitb[.index, 3, ],3)
+##	er <- round(emitr[.index, 3, ],3)
+##	ee <- e[.index, 3, ]
+##	tmp <- cbind(eb, bb)
+##	tmp2 <- cbind(er, rr)
+##	colnames(tmp2)[1:7] <- colnames(tmp)[1:7] <- c(paste("cn", c(0,1,2,2,3,4),sep=":"), "obs")
+##	apply(log2(eb), 2, sum)
+##	apply(log2(er), 2, sum)
+##	apply(log2(ee), 2, sum)
 ##	ii=which(eoff[, 5] < 0.01)
 ##	tmp=cbind(bb, round(eoff, 3))
 ##	bb[eoff[, 5] < 1e-3]
@@ -337,7 +375,7 @@ viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
 ##	evit[evit < 1e-5] <- 1e-5
 ##	lvit <- log(evit)
 ##	apply(lvit[.index, ], 2, sum)
-
+##
 	##apply(e[.index, 3, ], 2, sum)
 	if(!returnViterbiObject){
 		id <- object <- NULL

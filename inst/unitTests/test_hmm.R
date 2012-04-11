@@ -17,9 +17,26 @@ test_hmm_oligoSnpSetWithBAFs <- function(){
 	##	baf(oligoset)[c(5,6), ] <- NA
 	##because of the centromere, there's an extra normal
 	##trace(VanillaICE:::hmmBeadStudioSet, browser)
+	##trace(VanillaICE:::updateBaf, browser)
+	##trace(VanillaICE:::bafEmissionFromMatrix2, browser)
+	##
+##	arm <- VanillaICE:::.getArm(chromosome(oligoset), position(oligoset))
+##	index <- split(seq_along(arm), arm)
+##	tmp <- oligoset[index[[2]], ]
+##
+##	trace(VanillaICE:::updateBaf, browser)
+##
+##	.index <- subjectHits(findOverlaps(fit[2, ], featureData(tmp)))
+##	trace(VanillaICE::viterbi2Wrapper, browser)
+##	fit <- hmm(tmp, is.log=FALSE, p.hom=1, cnStates=c(0.5, 1.5, 2, 2, 2.5, 3.2))
+##	trace(VanillaICE::viterbi2Wrapper, browser)
 	fit <- hmm(oligoset, is.log=FALSE, p.hom=1, cnStates=c(0.5, 1.5, 2, 2, 2.5, 3.2))
+##	fit <- hmm(oligoset[, 2], is.log=FALSE, p.hom=1, cnStates=c(0.5, 1.5, 2, 2, 2.5, 3.2))
 	checkIdentical(state(fit), states)
+	checkEquals(coverage2(fit), nmarkers, tolerance=0.02)
 	if(FALSE){
+		library(IRanges)
+		library(Biobase)
 		rect2 <- function(object){
 			object <- object[state(object) !=3 , ]
 			object <- object[order(width(object), decreasing=TRUE), ]
@@ -29,11 +46,20 @@ test_hmm_oligoSnpSetWithBAFs <- function(){
 			     col=(1:3)[as.integer(as.factor(state(object)))],
 			     border=(1:3)[as.integer(as.factor(state(object)))])
 		}
-		plot(position(oligoset)/1e6, copyNumber(oligoset)/100, pch=".", col="grey")
+		plot(position(oligoset)/1e6, copyNumber(oligoset)/100, pch=".", col="black")
+		rect2(fit)
+		o <- subjectHits(findOverlaps(fit[4, ], featureData(oligoset)))
+		plot(position(oligoset)/1e6, baf(oligoset)/1000, pch=".", col="black")
 		rect2(fit)
 	}
-	checkEquals(coverage2(fit), nmarkers, tolerance=0.02)
 	## do not call copy-neutral ROH
+##	arm <- VanillaICE:::.getArm(chromosome(oligoset), position(oligoset))
+##	index <- split(seq_along(arm), arm)
+##	tmp <- oligoset[index[[2]], ]
+##
+##	trace(VanillaICE:::updateBaf, browser)
+##	fit <- hmm(tmp, is.log=FALSE, p.hom=1, cnStates=c(0.5, 1.5, 2, 2, 2.5, 3.2))
+##	res2 <- hmm(object=tmp, is.log=FALSE, p.hom=0)
 	res2 <- hmm(object=oligoset, is.log=FALSE, p.hom=0)
 	checkIdentical(state(res2), states[-c(1,2)])
 	nmarkers2 <- nmarkers[-c(1,2)]
@@ -73,21 +99,37 @@ test_hmm_cnset <- function(){
 	## make sure the right answer is returned even though
 	## its not ordered
 	oligoset <- chromosomePositionOrder(oligoset)
-	##trace(hmmBeadStudioSet, browser)
+##	trace(VanillaICE::viterbi2Wrapper, browser)
 	res <- hmm(oligoset, p.hom=0)
-	rd <- res[state(res)!=3, ]
+	rd <- res[state(res)!=3 & coverage2(res) >= 5, ]
+	##baf(oligoset)[.index, ]/1000
 	if(FALSE){
+		library(Biobase)
+		library(IRanges)
 		SNPchip:::xyplotLrrBaf(rd, oligoset,
 				       frame=200e3,
 				       panel=SNPchip:::xypanelBaf,
-				       scales=list(x="free"))
-				       ##cex=0.2)
-
+				       cex=0.5,
+				       scales=list(x=list(relation="free"),
+				       y=list(alternating=1,
+				       at=c(-1, 0, log2(3/2), log2(4/2)),
+				       labels=expression(-1, 0, log[2](3/2), log[2](4/2)))),
+				       par.strip.text=list(cex=0.7),
+				       ylim=c(-3,1),
+				       col.hom="grey50",
+				       col.het="grey50",
+				       col.np="grey20",
+				       key=list(text=list(c(expression(log[2]("R ratios")), expression("B allele freqencies")),
+						col=c("grey", "blue")), columns=2))
 		i <- subjectHits(findOverlaps(rd[6, ], oligoset))
 		b <- baf(oligoset)[i, 2]
 		b <- b/1000
 		hist(b, breaks=100)
 	}
-	checkIdentical(state(rd), as.integer(c(5,2,4, 2)))
-	checkEquals(coverage2(rd), as.integer(c(775, 36, 45, 4)), tolerance=5)
+	##checkIdentical(state(rd), as.integer(c(5,2,4, 2)))
+	##checkEquals(coverage2(rd), as.integer(c(775, 36, 45, 4)), tolerance=5)
+	##checkIdentical(state(rd), as.integer(c(5,2)))
+	##checkEquals(coverage2(rd), as.integer(c(778,25)), tolerance=5)
+	checkIdentical(state(rd), as.integer(c(5,2,5)))
+	checkEquals(coverage2(rd), as.integer(c(779,34,36)), tolerance=5)
 }

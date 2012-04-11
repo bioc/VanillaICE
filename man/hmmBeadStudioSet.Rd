@@ -23,8 +23,9 @@
 
 }
 \usage{
-hmmBeadStudioSet(object, cnStates = logCnStates(), normalIndex = 3L,rohIndex = normalIndex + 1L, prOutlierCN = 0.01, prOutlierBAF = 0.001,p.hom = 0.05, TAUP = 1e+08, is.log, initialProb =rep(1/length(cnStates), length(cnStates)), center = TRUE, reestimation =TRUE, nupdates = 10, tolerance = 1, ...)
-hmmOligoSnpSet(object, cnStates = c(0, 1, 2, 2, 3, 4), normalIndex = 3L, rohIndex = normalIndex + 1L, prOutlierCN = 0.01, prOutlierBAF = 0.001, p.hom = 0.05, TAUP = 1e+08, is.log, initialProb = rep(1/length(cnStates), length(cnStates)), center = TRUE, reestimation = TRUE, nupdates = 10, tolerance = 1, ...)
+hmmBeadStudioSet(object, cnStates = logCnStates(), normalIndex =
+3L,rohIndex = normalIndex + 1L, prOutlierCN = 0.01, prOutlierBAF =list(initial=0.001, max=0.01), p.hom = 0.05, TAUP = 1e+08, is.log, initialProb =rep(1/length(cnStates), length(cnStates)), center = TRUE, reestimation =TRUE, nupdates = 10, tolerance = 5, ...)
+hmmOligoSnpSet(object, cnStates = c(0, 1, 2, 2, 3, 4), normalIndex = 3L, rohIndex = normalIndex + 1L, prOutlierCN = 0.01, prOutlierBAF = list(initial=0.001,max=.01), p.hom = 0.05, TAUP = 1e+08, is.log, initialProb = rep(1/length(cnStates), length(cnStates)), center = TRUE, reestimation = TRUE, nupdates = 10, tolerance = 5, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -69,14 +70,21 @@ hmmOligoSnpSet(object, cnStates = c(0, 1, 2, 2, 3, 4), normalIndex = 3L, rohInde
 
   \item{prOutlierBAF}{
 
-        The probability that a B allele frequency is an outlier.  This
-    is an initial estimate that is updated for each copy number state
-    via EM.
+    A list with elements 'initial' and 'max' corresponding to the
+    initial estimate of the probability that a B allele frequency (BAF)
+    is an outlier and the maximum value for this parameter.
 
   }
 
   \item{p.hom}{
 
+    \code{numeric}: weight for observing homozygous genotypes.  For
+    value \code{0}, homozygous genotypes / B allele frequencies have the
+    same emission probability in the 'normal' state as in the states
+    hemizygous deletion and in copy-neutral region of homozygosity.
+    Regions of homozygosity are common in normal genomes. For small
+    values of \code{p.hom}, hemizygous deletions will only be called if
+    the copy number estimates show evidence of a decrease from normal.
 
   }
 

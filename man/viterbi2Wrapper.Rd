@@ -9,7 +9,8 @@
   updating the mean and variances in a copy number HMM.
 }
 \usage{
-viterbi2Wrapper(r, b, gt, pos, is.snp, cnStates, chrom, prOutlierBAF = 0.001, p.hom = 0.05, TAUP = 1e+08, is.log, center = TRUE, reestimation = TRUE, limits, initialProb = rep(1/length(cnStates), length(cnStates)), normalIndex = 3L, rohIndex = normalIndex + 1L, nupdates = 10, tolerance = 1, returnViterbiObject = FALSE, ...)
+viterbi2Wrapper(r, b, gt, pos, is.snp, cnStates, chrom, prOutlierBAF =
+list(initial=0.001, max=0.01), p.hom = 0.05, TAUP = 1e+08, is.log, center = TRUE, reestimation = TRUE, limits, initialProb = rep(1/length(cnStates), length(cnStates)), normalIndex = 3L, rohIndex = normalIndex + 1L, nupdates = 10, tolerance = 5, returnViterbiObject = FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -38,8 +39,8 @@ viterbi2Wrapper(r, b, gt, pos, is.snp, cnStates, chrom, prOutlierBAF = 0.001, p.
     \code{integer}: the chromosome.
 }
   \item{prOutlierBAF}{
-    \code{numeric}: initial probability for observing an outlier in the
-    B allele frequencies.
+    \code{list}: the initial probability for observing an outlier in the
+    B allele frequencies (BAFs) and the maximum probability for a BAF outlier.
 }
 \item{p.hom}{
 

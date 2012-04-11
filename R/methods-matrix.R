@@ -335,6 +335,102 @@ bafEmissionFromMatrix <- function(object, is.snp, prOutlier=1e-3,
 	return(emission)
 }
 
+bafEmissionFromMatrix2 <- function(BAF,
+				   is.snp,
+				   mus,
+				   sds,
+				   prOutlier,
+				   p.hom=0.95,
+				   prB,
+				   log.it=FALSE, ...){
+	mus2 <- mus
+	sds2 <- sds
+	states <- 1:6
+	S <- 6
+	if(!missing(prB)){
+		prB <- prB/100
+		prB[is.na(prB)] <- 0.5
+	} else prB <- rep(0.5, nrow(BAF))
+	##emission <- array(NA, dim=c(nrow(object), ncol(object), S))
+	emission <- array(NA, dim=c(nrow(BAF), ncol(BAF), S))
+	i <- which(is.snp)
+	##b <- object[i, ]
+	is.hom <- BAF < 0.05 | BAF > 0.95
+##	p.out <- prOutlier
+##	q.out <- 1-p.out
+	pB <- prB
+	pA <- (1-prB)
+	pAA <- pA^2
+	pAB <- 2*pA*pB
+	pBB <- pB^2
+	pAAA <- pA^3
+	pAAB <- pA^2*pB
+	pABB <- 3*pA*pB^2
+	pBBB <- pB^3   ##p^3-pAAA-pAAB-pABB
+	pAAAA <- pA^4
+	pAAAB <- 4*pA^3*pB
+	pAABB <- 6*pA^2*pB^2
+	pABBB <- 4*pA*pB^3
+	pBBBB <- pB^4
+	d <- matrix(NA, nrow(BAF), ncol(mus), dimnames=list(NULL, colnames(mus)))
+	for(j in seq_len(ncol(BAF))){
+		p.out <- prOutlier[j, ]
+		q.out <- 1-p.out
+		mus <- mus2[j, ]
+		sds <- sds2[j, ]
+		b <- BAF[, j]
+		d[, "A"] <- tnorm(b, mus["A"], sds["A"])
+		d[, "B"] <- tnorm(b, mus["B"], sds["B"])
+		d[, "AB"] <- tnorm(b, mus["AB"], sds["AB"])
+		d[, "AAB"] <- tnorm(b, mus["AAB"], sds["AAB"])
+		d[, "ABB"] <- tnorm(b, mus["ABB"], sds["ABB"])
+		d[, "AAAB"] <- tnorm(b, mus["AAAB"], sds["AAAB"])
+		d[, "ABBB"] <- tnorm(b, mus["ABBB"], sds["ABBB"])
+		##
+		emission[, j, 1] <- dunif(b, 0, 1)
+		p1 <- q.out[2]*pA
+		p2 <- q.out[2]*pB
+		p3 <- p.out[2]
+		mA <- p1*d[, "A"]/(p1*d[, "A"] + p2*d[, "B"] + p3)
+		mB <- p2*d[, "B"]/(p1*d[, "A"] + p2*d[, "B"] + p3)
+		emission[, j, 2] <- p1*d[, "A"] + p2*d[, "B"] + p3
+		p1 <- q.out[3]*pAA
+		p2 <- q.out[3]*pAB
+		p3 <- q.out[3]*pBB
+		p4 <- p.out[3]
+		emission[, j, 3] <- p1*d[, "A"]+p2*d[, "AB"]+p3*d[,"B"] + p4
+		p1 <- q.out[5]*pAAA
+		p2 <- q.out[5]*pAAB
+		p3 <- q.out[5]*pABB
+		p4 <- q.out[5]*pBBB
+		p5 <- p.out[5]
+		emission[, j, 5] <- p1*d[, "A"]+p2*d[,"AAB"] + p3*d[,"ABB"]+p4*d[, "B"]+p5
+		p1 <- q.out[6]*pAAAA
+		p2 <- q.out[6]*pAAAB
+		p3 <- q.out[6]*pAABB
+		p4 <- q.out[6]*pABBB
+		p5 <- q.out[6]*pBBBB
+		p6 <- p.out[6]
+		emission[, j, 6] <- p1*d[, "A"]+p2*d[,"AAAB"] + p3*d[,"AB"]+p4*d[, "ABBB"]+p5*d[, "B"]+p6
+		## tmp <- cbind(round(emission[1:10, ], 3), b[1:10])
+		## colnames(tmp)=c(paste("cn", c(0, 1, 2,2,3,4)), "b")
+		##
+		## homozygous genotypes are less informative
+		## small p.hom makes homozygous genotypes less informative
+		if(p.hom < 1){
+			i.hom <- which(is.hom[,j])
+			emission[i.hom, j, c(3, 5, 6)] <- (1-p.hom)*emission[i.hom, j, 2] + p.hom*emission[i.hom, j, c(3, 5, 6)]
+		}
+	}
+	emission[, , 4] <- emission[, , 2]
+	np.index <- which(!is.snp)
+	if(length(np.index) > 0) emission[np.index, , ] <- 1
+	emission[is.na(emission)] <- 1
+	if(log.it) emission <- log(emission)
+	return(emission)
+}
+
+
 simulateSingleDupBaf <- function(b, is.snp, from, to, ...){
 	stopifnot(is(b, "numeric"))
 	names(b) <- NULL

@@ -78,7 +78,7 @@ hmmBeadStudioSet <- function(object,
 			     normalIndex=3L,
 			     rohIndex=normalIndex+1L,
 			     prOutlierCN=0.01,
-			     prOutlierBAF=1e-3,
+			     prOutlierBAF=list(initial=1e-3, max=0.01),
 			     p.hom=0.05,
 			     TAUP=1e8,
 			     is.log,
@@ -86,7 +86,7 @@ hmmBeadStudioSet <- function(object,
 			     center=TRUE,
 			     reestimation=TRUE,
 			     nupdates=10,
-			     tolerance=1, ...){
+			     tolerance=5, ...){
 	## need to check before any subsetting
 	isff <- is(copyNumber(object), "ff")
 	##if(missing(is.log)) stop("must specify is.log (TRUE if copy number is on the log-scale)")
@@ -119,38 +119,7 @@ hmmBeadStudioSet <- function(object,
 	## the ff object with a matrix...
 	##isint <- isInteger(object)
 	isint <- TRUE
-##	if(isff){
-##		## We do not want to write into the ff objects.  Leave intact.
-##		## do no more than 100 at a time
-##		index <- splitIndicesByLength(seq_len(ncol(object)), 100)
-	##		if(isint){
-##			for(i in seq_along(index)){
-##				j <- index[[i]]
-##				r[, j] <- thresholdCopyNumber(copyNumber(object)[marker.index, j]/100, limits)
-##				b[, j] <- baf(object)[marker.index, j]/1000
-##			}
-##		} else {
-##			for(i in seq_along(index)){
-##				j <- index[[i]]
-##				r[, j] <- thresholdCopyNumber(copyNumber(object)[marker.index, j], limits)
-##			}
-##		}
-##	} else {
-##		if(isInt){
-##			r <- thresholdCopyNumber(copyNumber(object)[marker.index, ], limits)/100
-##			b <- baf(object)[marker.index, ]/1000
-##		} else {
-##			r <- thresholdCopyNumber(copyNumber(object)[marker.index, ], limits)
-##			b <- baf(object)[marker.index, ]
-##		}
-##	}
-	## potentially expensive
-	## object <- chromosomePositionOrder(object)
-	##io <- order(chromosome(object), position(object))
 	arm <- .getArm(chromosome(object)[marker.index], position(object)[marker.index])
-	##io <- io[marker.index]
-	##arm <- arm[marker.index]
-	##index <- split(io, arm)
 	index <- split(marker.index, arm)
 	if(length(index[[1]]) < 1000){
 		## better to combine arms for estimates of mean/sd
@@ -162,7 +131,6 @@ hmmBeadStudioSet <- function(object,
 	}  else {
 		pkgs <- c("ff", "VanillaICE")
 	}## to avoid warnings
-	## parallelization should be in the calling hmm method, not here.
 	i <- NULL
 	v2fit <- foreach(i=index, .packages="VanillaICE") %do% {
 		viterbi2Wrapper(r=copyNumber(object)[i, , drop=FALSE]/100,

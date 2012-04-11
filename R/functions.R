@@ -790,7 +790,7 @@ updateMu <- function(x,
 		     fv,
 		     bv){
 	if(nUpdates==0) return(mu)
-	min.sd <- mad(x, na.rm=TRUE)
+	min.sd <- max(mad(x, na.rm=TRUE), 0.1)
 	s <- sigma
 	L <- S <- length(mu)
 ##	if(length(dup.index) > 0){
@@ -859,13 +859,13 @@ updateMu <- function(x,
 		for(i in I){
 			mu.new[i] <- sum(g1[, i] * x, na.rm=TRUE)/total.g1[i]
 		}
-		mu.new[-rohIndex] <- constrainMu(mu.new[-rohIndex], is.log)
+		mu.new[-rohIndex] <- constrainMu(mu.new[-rohIndex], is.log, min.sd)
 		mu.new[rohIndex] <- mu.new[normalIndex]
 		mu.new <- makeNonDecreasing(mu.new)
 		for(i in I){
 			sigma.new[i] <- sqrt(sum(g1[,i]*(x-mu.new[i])^2, na.rm=TRUE)/total.g1[i])
 		}
-		sigma.new[sigma.new < min.sd] <- min.sd
+		sigma.new <- pmax(sigma.new, min.sd)
 		mu <- mu.new
 		sigma <- sigma.new
 		p <- p.new
@@ -873,90 +873,6 @@ updateMu <- function(x,
 	return(list(mu, sigma, p))
 }
 
-##pdateBaf <- function(x,
-##		      mu,
-##		      sigma,
-##		      normalIndex,
-##		      rohIndex=normalIndex+1,
-##		      nUpdates=3,
-##		      fv,
-##		      bv){
-##	if(nUpdates==0) return(mu)
-##	min.sd <- 0.02
-##	s <- sigma
-##	L <- S <- 6
-##	p <- matrix(0, L, 2)
-##	p[, 1] <- 0.99
-##	p[, 2] <- 1-p[, 1]
-##	sigma <- rep(sigma, L)
-##	g2 <- g1 <- matrix(NA, length(x), L)
-##	missing.fv <- missing(fv)
-##	if(!missing.fv){
-##		fv <- matrix(fv, length(x), length(mu))
-##		bv <- matrix(bv, length(x), length(mu))
-##		h <- fv*bv
-##		m <- matrix(rowSums(h, na.rm=TRUE), length(x), length(mu), byrow=FALSE)
-##		h <- h/m
-##		rm(m, fv, bv); gc()
-##	}
-##	d1 <- matrix(NA, length(x), L)
-##	na.index <- which(is.na(x))
-##	anyNA <- length(na.index) > 0
-##	for(iter in seq_len(nUpdates)){
-##		if(iter > nUpdates) break()
-##		for(i in seq_len(L)){
-##			d.norm <- p[i, 1]*dnorm(x, mean=mu[i], sd=sigma[i])
-##			d.unif <- p[i, 2]*dunif(x, limits[1], limits[2])
-##			d1[, i] <- d.norm/(d.norm+d.unif)
-##		}
-##		d1[na.index, ] <- dunif(rep(0, length(na.index)), limits[1], limits[2])
-##		if(missing.fv){
-##			g1 <- d1
-##			g2 <- 1-d1
-##		} else {
-##			g1 <- h * d1
-##			g2 <- h * (1-d1)
-##		}
-##		##
-##		## While the outlier component of the mixture is the
-##		## same for each state, the probability of being an
-##		## outlier will differ.  This makes sense as a small
-##		## value should have a relatively large outlier
-##		## probability for the normal distribution and
-##		## relatively small for a deletion
-##		##
-##		total.g1 <- apply(g1, 2, sum, na.rm=TRUE)
-##		## denom.eq52:
-##		denom.eq52 <- apply(g1 + g2, 2, sum, na.rm=TRUE)
-##		##notg <- 1-g
-##		##total.notg <- apply(notg, 2, sum, na.rm=TRUE)
-##		##mix.den <- total.g + total.notg
-##		##
-##		## p[i, j] is the expected number of times in state i
-##		## using mixture component k relative to the expected
-##		## number of times in state i
-##		##
-##		p.new <- p
-##		p.new[, 1] <- total.g1/denom.eq52
-##		p.new[, 2] <- 1-p.new[,1]
-##		sigma.new <- mu.new <- rep(NA, L)
-##		I <- seq_len(L)
-##		for(i in I){
-##			mu.new[i] <- sum(g1[, i] * x, na.rm=TRUE)/total.g1[i]
-##		}
-##		mu.new[-rohIndex] <- constrainMu(mu.new[-rohIndex], is.log)
-##		mu.new[rohIndex] <- mu.new[normalIndex]
-##		mu.new <- makeNonDecreasing(mu.new)
-##		for(i in I){
-##			sigma.new[i] <- sqrt(sum(g1[,i]*(x-mu.new[i])^2, na.rm=TRUE)/total.g1[i])
-##		}
-##		sigma.new[sigma.new < min.sd] <- min.sd
-##		mu <- mu.new
-##		sigma <- sigma.new
-##		p <- p.new
-##	}
-##	return(list(mu, sigma, p))
-##
 
 tnorm <- function(x, mean, sd, lower=0, upper=1){
        phi <- function(x, mu, sigma) dnorm(x, mu, sigma)
@@ -1208,14 +1124,17 @@ makeNonDecreasing <- function(x){
 }
 
 ## ad-hoc.  Do we want to put priors on the means?
-constrainMu <- function(mu, is.log){
+constrainMu <- function(mu, is.log, min.sd){
 	if(is.log){
+		mu[3] <- ifelse(mu[3] < -0.2, -0.2, mu[3])
+		mu[3] <- ifelse(mu[3] > 0.2, 0.2, mu[3])
 		mu[1] <- ifelse(mu[1] > -1, -1, mu[1])
 		mu[2] <- ifelse(mu[2] > -0.25, -0.25, mu[2])
-		mu[3] <- ifelse(mu[3] < -0.1, -0.1, mu[3])
-		mu[3] <- ifelse(mu[3] > 0.1, 0.1, mu[3])
-		mu[4] <- ifelse(mu[4] < 0.35, 0.35, mu[4])
-		mu[5] <- ifelse(mu[5] < 0.75, 0.75, mu[5])
+		##mu[2] <- ifelse(mu[2] > mu[3]-2*min.sd, mu[3]-1.5*min.sd, mu[2])
+		##mu[4] <- ifelse(mu[4] < mu[3]+2*min.sd, mu[3]+1.5*min.sd, mu[4])
+		mu[4] <- ifelse(mu[4] < 0.2, 0.2, mu[4])
+		mu[4] <- ifelse(mu[4] > 0.6, 0.6, mu[4])
+		mu[5] <- ifelse(mu[5] < 0.65, 0.65, mu[5])
 	} else {
 		mu[1] <- ifelse(mu[1] > 0.8, 0.8, mu[1])
 		mu[2] <- ifelse(mu[2] > 1.7, 1.7, mu[2])

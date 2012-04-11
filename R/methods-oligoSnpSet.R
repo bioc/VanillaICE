@@ -31,7 +31,7 @@ hmmOligoSnpSet <- function(object,
 			   normalIndex=3L,
 			   rohIndex=normalIndex+1L,
 			   prOutlierCN=0.01,
-			   prOutlierBAF=1e-3,
+			   prOutlierBAF=list(initial=1e-3,max=0.01),
 			   p.hom=0.05,
 			   TAUP=1e8,
 			   is.log,
@@ -39,7 +39,7 @@ hmmOligoSnpSet <- function(object,
 			   center=TRUE,
 			   reestimation=TRUE,
 			   nupdates=10,
-			   tolerance=1, ...){
+			   tolerance=5, ...){
 	##if(missing(is.log)) stop("must specify is.log (TRUE if copy number is on the log-scale)")
 	if(cnStates[normalIndex] != cnStates[rohIndex]){
 		stop("the copy number for the normal state and the copy number for regions of homozogyosity should be the same")
