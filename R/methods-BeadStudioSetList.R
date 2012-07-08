@@ -1,21 +1,28 @@
 setMethod("initialize", signature(.Object="BeadStudioSetList"),
 	  function(.Object,
-		   assayDataList=AssayDataList(BAF=BAF, logRRatio=logRRatio),
-		   logRRatio=new("matrix"),
-		   BAF=matrix(NA, nrow(logRRatio), ncol(logRRatio)),
-		   featureDataList=GenomeAnnotatedDataFrameFromList(assayDataList),
-		   chromosome=integer(),
-		   phenoData=annotatedDataFrameFrom(assayDataList, byrow=FALSE),
+		   assayDataList=AssayDataList(baf=baf, lrr=lrr),
+		   lrr=list(),
+		   baf=lapply(lrr, function(x) matrix(nrow=nrow(x), ncol=ncol(x))),
+		   featureDataList=GenomeAnnotatedDataFrameFrom(assayDataList, annotation, genome),
+		   chromosome=vector("list", length(lrr)),
+		   phenoData,
 		   annotation=character(),
-		   genomeBuild=character(),
+		   genome=character(),
 		   ...){
+		  if(missing(phenoData)){
+			  if(length(lrr) > 0){
+				  phenoData <- annotatedDataFrameFrom(lrr[[1]], byrow=FALSE)
+			  } else {
+				  phenoData <- new("AnnotatedDataFrame")
+			  }
+		  }
 		  callNextMethod(.Object,
 				 assayDataList=assayDataList,
 				 featureDataList=featureDataList,
 				 phenoData=phenoData,
 				 chromosome=chromosome,
 				 annotation=annotation,
-				 genomeBuild=genomeBuild,
+				 genome=genome,
 				 ...)
 	  })
 
@@ -31,6 +38,7 @@ setMethod("updateObject", signature(object="BeadStudioSetList"),
 				     ..., verbose=verbose),
 				     featureDataList=featureDataList(object),
 				     chromosome=chromosome(object),
+				     genome=genomeBuild(object),
 				     ...)
 		  }
 		  obj
@@ -47,25 +55,72 @@ initializeLrrAndBafMatrix <- function(nrow, ncol, col.names, outdir){
 
 BeadStudioSetList <- function(fnames,
 			      annotationPkg,
-			      genomeBuild="hg19",
+			      genome=c("hg19","hg18"),
 			      outdir=ldPath(),
 			      sampleIds,
 			      phenoData,
+			      byArm=FALSE,
+			      centromere,
 			      ...){
 	if(!getDoParRegistered()) registerDoSEQ()
+	if(!missing(sampleIds)) if(length(sampleIds) != length(fnames)) stop("sampleIds and fnames not the same length")
+	genome <- match.arg(genome)
 	dat <- read.bsfiles(filenames=fnames[1])
-	##
-	## build featureDataList
-	##
-	##lrrs <- matrix(dat[,1,], dimnames=list(rownames(dat),NULL))
-	fD <- GenomeAnnotatedDataFrameFromArray(dat, annotationPkg, universe=genomeBuild)
+	##fD <- GenomeAnnotatedDataFrameFromArray(dat, annotationPkg, genome=genome)
+	fD <- GenomeAnnotatedDataFrameFrom(dat, annotationPkg, genome=genome)
 	fD <- fD[chromosome(fD) <= 23 & !is.na(chromosome(fD)), ]
 	fD <- fD[order(chromosome(fD), position(fD)), ]
 	dat <- dat[match(featureNames(fD), rownames(dat)), , , drop=FALSE]
 	uchrom <- unique(chromosome(fD))
-	featureDataList <- vector("list", length(uchrom))
-	marker.index <- split(seq_len(nrow(fD)), chromosome(fD))
-	featureDataList <- foreach(i=marker.index) %do% fD[i, ]
+	if(byArm){
+		if(missing(centromere)) stop("byArm is TRUE but centromere coordinates not provided")
+		marker.index <- split(seq_len(nrow(fD)), chromosome(fD))
+		poslist <- lapply(marker.index, function(i, object) position(object)[i], object=fD)
+		assignArm <- function(x, chrom, centromere){
+			index <- match(paste("chr", chrom, sep=""), centromere$chrom)
+			start.centromere <- centromere[index, "chromStart"]
+			ifelse(x <= start.centromere, "p", "q")
+		}
+		arm <- foreach(i=seq_along(poslist)) %do% {
+			assignArm(x=poslist[[i]], chrom=names(poslist)[i], centromere=centromere)
+		}
+		arm <- unlist(arm)
+		arm <- as.integer(factor(arm, levels=c("p", "q")))
+		fD <- new("GenomeAnnotatedDataFrame",
+			  position=position(fD),
+			  chromosome=chromosome(fD),
+			  isSnp=isSnp(fD),
+			  arm=arm,
+			  row.names=featureNames(fD))
+		featureNames(fD) <- featureNames(fD)
+		chrarm <- paste(chromosome(fD), fD$arm, sep="_")
+		levels <- unique(chrarm)
+		chrarm <- factor(chrarm, levels=levels)
+		marker.index <- split(seq_len(nrow(fD)), chrarm)
+		minlength <- 1000
+		L <- sapply(marker.index, length)
+		if(any(L < minlength)){
+			droplevels <- levels[L < minlength]
+			newlevel <- strsplit(droplevels, "_")[[1]][[1]]
+			armdrop <- strsplit(droplevels, "_")[[1]][[2]]
+			i <- grep(droplevels, chrarm)
+			chrarm <- as.character(chrarm)
+			chrarm[i] <- newlevel
+			otherlevel <- paste(newlevel, (1:2)[-as.integer(armdrop)], sep="_")
+			chrarm[chrarm==otherlevel] <- newlevel
+			levels <- unique(chrarm)
+			chrarm <- factor(chrarm, levels=levels)
+			marker.index <- split(seq_len(nrow(fD)), chrarm)
+		}
+		featureDataList <- foreach(i=marker.index) %do% fD[i, ]
+	} else {
+		##featureDataList <- vector("list", length(uchrom))
+		##levels <- factor(chromosome(fD), unique(chromosome(fD)))
+		levels <- factor(uchrom)
+		marker.index <- split(seq_len(nrow(fD)), chromosome(fD))
+		featureDataList <- foreach(i=marker.index) %do% fD[i, ]
+	}
+	names(featureDataList) <- as.character(levels)
 	##
 	## build assayDataList
 	##
@@ -78,7 +133,7 @@ BeadStudioSetList <- function(fnames,
 	if(isPackageLoaded("ff")){
 		outdir <- ldPath()
 		i <- NULL
-		bafAndLrrList <- foreach(i=marker.index, .packages=c("ff", "VanillaICE")) %dopar% {
+		bafAndLrrList <- foreach(i=marker.index, .packages=c("oligoClasses", "ff", "VanillaICE")) %dopar% {
 			VanillaICE:::initializeLrrAndBafMatrix(nrow=length(i),
 							       ncol=length(fnames),
 							       outdir=outdir,
@@ -92,6 +147,11 @@ BeadStudioSetList <- function(fnames,
 		lrrlist <- foreach(i=marker.index) %do% matrix(NA, nrow=length(i), ncol=length(sampleIds),
 				   dimnames=list(featureNames(fD)[i], sampleIds))
 	}
+	for(i in seq_along(baflist)){
+		fns <- featureNames(featureDataList[[i]])
+		rownames(baflist[[i]]) <- fns
+		rownames(lrrlist[[i]]) <- fns
+	}
 	readAndWrite <- function(filename, marker.index, baflist, lrrlist, sampleIds, featureIds){
 		for(i in seq_along(filename)){
 			j <- match(sampleIds[i], colnames(baflist[[1]]))
@@ -100,8 +160,8 @@ BeadStudioSetList <- function(fnames,
 				warning("some files were not read")
 				next()
 			}
-			i <- match(featureIds, rownames(dat))
-			dat <- dat[i, , , drop=FALSE]
+			ii <- match(featureIds, rownames(dat))
+			dat <- dat[ii, , , drop=FALSE]
 			lrrs <- as.integer(dat[, 1, ]*100)
 			bafs <- as.integer(dat[, 2, ]*1000)
 			rm(dat)
@@ -111,14 +171,14 @@ BeadStudioSetList <- function(fnames,
 				lrrlist[[m]][, j] <- lrrs[M]
 			}
 		}
-		if(isPackageLoaded("ff")) return(TRUE)
+		if(isPackageLoaded("ff")) TRUE
 		return(list(baflist, lrrlist))
 	}
 	if(isPackageLoaded("ff")){
 		message("Reading ", length(fnames),
 			" files and writing ff files to directory ", ldPath())
 		fileIndices <- splitIndicesByNode(seq_along(fnames))
-		res <- foreach(i=fileIndices, .packages=c("ff", "VanillaICE")) %dopar% {
+		res <- foreach(i=fileIndices, .packages=c("oligoClasses", "Biobase", "ff", "VanillaICE")) %dopar% {
 			readAndWrite(filename=fnames[i],
 				     marker.index=marker.index,
 				     baflist=baflist,
@@ -135,17 +195,17 @@ BeadStudioSetList <- function(fnames,
 				    featureIds=featureNames(fD))
 		baflist <- res[[1]]
 		lrrlist <- res[[2]]
-		rm(res); gc()
 	}
-	ad <- AssayDataList(logRRatio=lrrlist, BAF=baflist)
-	if(missing(phenoData)) phenoData <- annotatedDataFrameFrom(lrrlist[[1]], byrow=FALSE)
+	rm(res)
+	ad <- AssayDataList(lrr=lrrlist, baf=baflist)
+	if(missing(phenoData)) phenoData <- annotatedDataFrameFrom(lrrlist[[1]][,,drop=FALSE], byrow=FALSE)
 	object <- new("BeadStudioSetList",
 		      assayDataList=ad,
 		      featureDataList=featureDataList,
 		      phenoData=phenoData,
-		      chromosome=uchrom,
+		      chromosome=names(featureDataList),
 		      annotation=annotationPkg,
-		      genomeBuild=genomeBuild, ...)
+		      genome=genome, ...)
 	return(object)
 }
 
@@ -157,204 +217,79 @@ setReplaceMethod("assayData", signature=signature(object="BeadStudioSetList",
 			 object
                  })
 
-setMethod("[", signature(x="BeadStudioSetList"),
-	  function(x, i, j, ..., drop=FALSE){
-		  ## using 'i' to subset markers does not really make
-		  ## sense
-		  ##
-		  ## Use i to subset the list. example, x[1] is still a BeadStudioSetList, but is one chromosome
-		  ##
-		  if(!missing(i) & !missing(j)){
-			  ad <- assayDataList(x)
-			  nms <- ls(ad)
-			  for(k in seq_along(nms)){
-				  elt <- nms[k]
-				  tmp <- ad[[elt]][i]
-				  tmp <- lapply(tmp, function(x, j) {
-					  x[, j, drop=FALSE]
-				  }, j=j)
-				  x <- assayDataElementReplace(x, elt, tmp)
-			  }
-			  x@chromosome <- chromosome(x)[i]
-			  x@featureDataList <- featureDataList(x)[i]
-			  x@phenoData <- phenoData(x)[j, ]
-		  }
-		  if(!missing(i) & missing(j)){
-			  ad <- assayDataList(x)
-			  nms <- ls(ad)
-			  for(k in seq_along(nms)){
-				  elt <- nms[k]
-				  tmp <- ad[[elt]][i]
-				  x <- assayDataElementReplace(x, elt, tmp)
-			  }
-			  x@chromosome <- chromosome(x)[i]
-			  x@featureDataList <- featureDataList(x)[i]
-		  }
-		  if(missing(i) & !missing(j)){
-			  ad <- assayDataList(x)
-			  nms <- ls(ad)
-			  for(k in seq_along(nms)){
-				  elt <- nms[k]
-				  tmp <- lapply(ad[[elt]], function(x, j) {
-					  x[, j, drop=FALSE]
-				  }, j=j)
-				  x <- assayDataElementReplace(x, elt, tmp)
-			  }
-			  x@phenoData <- phenoData(x)[j, ]
-		  }
-		  return(x)
-	  })
-
 setMethod("ncol", signature(x="BeadStudioSetList"),
 	  function(x) ncol(x[[1]]))
 
 setMethod("[[", signature(x="BeadStudioSetList"),
 	  function(x, i, j, ..., exact=TRUE){
 		  if(missing(i)) return(x)
+		  ad <- assayDataList(x)
+		  fdlist <- featureData(x)
+		  adnew <- switch(storage.mode(ad),
+			  lockedEnvironment =,
+				  environment = new.env(parent=emptyenv()),
+				  list = list())
+		  nms <- ls(ad)
 		  if(length(i) == 1){
-			  lrrs <- lrr(x)[[i]]
-			  bafs <- baf(x)[[i]]
-			  fdlist <- featureDataList(x)[[i]]
-			  x <- new("BeadStudioSet",
-				   lrr=lrrs,
-				   baf=bafs,
-				   phenoData=phenoData(x),
-				   featureData=fdlist,
-				   ##is.integer=isInteger(x),
-				   genomeBuild=genomeBuild(x),
-				   annotation=annotation(x))
-		  } else {
-			  stop("subscript out of bounds")
+			  for (nm in ls(ad)){
+				  elt <- ad[[nm]][[i]]
+				  dimnames(elt) <- lapply(dimnames(elt), unname)
+				  adnew[[nm]] <- elt
+			  }
 		  }
+		  x <- new("BeadStudioSet",
+			   assayData=adnew,
+			   phenoData=phenoData(x),
+			   featureData=fdlist[[i]],
+			   genome=genomeBuild(x),
+			   annotation=annotation(x))
 	  })
 
-setMethod("show", signature(object="BeadStudioSetList"),
-	  function(object){
-		  lo <- length(lrr(object))
-		  cat(class(object), " of length ", lo, "\n", sep="")
+setMethod("[[", signature(x="BafLrrSetList"),
+	  function(x, i, j, ..., exact=TRUE){
+		  if(missing(i)) return(x)
+		  ad <- assayDataList(x)
+		  fdlist <- featureData(x)
+		  adnew <- switch(storage.mode(ad),
+			  lockedEnvironment =,
+				  environment = new.env(parent=emptyenv()),
+				  list = list())
+		  nms <- ls(ad)
+		  if(length(i) == 1){
+			  for (nm in ls(ad)){
+				  elt <- ad[[nm]][[i]]
+				  dimnames(elt) <- lapply(dimnames(elt), unname)
+				  adnew[[nm]] <- elt
+			  }
+		  }
+		  x <- new("BafLrrSet",
+			   assayData=adnew,
+			   phenoData=phenoData(x),
+			   featureData=fdlist[[i]],
+			   genome=genomeBuild(x),
+			   annotation=annotation(x))
 	  })
 
-setMethod("assayDataList", signature(object="BeadStudioSetList"),
-	  function(object)  object@assayDataList)
-
-setMethod("featureDataList", signature(object="BeadStudioSetList"),
-	  function(object)  object@featureDataList)
-
-setMethod("featureNames", signature(object="BeadStudioSetList"),
-	  function(object){
-		  lapply(featureDataList(object), featureNames)
-	  })
-
-setMethod("position", signature(object="BeadStudioSetList"),
-	  function(object){
-		  lapply(featureDataList(object), position)
-	  })
+setMethod("copyNumber", signature(object="oligoSetList"),
+	  function(object) assayData(object)[["copyNumber"]])
+setMethod("calls", signature(object="oligoSetList"),
+	  function(object) assayData(object)[["call"]])
+setMethod("snpCallProbability", signature(object="oligoSetList"),
+	  function(object) assayData(object)[["callProbability"]])
+setMethod("baf", signature(object="oligoSetList"),
+	  function(object) assayData(object)[["baf"]])
 
 setMethod("lrr", signature(object="BeadStudioSetList"),
 	  function(object){
 		  ##lapply(object, lrr)
-		  assayDataList(object)[["logRRatio"]]
+		  assayDataList(object)[["lrr"]]
 	  })
 
 setMethod("baf", signature(object="BeadStudioSetList"),
 	  function(object){
 		  ##lapply(object, baf)
-		  assayDataList(object)[["BAF"]]
+		  assayDataList(object)[["baf"]]
 	  })
-
-setMethod("chromosome", signature(object="BeadStudioSetList"),
-	  function(object, as.list=FALSE, ...){
-		  ##lapply(object, chromosome)
-		  if(!as.list) object@chromosome else chromosomeList(object)
-	  })
-
-setMethod("varLabels", signature(object="BeadStudioSetList"),
-	  function(object) varLabels(phenoData(object)))
-
-setMethod("pData", signature(object="BeadStudioSetList"),
-	  function(object) pData(phenoData(object)))
-
-setMethod("$", signature(x="BeadStudioSetList"),
-	  function(x, name){
-		  eval(substitute(phenoData(x)$NAME_ARG, list(NAME_ARG=name)))
-	  })
-setMethod("order", signature(...="BeadStudioSetList"),
-	  function(..., na.last=TRUE,decreasing=FALSE){
-		  x <- list(...)[[1]]
-		  for(i in seq_along(x)){
-			  x[[i]] <- chromosomePositionOrder(x[[i]])
-		  }
-		  return(x)
-	  })
-
-setMethod("annotation", signature(object="BeadStudioSetList"), function(object) object@annotation)
-setMethod("genomeBuild", signature(object="BeadStudioSetList"), function(object) object@genomeBuild)
-
-setMethod("dims", signature(object="BeadStudioSetList"), function(object){
-	nchr <- length(chromosome(object))
-	ntrios <- ncol(baf(object)[[1]])
-	dm <- c(nchr, ntrios)
-	names(dm) <- c("chromosomes", "trios")
-	return(dm)
-})
-
-setMethod("sampleNames", signature(object="BeadStudioSetList"),
-	  function(object) sampleNames(phenoData(object)))
-
-setMethod("phenoData", signature(object="BeadStudioSetList"),
-	  function(object) object@phenoData)
-
-AssayDataList <- function(storage.mode = c("lockedEnvironment", "environment", "list"), ...) {
-	storage.mode <- match.arg(storage.mode) ## defaults to "lockedEnvironment"
-	assayData <- switch(storage.mode,
-			    lockedEnvironment =,
-			    environment = new.env(parent=emptyenv()),
-			    list = list())
-	arglist <- list(...)
-	for (nm in names(arglist)) assayData[[nm]] <- arglist[[nm]]
-	if (storage.mode == "lockedEnvironment") Biobase:::assayDataEnvLock(assayData)
-	assayData
-}
-
-
-setMethod("assayData", signature(object="BeadStudioSetList"),
-	  function(object) assayDataList(object))
-
-setMethod("storageMode", "BeadStudioSetList", function(object) storageMode(assayData(object)))
-
-setMethod("length", signature(x="BeadStudioSetList"), function(x) length(x@chromosome))
-
-
-assayDataListDims <- function(object) {
-	nms <- if (assayDataStorageMode(object) == "list") names(object) else ls(object)
-	if (length(nms) == 0)
-		return(matrix(integer(0), nrow = 2, ncol = 0,
-			      dimnames = list(c("Features", "Samples"), character(0))))
-	d <- lapply(nms, function(i) lapply(object[[i]], dim)) ##dim(object[[i]]))
-	##rownames(d) <- c("Features", "Samples", rep("...", nrow(d)-2))
-	names(d) <- nms
-	##colnames(d) <- nms
-	##d[,order(colnames(d)), drop=FALSE]
-	return(d)
-}
-
-validAssayDataDims <- function(object){
-	msg <- NULL
-	d <- assayDataListDims(object)
-	firstElement <- d[[1]]
-	d <- d[-1]
-	res <- sapply(d, function(i) identical(i, firstElement))
-	## check that the 3rd dimension is 3
-	if(!all(res)){
-		msg <- "Assay data elements must have the same dimension"
-	}
-	if(is.null(msg)) return(TRUE) else return(msg)
-}
-
-assayDataStorageMode <- Biobase:::assayDataStorageMode
-
-##setMethod("isInteger", signature(object="BeadStudioSetList"),
-##	  function(object) object@is.integer)
 
 setMethod("stack", signature(x="BeadStudioSetList"),
 	  function(x, ...){
@@ -369,7 +304,7 @@ setMethod("stack", signature(x="BeadStudioSetList"),
 			  bf[j, ] <- baf(x[[i]])[,]
 			  logRR[j, ] <- lrr(x[[i]])[,]
 		  }
-		  fns <- unlist(featureNames(x))
+		  fns <- as.character(unlist(Biobase::featureNames(x)))
 		  dimnames(bf) <- dimnames(logRR) <- list(fns, sampleNames(x[[1]]))
 		  pos <- unlist(position(x))
 		  issnp <- unlist(lapply(x@featureDataList, isSnp))
@@ -378,13 +313,15 @@ setMethod("stack", signature(x="BeadStudioSetList"),
 				     chromosome=as.integer(rep(chromosome(x), Rs)),
 				     isSnp=issnp,
 				     row.names=fns)
+		  featureData <- featureData[match(fns, featureNames(featureData)), ]
+		  ##all.equal(featureNames(featureData), rownames(bf))
 		  obj <- new("BeadStudioSet",
 			     baf=bf,
 			     lrr=logRR,
 			     featureData=featureData,
 			     phenoData=phenoData(x),
 			     annotation=annotation(x),
-			     genomeBuild=genomeBuild(x))
+			     genome=genomeBuild(x))
 			     ##is.integer=isInteger(x))
 		  return(obj)
 	  })
@@ -401,27 +338,31 @@ stackFeatureDataList <- function(x){
 			   row.names=fns)
 }
 
-setReplaceMethod("$", "BeadStudioSetList", function(x, name, value) {
-	phenoData(x)[[name]] = value
-	x
-})
-
-setReplaceMethod("phenoData",
-                 signature=signature(
-		 object="BeadStudioSetList",
-                   value="AnnotatedDataFrame"),
-                 function(object, value) {
-			 object@phenoData <- value
-			 object
-                 })
-
-setReplaceMethod("pData",
-                 signature=signature(
-		 object="BeadStudioSetList",
-                   value="data.frame"),
-                 function(object, value) {
-			 pd <- phenoData(object)
-			 pData(pd) <- value
-			 phenoData(object) <- pd
-			 object
-                 })
+hmmBeadStudioSetList <- function(object, sampleIds, ...){
+	message("Fitting HMM to each chromosome")
+	if(isPackageLoaded("ff")) pkgs <- c("ff", "Biobase", "VanillaICE") else pkgs <- c("Biobase", "VanillaICE")
+	if(missing(sampleIds)) sampleIds <- sampleNames(object)
+	##if(ncol(object[[1]]) < ocSamples()){
+	if(length(sampleIds) < ocSamples()){
+		rdl <- foreach(obj=object, .packages=pkgs) %dopar% {
+			hmmBeadStudioSet(object=obj, sampleIds=sampleIds, ...)
+		}
+		rd <- stackGRangesList(rdl, genomeBuild(object))
+		names(rd) <- sampleIds
+	} else {
+		index <- match(sampleIds, sampleNames(object))
+		sample.index <- splitIndicesByLength(index, ocSamples())
+		## create a single stream of tasks that can be executed in parallel
+		obj <- NULL; j <- NULL
+		rdl <- foreach(j=sample.index, .packages=pkgs) %:%
+			foreach(obj=object) %dopar%{
+				hmmBeadStudioSet(object=obj, sampleIds=sampleNames(object)[j], ...)
+			}
+		rd <- foreach(ranges=rdl) %do% stackGRangesList(rdl, genomeBuild(object))
+##		rdl2 <- foreach(ranges=rdl) %do% stack(RangedDataList(ranges))
+##		rdl2 <- foreach(ranges=rdl2) %do% ranges[, -ncol(ranges)]
+##		rdl3 <- stack(RangedDataList(rdl2))
+##		rd <- rdl3[, -ncol(rdl3)]
+	}
+	return(rd)
+}

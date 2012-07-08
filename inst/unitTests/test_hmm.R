@@ -1,6 +1,6 @@
 test_hmm_oligoSnpSetWithBAFs <- function(){
 	## Results are sensitive to the seed, and differs between the unit test and my
-	library(oligoClasses)
+	library(oligoClasses);library(VanillaICE);library(RUnit)
 	states <- as.integer(c(3, 4, 3, 5, 3, 2, 3, 3, 2, 3, 2, 3))
 	nmarkers <- as.integer(c(996, 102, 902, 50, 2467, 102, 76, 1822,
 				 99, 900, 20, 160))
@@ -14,60 +14,42 @@ test_hmm_oligoSnpSetWithBAFs <- function(){
 	}
 	## produces an error -- can't find replacement method for baf
 	copyNumber(oligoset)[c(5, 6), ] <- NA
-	##	baf(oligoset)[c(5,6), ] <- NA
-	##because of the centromere, there's an extra normal
-	##trace(VanillaICE:::hmmBeadStudioSet, browser)
-	##trace(VanillaICE:::updateBaf, browser)
-	##trace(VanillaICE:::bafEmissionFromMatrix2, browser)
-	##
-##	arm <- VanillaICE:::.getArm(chromosome(oligoset), position(oligoset))
-##	index <- split(seq_along(arm), arm)
-##	tmp <- oligoset[index[[2]], ]
-##
-##	trace(VanillaICE:::updateBaf, browser)
-##
-##	.index <- subjectHits(findOverlaps(fit[2, ], featureData(tmp)))
-##	trace(VanillaICE::viterbi2Wrapper, browser)
-##	fit <- hmm(tmp, is.log=FALSE, p.hom=1, cnStates=c(0.5, 1.5, 2, 2, 2.5, 3.2))
-##	trace(VanillaICE::viterbi2Wrapper, browser)
-	fit <- hmm(oligoset, is.log=FALSE, p.hom=1, cnStates=c(0.5, 1.5, 2, 2, 2.5, 3.2))
-##	fit <- hmm(oligoset[, 2], is.log=FALSE, p.hom=1, cnStates=c(0.5, 1.5, 2, 2, 2.5, 3.2))
-	checkIdentical(state(fit), states)
-	checkEquals(coverage2(fit), nmarkers, tolerance=0.02)
+	fit <- hmm(oligoset, is.log=FALSE,
+		   p.hom=1,
+		   cnStates=c(0.5, 1.5, 2, 2, 2.5, 3.2),
+		   prOutlierBAF=list(initial=1e-4, max=1e-3, maxROH=1e-5))
+	checkEquals(state(fit[[1]]), states)
+	checkEquals(coverage2(fit[[1]]), nmarkers, tolerance=0.02)
 	if(FALSE){
 		library(IRanges)
 		library(Biobase)
 		rect2 <- function(object){
 			object <- object[state(object) !=3 , ]
 			object <- object[order(width(object), decreasing=TRUE), ]
-			rect(xleft=start(object)/1e6,xright=end(object)/1e6,
-			     ybottom=rep(0.7,nrow(object)),
-			     ytop=rep(1,nrow(object)),
+			rect(xleft=start(object)/1e6,
+			     xright=end(object)/1e6,
+			     ybottom=rep(0.7,length(object)),
+			     ytop=rep(1,length(object)),
 			     col=(1:3)[as.integer(as.factor(state(object)))],
 			     border=(1:3)[as.integer(as.factor(state(object)))])
 		}
+		franges <- makeFeatureGRanges(oligoset)
+		olaps <- lapply(fit, findOverlaps, subject=franges)
 		plot(position(oligoset)/1e6, copyNumber(oligoset)/100, pch=".", col="black")
-		rect2(fit)
-		o <- subjectHits(findOverlaps(fit[4, ], featureData(oligoset)))
+		##trace(rect2, browser)
+		rect2(fit[[1]])
 		plot(position(oligoset)/1e6, baf(oligoset)/1000, pch=".", col="black")
 		rect2(fit)
 	}
-	## do not call copy-neutral ROH
-##	arm <- VanillaICE:::.getArm(chromosome(oligoset), position(oligoset))
-##	index <- split(seq_along(arm), arm)
-##	tmp <- oligoset[index[[2]], ]
-##
-##	trace(VanillaICE:::updateBaf, browser)
-##	fit <- hmm(tmp, is.log=FALSE, p.hom=1, cnStates=c(0.5, 1.5, 2, 2, 2.5, 3.2))
-##	res2 <- hmm(object=tmp, is.log=FALSE, p.hom=0)
-	res2 <- hmm(object=oligoset, is.log=FALSE, p.hom=0)
-	checkIdentical(state(res2), states[-c(1,2)])
+	res2 <- hmm(object=oligoset, is.log=FALSE, p.hom=0,
+		   prOutlierBAF=list(initial=1e-4, max=1e-3, maxROH=1e-5))
 	nmarkers2 <- nmarkers[-c(1,2)]
 	nmarkers2[1] <- sum(nmarkers[1:3])
-	checkEquals(coverage2(res2), nmarkers2, tolerance=0.02)
+	checkEquals(coverage2(res2[[1]]), nmarkers2, tolerance=0.02)
 }
 
 test_hmm_genotypesOnly <- function(){
+	library(IRanges)
 	states <- as.integer(c(3, 4, 3, 5, 3, 2, 3, 3, 2, 3, 2, 3))
 	nmarkers <- as.integer(c(996, 102, 902, 50, 2467, 102, 76, 1822,
 				 99, 900, 20, 160))
@@ -76,10 +58,10 @@ test_hmm_genotypesOnly <- function(){
 	states2 <- c(1,2,1,2,1,1,2,1)
 	path <- system.file("extdata", package="VanillaICE")
 	load(file.path(path, "oligosetForUnitTest.rda"))
-	snpSet <- as(oligoset, "SnpSet")
+	snpSet <- as(oligoset, "SnpSet2")
+	##trace(hmmSnpSet, browser)
 	res <- hmm(snpSet, S=2L, prGtHom=c(0.7, 0.99), normalIndex=1L)
-
-	checkIdentical(state(res), as.integer(states2))
+	checkEquals(state(res[[1]]), states2)
 
 	## test ICE hmm
 	## annotation package not supported
@@ -87,26 +69,35 @@ test_hmm_genotypesOnly <- function(){
 	checkException(hmm(snpSet, S=2L, ICE=TRUE, normalIndex=1L))
 	annotation(snpSet) <- "genomewidesnp6Crlmm"
 	snpCallProbability(snpSet)[c(1049,1050)] <- p2i(0.5)
-	res2 <- hmm(snpSet, S=2L, ICE=TRUE, normalIndex=1L)
+	hmm(snpSet, S=2L, ICE=TRUE, normalIndex=1L)
 }
 
 test_hmm_cnset <- function(){
 	library(oligoClasses)
+	##library(IRanges)
+	library(GenomicRanges)
+	library(Biobase)
 	library2(crlmm)
-	data(cnSetExample, package="crlmm")
-	oligoset <- as(cnSetExample, "oligoSnpSet")
-	## this object is not ordered by physical position
-	## make sure the right answer is returned even though
-	## its not ordered
-	oligoset <- chromosomePositionOrder(oligoset)
-##	trace(VanillaICE::viterbi2Wrapper, browser)
-	res <- hmm(oligoset, p.hom=0)
-	rd <- res[state(res)!=3 & coverage2(res) >= 5, ]
-	##baf(oligoset)[.index, ]/1000
 	if(FALSE){
-		library(Biobase)
-		library(IRanges)
-		SNPchip:::xyplotLrrBaf(rd, oligoset,
+		## FAILS and prevents rest of error checking
+		data(cnSetExample, package="crlmm")
+		if(FALSE){
+			cnSetExample@genome <- "hg19"
+			save(cnSetExample, file="~/Software/crlmm/data/cnSetExample.rda")
+		}
+		oligoset2 <- constructOligoSetListFrom(cnSetExample)
+		save(oligoset2, file="~/Software/VanillaICE/inst/extdata/oligoset2.rda")
+	} else {
+		path <- system.file("extdata", package="VanillaICE")
+		load(file.path(path, "oligoset2.rda"))
+	}
+	library(foreach);registerDoSEQ()
+	res <- hmm(oligoset2, p.hom=0, prOutlierBAF=list(initial=1e-4, max=1e-1, maxROH=1e-3))
+	checkEquals(names(res), sampleNames(oligoset2))
+	res <- res[[1]]
+	rd <- res[state(res)!=3 & coverage2(res) >= 5, ]
+	if(FALSE){
+		SNPchip:::xyplotLrrBaf(rd, oligoset2,
 				       frame=200e3,
 				       panel=SNPchip:::xypanelBaf,
 				       cex=0.5,
@@ -121,8 +112,8 @@ test_hmm_cnset <- function(){
 				       col.np="grey20",
 				       key=list(text=list(c(expression(log[2]("R ratios")), expression("B allele freqencies")),
 						col=c("grey", "blue")), columns=2))
-		i <- subjectHits(findOverlaps(rd[6, ], oligoset))
-		b <- baf(oligoset)[i, 2]
+		i <- subjectHits(findOverlaps(rd[6, ], oligoset2))
+		b <- baf(oligoset2)[i, 2]
 		b <- b/1000
 		hist(b, breaks=100)
 	}
@@ -130,6 +121,46 @@ test_hmm_cnset <- function(){
 	##checkEquals(coverage2(rd), as.integer(c(775, 36, 45, 4)), tolerance=5)
 	##checkIdentical(state(rd), as.integer(c(5,2)))
 	##checkEquals(coverage2(rd), as.integer(c(778,25)), tolerance=5)
-	checkIdentical(state(rd), as.integer(c(5,2,5)))
-	checkEquals(coverage2(rd), as.integer(c(779,34,36)), tolerance=5)
+	##rd2 <- RangedDataCNV(IRanges(3.7e6, 3.8e6), sampleId=sampleNames(rd)[1],chrom=8)
+	query <- GRanges("chr8", IRanges(3.7e6,3.8e6))
+	j <- subjectHits(findOverlaps(query, rd))
+	checkTrue(state(rd)[j]==5)
+	checkEquals(coverage2(rd)[j], 776L, tolerance=5)
 }
+
+test_oligoSnpSetGT <- function(){
+	library(VanillaICE);library(RUnit)
+	library(oligoClasses)
+	library(GenomicRanges)
+	library(Biobase)
+	data(oligoSetExample, package="oligoClasses")
+	oligoSet <- oligoSet[chromosome(oligoSet) == 1, ]
+	hmmResults <- hmm(oligoSet)
+	if(FALSE){
+		library(IRanges)
+		library(Biobase)
+		rect2 <- function(object){
+			object <- object[order(width(object), decreasing=TRUE), ]
+			rect(xleft=start(object)/1e6,
+			     xright=end(object)/1e6,
+			     ybottom=rep(-1,length(object)),
+			     ytop=rep(-0.8,length(object)),
+			     col=c("grey0","grey30", "white", "lightblue", "blue", "blue")[state(object)],
+			     border=c("grey0","grey30", "white", "lightblue", "blue")[state(object)])
+		}
+		franges <- makeFeatureGRanges(oligoSet)
+		olaps <- lapply(hmmResults, findOverlaps, subject=franges)
+		par(las=1)
+		plot(position(oligoSet)/1e6, copyNumber(oligoSet)/100, pch=21, cex=0.6,
+		     col=c("lightblue", "red", "lightblue")[calls(oligoSet)],
+		     bg=c("lightblue", "red", "lightblue")[calls(oligoSet)],
+		     xlab="position (Mb)", ylab="log2 copy number")
+		rect2(hmmResults[[1]])
+	}
+	index <- subjectHits(findOverlaps(GRanges("chr1", IRanges(70.1e6, 73e6)), hmmResults[[1]]))
+	checkTrue(state(hmmResults[[1]])[index] >= 5)
+	options(warn=2)
+	checkException(hmm(oligoSet, cnStates=c(-3, 2, 4, 4, 6, 7)))
+}
+
+

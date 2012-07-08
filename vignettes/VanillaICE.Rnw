@@ -130,7 +130,8 @@ oligoSet <- new("oligoSnpSet",
 		copyNumber=integerMatrix(cn),
 		call=locusLevelData[["genotypes"]],
 		callProbability=locusLevelData[["crlmmConfidence"]],
-		annotation=locusLevelData[["platform"]])
+		annotation=locusLevelData[["platform"]],
+		genome="hg19")
 oligoSet <- oligoSet[!is.na(chromosome(oligoSet)), ]
 oligoSet <- oligoSet[chromosome(oligoSet) < 3, ]
 @
@@ -180,6 +181,15 @@ oligoSet <- oligoSet[chromosome(oligoSet) <= 2, ]
 fit.van <- hmm(oligoSet)
 @
 
+The \Rclass{GRangesList} object groups ranges by sample.
+
+<<samplids>>=
+names(fit.van)
+fit.van <- fit.van[["NA06993"]]
+@
+
+
+
 Figure \ref{fig:chr1} plots the data for chromosome 1 and the
 predictions from the hidden markov model:
 
@@ -188,7 +198,7 @@ if(require(RColorBrewer)){
 	cols <- brewer.pal(6, "YlOrBr")
 } else cols <- rainbow(n=6)
 chr1 <- oligoSet[chromosome(oligoSet)==1,]
-fit.chr1 <- fit.van[fit.van$chrom == 1, ]
+fit.chr1 <- fit.van[chromosome(fit.van) == "chr1", ]
 ##fit.chr1 <- fit.van[fit.van$chrom==1, ]
 isHet <- snpCall(chr1)==2
 par(las=1)
@@ -200,10 +210,10 @@ sts <- start(fit.chr1); ends <- end(fit.chr1)
 xx <- range(c(sts,ends))
 y <- c(-1,-1,-0.9,-0.9)
 polygon(x=c(xx, rev(xx)), y=y, col="white")
-for(i in 1:nrow(fit.chr1)){
+for(i in seq_len(length(fit.chr1))){
 	polygon(x=c(sts[i], ends[i], ends[i], sts[i]),
-		y=y, col=cols[fit.chr1$state[i]],
-		border=cols[fit.chr1$state[i]])
+		y=y, col=cols[elementMetadata(fit.chr1)$state[i]],
+		border=cols[elementMetadata(fit.chr1)$state[i]])
 }
 legend("topleft", fill=cols, legend=c("hom-del", "hem-del", "N", "N-noHets", "sDup", "dDup"), bty="n")
 @
@@ -222,7 +232,8 @@ fit.van[2, ]
 To find the names of the 102 markers that are included in
 this genomic interval, one could do the following
 <<findOverlaps>>=
-mm <- as.matrix(findOverlaps(fit.van, oligoSet))
+frange <- makeFeatureGRanges(oligoSet)
+mm <- as.matrix(findOverlaps(fit.van, frange))
 markersInRange <- featureNames(oligoSet)[mm[,1]==2]
 @
 Multipanel displays can be useful for visualizing the low-level data
@@ -261,6 +272,7 @@ called 'range'. We plot a 2 Mb window surrounding each of the
 alterations in the simulated data by specifying \texttt{frame=2e6}.
 <<xyplotExample,fig=TRUE,include=FALSE, width=9, height=6,results=hide>>=
 ranges.altered <- fit.van[!state(fit.van) %in% c(3,4) & coverage2(fit.van) > 5, ]
+elementMetadata(ranges.altered)$sampleId <- sampleNames(oligoSet)
 xy.example <- xyplot(cn ~ x | range, oligoSet, range=ranges.altered, frame=2e6,
 		     scales=list(x="free"), ylim=c(-1,3),
 		     panel=xypanel, cex.pch=0.4, pch=21, border="grey",
@@ -325,7 +337,7 @@ sts <- start(fit.chr1); ends <- end(fit.chr1)
 xx <- range(c(sts,ends))
 y <- c(-1,-1,-0.9,-0.9)
 polygon(x=c(xx, rev(xx)), y=y, col="white")
-for(i in 1:nrow(fit.chr1)){
+for(i in seq_len(length(fit.chr1))){
 	polygon(x=c(sts[i], ends[i], ends[i], sts[i]),
 		y=y, col=cols[state(fit.chr1)[i]],
 		border=cols[state(fit.chr1)[i]])
@@ -360,14 +372,15 @@ homozygosity.  Note that hemizygous deletions are also identified as
 hemizygous deletions tends to be all homozygous calls).
 
 <<genotypesOnly>>=
-snpSet <- as(oligoSet, "SnpSet")
+snpSet <- as(oligoSet, "SnpSet2")
 fit.gt <- hmm(snpSet, prGtHom=c(0.7, 0.99), normalIndex=1L, S=2L)
 @
 
 \noindent A suggested visualization:
 
 <<fig5, fig=TRUE, width=8, echo=FALSE>>=
-fit.chr1 <- fit.gt[chromosome(fit.gt)==1, ]
+fit.gt <- fit.gt[["NA06993"]]
+fit.chr1 <- fit.gt[chromosome(fit.gt)=="chr1", ]
 widths <- width(fit.chr1)
 fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
 gt <- ifelse(snpCall(chr1) == 1 | snpCall(chr1) == 3, 1, 0)
@@ -380,12 +393,13 @@ sts <- start(fit.chr1); ends <- end(fit.chr1)
 xx <- range(c(sts,ends))
 y <- c(-1,-1,-0.5,-0.5)
 polygon(x=c(xx, rev(xx)), y=y, col="white")
-for(i in 1:nrow(fit.chr1)){
+cols <- cols[c(1, length(cols))]
+for(i in seq_len(length(fit.chr1))){
 	polygon(x=c(sts[i], ends[i], ends[i], sts[i]),
-		y=y, col=cols[fit.chr1$state[i]],
-		border=cols[fit.chr1$state[i]])
+		y=y, col=cols[state(fit.chr1)[i]],
+		border=cols[state(fit.chr1)][i])
 }
-legend("bottomleft", fill=cols, legend=c("region of homozygosity", "Normal"), bty="n")
+legend("bottomleft", fill=cols, legend=rev(c("region of homozygosity", "Normal")), bty="n")
 @
 
 %\section{Quality control}

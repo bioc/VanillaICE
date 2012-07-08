@@ -6,6 +6,7 @@ test_bafconstraints <- function(){
 
 	makeMusBafNondecreasing <- VanillaICE:::makeMusBafNondecreasing
 	mus[["AAAB"]] <- 0.35
+	##trace(makeMusBafNondecreasing, browser)
 	mus2 <- makeMusBafNondecreasing(mus)
 	checkIdentical(mus2[["AAAB"]], 1/3)
 	mus[["ABBB"]] <- 1/4

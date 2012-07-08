@@ -1,77 +1,71 @@
-##setMethod("hmm", signature(object="CNSet", hmm.params="HmmOptionList"),
+setAs("CNSet", "oligoSetList", function(from, to){
+	constructOligoSetListFrom(from)
+})
+
+constructOligoSetListFrom <- function(object, ...){
+	##row.index <- seq_len(nrow(object))
+	##col.index <- seq_len(ncol(object))
+	is.lds <- ifelse(is(calls(object), "ff_matrix") | is(calls(object), "ffdf"), TRUE, FALSE)
+	if(is.lds) stopifnot(isPackageLoaded("ff"))
+	b.r <- calculateRBaf(object, ...)
+	b <- b.r[["baf"]]
+	r <- b.r[["lrr"]]
+	j <- match(colnames(r[[1]]), sampleNames(object))
+	rns <- lapply(r, rownames)
+	fDList <- foreach(featureid=rns) %do%{
+		featureData(object)[match(featureid, featureNames(object)), ]
+	}
+	names(fDList) <- sapply(fDList, function(x) chromosome(x)[1])
+	gtPlist <- gtlist <- vector("list", length(r))
+	for(i in seq_along(r)){
+		gtlist[[i]] <- initializeBigMatrix("call", nr=nrow(r[[i]]), nc=length(j), vmode="integer")
+		gtPlist[[i]] <- initializeBigMatrix("callPr", nr=nrow(r[[i]]), nc=length(j), vmode="integer")
+		featureid <- rownames(r[[i]])
+		ix <- match(featureid, featureNames(object))
+		rownames(gtPlist[[i]]) <- rownames(gtlist[[i]]) <- featureid
+		colnames(gtPlist[[i]]) <- colnames(gtlist[[i]]) <- colnames(r[[i]])
+		for(k in seq_along(j)){
+			gtlist[[i]][, k] <- calls(object)[ix, j[k]]
+			gtPlist[[i]][, k] <- snpCallProbability(object)[ix, j[k]]
+		}
+	}
+	ad <- AssayDataList(baf=b, copyNumber=r, call=gtlist, callProbability=gtPlist)
+	object <- new("oligoSetList",
+		      assayDataList=ad,
+		      featureDataList=fDList,
+		      chromosome=names(fDList),
+		      phenoData=phenoData(object)[j, ],
+		      annotation=annotation(object),
+		      genome=genomeBuild(object))
+	return(object)
+}
+
+constructBafLrrSetListFrom <- function(object, ...){
+	is.lds <- ifelse(is(calls(object), "ff_matrix") | is(calls(object), "ffdf"), TRUE, FALSE)
+	if(is.lds) stopifnot(isPackageLoaded("ff"))
+	b.r <- calculateRBaf(object, ...)
+	b <- b.r[["baf"]]
+	r <- b.r[["lrr"]]
+	j <- match(colnames(r[[1]]), sampleNames(object))
+	rns <- lapply(r, rownames)
+	featureid <- NULL
+	fDList <- foreach(featureid=rns) %do%{
+		featureData(object)[match(featureid, featureNames(object)), ]
+	}
+	names(fDList) <- sapply(fDList, function(x) chromosome(x)[1])
+	ad <- AssayDataList(baf=b, lrr=r)
+	object <- new("BafLrrSetList",
+		      assayDataList=ad,
+		      featureDataList=fDList,
+		      chromosome=names(fDList),
+		      phenoData=phenoData(object)[j, ],
+		      annotation=annotation(object),
+		      genome=genomeBuild(object))
+	return(object)
+}
+
 hmmCNSet <- function(object, ...){
 	object <- as(object, "oligoSnpSet")
 	hmmOligoSnpSet(object, ...)
 }
-
-##setMethod("hmm", signature(object="CNSet"),
-##	  function(object, hmm.params, ...){
-##		  if("verbose" %in% names(list(...))){
-##			  verbose <- list(...)[["verbose"]]
-##		  } else verbose <- TRUE
-##		  if("by.chromosome" %in% names(list(...))){
-##			  by.chromosome <- list(...)[["by.chromosome"]]
-##		  } else by.chromosome <- TRUE
-##		  if("k" %in% names(list(...))){
-##			  k <- list(...)[["k"]]
-##		  } else k <- 5
-##		  if("sample.index" %in% names(list(...))){
-##			  sample.index <- list(...)[["sample.index"]]
-##		  } else sample.index <- seq(length=ncol(object))
-##		  batch.index <- split(sample.index, batch(object)[sample.index])
-##		  hmm.params[["verbose"]] <- 0L
-##		  chrom <- unique(chromosome(object, na.rm=TRUE))
-##		  chrom <- chrom[chrom <= 23]
-##		  NN <- length(chrom) * length(batch.index)
-##		  autosome.index <- which(chromosome(object) < 23)
-##		  if(verbose){
-##			  message("Estimating standard deviation (s) using the median absolute deviation\n",
-##				  "of the total copy number across autosomal markers.\n")
-####				  "Emission probabilities estimated using Uniform-Gaussian mixture.\n",
-####				  "Gaussian component for sample j is N(mu, s_j).")
-##			  pb <- txtProgressBar(min=0, max=NN, style=3)
-##		  }
-##		  results <- vector("list", NN)
-##		  m <- 1
-##		  for(i in seq_along(batch.index)){
-##			  J <- batch.index[[i]]
-##			  if(by.chromosome){
-##				  for(j in seq_along(chrom)){
-##					  CHR <- chrom[j]
-##					  is.autosome <- CHR < 23
-##					  I <- which(chromosome(object) == CHR)
-##					  cnset.batch <- object[I, J]
-##					  oligoSet <- as(cnset.batch, "oligoSnpSet")
-##					  is.ordered <- checkOrder(oligoSet)
-##					  if(!is.ordered)
-##						  oligoSet <- chromosomePositionOrder(oligoSet)
-##					  rm(cnset.batch)
-##					  ##oligoSet <- centerAutosomesAt(oligoSet, at=2)
-##					  ##hmmOpts <- HmmOptionList(object=oligoSet, verbose=0L)
-##					  hmm.params$verbose <- 0L
-##					  results[[m]] <- hmm(oligoSet, hmm.params, k=k)
-##					  if(verbose) setTxtProgressBar(pb, m)
-##					  m <- m+1
-##				  }
-##			  } else {
-##				  cnset.batch <- object[, J]
-##				  oligoSet <- as(cnset.batch, "oligoSnpSet")
-##				  is.ordered <- checkOrder(oligoSet)
-##				  if(!is.ordered)
-##					  oligoSet <- chromosomePositionOrder(oligoSet)
-##				  rm(cnset.batch)
-##				  hmm.params$verbose <- 0L
-##				  results[[m]] <- hmm(oligoSet, hmm.params, k=k)
-##				  if(verbose) setTxtProgressBar(pb, m)
-##				  m <- m+1
-##			  }
-##		  }
-##		  if(verbose) close(pb)
-##		  tmp <- stack(RangedDataList(results))
-##		  index <- match("sample", colnames(tmp))
-##		  if(length(index) == 1) tmp <- tmp[, -index]
-##		  rangedData <- tmp
-##		  return(rangedData)
-##	  })
-
 

@@ -9,7 +9,7 @@ Constructor for BeadStudioSet class
   containing log R ratios and B allele frequencies.
 }
 \usage{
-BeadStudioSet(filenames, lrr.colname = "Log.R.Ratio", baf.colname = "B.Allele", sep = "\t", header = TRUE, colClasses, universe = c("", "hg18", "hg19"), annotationPkg, chromosome = 1:22, ...)
+BeadStudioSet(filenames, lrr.colname = "Log.R.Ratio", baf.colname = "B.Allele", sep = "\t", header = TRUE, colClasses, genome = c("hg19", "hg18"), annotationPkg, chromosome = 1:22, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -38,9 +38,8 @@ BeadStudioSet(filenames, lrr.colname = "Log.R.Ratio", baf.colname = "B.Allele", 
     See \code{read.table}.
   }
 
-  \item{universe}{
-    character string indicating which genome build to use.  This option is not
-    currently available.
+  \item{genome}{
+    Character string indicating which genome build to use.  Supported entries are "hg19" and "hg18".
 }
 
   \item{annotationPkg}{
@@ -71,7 +70,7 @@ R. Scharpf
 \examples{
 	path <- system.file("extdata", package="VanillaICE")
 	fname <- file.path(path, "LRRandBAF.txt")
-	bsSet <- BeadStudioSet(fname, annotationPkg="genomewidesnp6Crlmm")
+	bsSet <- BeadStudioSet(fname, annotationPkg="genomewidesnp6Crlmm", genome="hg19")
 }
 \keyword{IO}
 \keyword{classes}

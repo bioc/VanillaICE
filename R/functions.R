@@ -65,47 +65,21 @@ viterbi.wrapper <- function(log.emission,
 	return(res)
 }
 
-.getArm <- function(chrom, pos){
-	if(!is.integer(chrom)) {
-		chrom <- chromosome2integer(chrom)
-	}
-	if(!all(chrom %in% 1:24)){
-			warning("Chromosome annotation is currently available for chromosomes 1-22, X and Y. Other chromosomes or NA's present.")
-			marker.index <- which(chrom <= 24 & !is.na(chrom))
-			##message("Please add/modify data(chromosomeAnnotation, package='SNPchip') to accomodate special chromosomes")
-			##stop()
-	} else{
-		marker.index <- seq_along(chrom)
-	}
-	if(!is.integer(pos)) {
-		message("Coerced pos to an integer.")
-		pos <- as.integer(pos)
-	}
-	data(chromosomeAnnotation, package="SNPchip", envir=environment())
-	chromosomeAnnotation$centromereMid <- (chromosomeAnnotation$centromereStart+chromosomeAnnotation$centromereEnd)/2
-	chrAnn <- as.matrix(chromosomeAnnotation)
-	##uchrom <- unique(SNPchip:::integer2chromosome(chrom))
-	uchrom <- as.character(chrom)
-	uchrom <- uchrom[!is.na(uchrom)]
-	positionList <- split(as.integer(pos[marker.index]), chrom[marker.index])
-	chromosomeArm <- vector("list", length(uchrom))
-	chr.names <- unique(chrom)
-	chr.names <- as.character(chr.names[!is.na(chr.names)])
-	positionList <- positionList[match(chr.names, names(positionList))]
-	for(i in seq(along=chr.names)){
-		chromosomeArm[[i]] <- ifelse(positionList[[i]] <= chrAnn[uchrom[i], "centromereMid"], "p", "q")
-	}
-	chromosomeArm <- unlist(chromosomeArm)
-	chrom <- chrom[marker.index]
-	chromosomeArm <- chromosomeArm[marker.index]
-	arm <- paste(chrom, chromosomeArm, sep="")
-	return(arm)
+.getArm <- function(chrom, pos, genome){
+	if(is.integer(chrom)) chrom <- paste("chr", integer2chromosome(chrom), sep="")
+	path.gap <- system.file("extdata", package="SNPchip")
+	gaps <- readRDS(list.files(path.gap, pattern=paste("gap_", genome, ".rda", sep=""), full.names=TRUE))
+	centromere.starts <- start(gaps)
+	names(centromere.starts) <- seqnames(gaps)
+	centromere.starts <- centromere.starts[chrom]
+	arm <- ifelse(pos <= centromere.starts, "p", "q")
+	paste(chrom, arm, sep="")
 }
 
 getChromosomeArm <- function(object){
 	chrom <- chromosome(object)
 	pos <- position(object)
-	res <- .getArm(chrom, pos)
+	res <- .getArm(chrom, pos, genomeBuild(object))
 	return(res)
 }
 
@@ -241,14 +215,22 @@ computeLoglikFromViterbi2 <- function(object, chrom, id, pos, log.it=TRUE){
 	numMarkers <- width(rl)
 	states <- viterbiSequence[start.index]
 	ir <- IRanges(start=start, end=end)
-	rd <- RangedDataHMM(ir,
-			    chromosome=rep(chrom, length(LLR)),
-			    sampleId=rep(id, length(LLR)),
-			    state=states,
-			    coverage=numMarkers,
-			    startIndexInChromosome=start.index,
-			    endIndexInChromosome=end.index,
-			    LLR=LLR)
+	charChrom <- oligoClasses::integer2chromosome(chrom)
+	##sl <- getSequenceLengths(genomeBuild(object))[charChrom]
+	rd <- GRanges(seqnames=paste("chr", charChrom, sep=""),
+		      ir,
+		      state=as.integer(states),
+		      numberProbes=numMarkers,
+		      LLR=LLR)
+##	names(rd) <- id
+##	rd <- RangedDataHMM(ir,
+##			    chromosome=rep(chrom, length(LLR)),
+##			    sampleId=rep(id, length(LLR)),
+##			    state=states,
+##			    coverage=numMarkers,
+##			    startIndexInChromosome=start.index,
+##			    endIndexInChromosome=end.index,
+##			    LLR=LLR)
 	return(rd)
 }
 
@@ -311,107 +293,106 @@ computeLoglik <- function(viterbiResults,
 
 
 
-viterbi <- function(##object,
-		    log.initial,
-		    normal2altered,
-		    altered2normal,
-		    altered2altered,
-		    normalIndex,
-		    states,
-		    log.E,
-		    TAUP, ...){
-	sns <- colnames(log.E)
-	if(is.null(sns)) stop("no dimnames for log.emission")
-	##log.initial <- hmm.params$log.initialPr
-	##verbose <- hmm.params$verbose
-##	normal2altered <- hmm.params$n2a
-##	altered2normal <- hmm.params$a2n
-##	altered2altered <- hmm.params$a2a
-	if(normal2altered <= 0) stop("normal2altered must be > 0")
-	if(altered2normal <= 0) stop("altered2normal must be > 0")
-	if(altered2altered <= 0) stop("altered2altered must be > 0")
+##iterbi <- function(##object,
+##		    log.initial,
+##		    normal2altered,
+##		    altered2normal,
+##		    altered2altered,
+##		    normalIndex,
+##		    states,
+##		    log.E,
+##		    TAUP, ...){
+##	sns <- colnames(log.E)
+##	if(is.null(sns)) stop("no dimnames for log.emission")
+##	##log.initial <- hmm.params$log.initialPr
+##	##verbose <- hmm.params$verbose
+###	normal2altered <- hmm.params$n2a
+###	altered2normal <- hmm.params$a2n
+###	altered2altered <- hmm.params$a2a
+##	if(normal2altered <= 0) stop("normal2altered must be > 0")
+##	if(altered2normal <= 0) stop("altered2normal must be > 0")
+##	if(altered2altered <= 0) stop("altered2altered must be > 0")
+###	##
+###	## arm can contain NA's for invalid chromosomes or NA's
+###	arm <- getChromosomeArm(object)
+###	arm <- as.integer(as.factor(arm))
+##	##normalIndex <- hmm.params$normalIndex##[["normalIndex"]]
+##	if(normalIndex < 1 | normalIndex > dim(log.E)[[3]]){
+##		stop("normalIndex in hmm.params not valid")
+##	}
+###	TAUP <- hmm.params$tau
+##	c1 <- normal2altered
+##	c2 <- altered2normal
+##	c3 <- altered2altered
+##	##TT <- nrow(object)
+##	index <- which(!is.na(arm))
+##	arm <- arm[index]
+##	TT <- length(index)
+##	log.E <- log.E[index, , , drop=FALSE]
+##	##all.equal(log.E[1:10, 1, ], LE[1:10, 1, ])
+##	object <- object[index, ]
 ##	##
-##	## arm can contain NA's for invalid chromosomes or NA's
-##	arm <- getChromosomeArm(object)
-##	arm <- as.integer(as.factor(arm))
-	##normalIndex <- hmm.params$normalIndex##[["normalIndex"]]
-	if(normalIndex < 1 | normalIndex > dim(log.E)[[3]]){
-		stop("normalIndex in hmm.params not valid")
-	}
-##	TAUP <- hmm.params$tau
-	c1 <- normal2altered
-	c2 <- altered2normal
-	c3 <- altered2altered
-	##TT <- nrow(object)
-	index <- which(!is.na(arm))
-	arm <- arm[index]
-	TT <- length(index)
-	log.E <- log.E[index, , , drop=FALSE]
-	##all.equal(log.E[1:10, 1, ], LE[1:10, 1, ])
-	object <- object[index, ]
-	##
-	##states <- hmm.params$states
-	names(log.initial) <- as.character(states)
-	S <- length(states)
-	delta <- matrix(as.double(0), nrow=TT, ncol=S)
-	rangedData <- vector("list", ncol(log.E))
-	for(j in 1:ncol(log.E)){
-		rD <- vector("list", length(unique(arm)))
-		missingE <- rowSums(is.na(log.E[, j, ])) > 0
-		notFinite <- rowSums(!is.finite(log.E[, j, ])) > 0
-		missingE <- missingE | notFinite
-		for(a in seq_along(unique(arm))){
-			logicalNotMissing <- I <- arm == a  & !missingE
-			if(sum(logicalNotMissing) < 2) next()
-			nNotMissing <- T <- sum(logicalNotMissing)
-			physical.position <- position(object)[logicalNotMissing]
-			transitionPr <- exp(-2 * diff(physical.position)/TAUP)
-			##is the lower bound a function of normal2altered, altered2normal, altered2altered?
-			minimum <- 1-1/((S-1)*c1) + 0.01
-			transitionPr <- pmax(transitionPr, minimum)
-			if(any(transitionPr < 0 | transitionPr > 1)) stop("Transition probabilities not in [0,1].  Order object by chromosome and physical position")
-			result <- rep(as.integer(0), T)
-			viterbiResults <- viterbi.wrapper(log.emission=log.E[I, j, ],
-							  log.initial=log.initial,
-							  transitionPr=transitionPr,
-							  arm=arm[I],
-							  S=S,
-							  T=T,
-							  result=result,
-							  delta=delta[I, ],
-							  normal2altered=normal2altered,
-							  altered2normal=altered2normal,
-							  altered2altered=altered2altered,
-							  normalIndex=normalIndex,
-							  pAA=rep(0, S^2))
-			rD[[a]] <- computeLoglik(viterbiResults,
-						 log.initial=log.initial,
-						 log.emission=log.E[I, j, ],
-						 states=states,
-						 normalIndex=normalIndex,
-						 nNotMissing=nNotMissing,
-						 c1=c1, c2=c2, c3=c3,
-						 physical.position=physical.position,
-						 CHR=unique(chromosome(object)[logicalNotMissing]),
-						 sample.name=sns[j])
-		}
-		notnull <- !sapply(rD, is.null)
-		rD <- rD[notnull]
-		if(length(rD)==1) {
-			rangedData[[j]] <- rD[[1]]
-		} else{
-			rangedData[[j]] <- stack(RangedDataList(rD))
-		}
-	}
-	if(length(rangedData) == 1) {
-		rangedData <- rangedData[[1]]
-	} else {
-		rangedData <- stack(RangedDataList(rangedData))
-	}
-	return(rangedData)
-}
-
-##viterbi2 <-
+##	##states <- hmm.params$states
+##	names(log.initial) <- as.character(states)
+##	S <- length(states)
+##	delta <- matrix(as.double(0), nrow=TT, ncol=S)
+##	rangedData <- vector("list", ncol(log.E))
+##	for(j in 1:ncol(log.E)){
+##		rD <- vector("list", length(unique(arm)))
+##		missingE <- rowSums(is.na(log.E[, j, ])) > 0
+##		notFinite <- rowSums(!is.finite(log.E[, j, ])) > 0
+##		missingE <- missingE | notFinite
+##		for(a in seq_along(unique(arm))){
+##			logicalNotMissing <- I <- arm == a  & !missingE
+##			if(sum(logicalNotMissing) < 2) next()
+##			nNotMissing <- T <- sum(logicalNotMissing)
+##			physical.position <- position(object)[logicalNotMissing]
+##			transitionPr <- exp(-2 * diff(physical.position)/TAUP)
+##			##is the lower bound a function of normal2altered, altered2normal, altered2altered?
+##			minimum <- 1-1/((S-1)*c1) + 0.01
+##			transitionPr <- pmax(transitionPr, minimum)
+##			if(any(transitionPr < 0 | transitionPr > 1)) stop("Transition probabilities not in [0,1].  Order object by chromosome and physical position")
+##			result <- rep(as.integer(0), T)
+##			viterbiResults <- viterbi.wrapper(log.emission=log.E[I, j, ],
+##							  log.initial=log.initial,
+##							  transitionPr=transitionPr,
+##							  arm=arm[I],
+##							  S=S,
+##							  T=T,
+##							  result=result,
+##							  delta=delta[I, ],
+##							  normal2altered=normal2altered,
+##							  altered2normal=altered2normal,
+##							  altered2altered=altered2altered,
+##							  normalIndex=normalIndex,
+##							  pAA=rep(0, S^2))
+##			rD[[a]] <- computeLoglik(viterbiResults,
+##						 log.initial=log.initial,
+##						 log.emission=log.E[I, j, ],
+##						 states=states,
+##						 normalIndex=normalIndex,
+##						 nNotMissing=nNotMissing,
+##						 c1=c1, c2=c2, c3=c3,
+##						 physical.position=physical.position,
+##						 CHR=unique(chromosome(object)[logicalNotMissing]),
+##						 sample.name=sns[j])
+##		}
+##		notnull <- !sapply(rD, is.null)
+##		rD <- rD[notnull]
+###		if(length(rD)==1) {
+###			rangedData[[j]] <- rD[[1]]
+###		} else{
+###			rangedData[[j]] <- stack(RangedDataList(rD))
+###		}
+##		rD <- GRangesList(rD)
+##	}
+##	if(length(rangedData) == 1) {
+##		rangedData <- rangedData[[1]]
+##	} else {
+##		rangedData <- stack(RangedDataList(rangedData))
+##	}
+##	return(rangedData)
+##
 
 stackRangedData <- function(object){
 	if(is(object, "list")){
@@ -433,11 +414,11 @@ stackRangedData <- function(object){
 				    LLR=object$LLR)
 	return(rangedData)
 }
-
-stackRangedDataHMM <- function(object){
-
-
-}
+##
+##stackRangedDataHMM <- function(object){
+##
+##
+##}
 
 rbaf <- function(genotypes, sigma, epsilon, states){
 	baf <- matrix(NA, nrow(genotypes), ncol(genotypes))
@@ -774,104 +755,99 @@ genotypeEmissionCrlmm <- function(object,
 
 
 
+####
+#### update mu and sigma using the forward backward variables
+####
+#### Should updateMu drop copy-neutral ROH (as is currently done?)
+####
+##updateMu <- function(x,
+##		     mu,
+##		     sigma,
+##		     normalIndex,
+##		     rohIndex=normalIndex+1,
+##		     is.log,
+##		     limits,
+##		     fv,
+##		     bv,
+##		     constrainMu){
+##	if(nUpdates==0) return(mu)
+##	min.sd <- mad(x, na.rm=TRUE)/2
+##	sigma <- pmax(sigma, min.sd)
+##	s <- sigma
+##	L <- S <- length(mu)
+####	if(length(dup.index) > 0){
+####		mu <- unique(mu)
+####		L <- length(mu)
+####	} else L <- S
+##	## fix normal copy number
+##	mu[normalIndex] <- median(x, na.rm=TRUE)
+##	mu[rohIndex] <- mu[normalIndex]
+##	p <- matrix(0, L, 2)
+##	p[, 1] <- 0.99
+##	p[, 2] <- 1-p[, 1]
+##	##sigma <- rep(sigma, L)
+##	g2 <- g1 <- matrix(NA, length(x), L)
+##	missing.fv <- missing(fv)
+##	if(!missing.fv){
+##		h <- matrix(fv*bv, length(x), length(mu))
+##		m <- rowSums(h, na.rm=TRUE)
+##		h <- h/m
+##		rm(m, fv, bv);
+##	}
+##	d1 <- matrix(NA, length(x), L)
+##	na.index <- which(is.na(x))
+##	anyNA <- length(na.index) > 0
+##	nr <- length(x)
 ##
-## update mu and sigma using the forward backward variables
-##
-## Should updateMu drop copy-neutral ROH (as is currently done?)
-##
-updateMu <- function(x,
-		     mu,
-		     sigma,
-		     normalIndex,
-		     rohIndex=normalIndex+1,
-		     nUpdates=3,
-		     is.log,
-		     limits,
-		     fv,
-		     bv){
-	if(nUpdates==0) return(mu)
-	min.sd <- max(mad(x, na.rm=TRUE), 0.1)
-	s <- sigma
-	L <- S <- length(mu)
-##	if(length(dup.index) > 0){
-##		mu <- unique(mu)
-##		L <- length(mu)
-##	} else L <- S
-	## fix normal copy number
-	mu[normalIndex] <- median(x, na.rm=TRUE)
-	mu[rohIndex] <- mu[normalIndex]
-	p <- matrix(0, L, 2)
-	p[, 1] <- 0.99
-	p[, 2] <- 1-p[, 1]
-	sigma <- rep(sigma, L)
-	g2 <- g1 <- matrix(NA, length(x), L)
-	missing.fv <- missing(fv)
-	if(!missing.fv){
-		fv <- matrix(fv, length(x), length(mu))
-		bv <- matrix(bv, length(x), length(mu))
-		h <- fv*bv
-		m <- matrix(rowSums(h, na.rm=TRUE), length(x), length(mu), byrow=FALSE)
-		h <- h/m
-		rm(m, fv, bv);
-	}
-	d1 <- matrix(NA, length(x), L)
-	na.index <- which(is.na(x))
-	anyNA <- length(na.index) > 0
-	for(iter in seq_len(nUpdates)){
-		if(iter > nUpdates) break()
-		for(i in seq_len(L)){
-			d.norm <- p[i, 1]*dnorm(x, mean=mu[i], sd=sigma[i])
-			d.unif <- p[i, 2]*dunif(x, limits[1], limits[2])
-			d1[, i] <- d.norm/(d.norm+d.unif)
-		}
-		d1[na.index, ] <- dunif(rep(0, length(na.index)), limits[1], limits[2])
-		if(missing.fv){
-			g1 <- d1
-			g2 <- 1-d1
-		} else {
-			g1 <- h * d1
-			g2 <- h * (1-d1)
-		}
-		##
-		## While the outlier component of the mixture is the
-		## same for each state, the probability of being an
-		## outlier will differ.  This makes sense as a small
-		## value should have a relatively large outlier
-		## probability for the normal distribution and
-		## relatively small for a deletion
-		##
-		total.g1 <- apply(g1, 2, sum, na.rm=TRUE)
-		## denom.eq52:
-		denom.eq52 <- apply(g1 + g2, 2, sum, na.rm=TRUE)
- 		##notg <- 1-g
-		##total.notg <- apply(notg, 2, sum, na.rm=TRUE)
-		##mix.den <- total.g + total.notg
-		##
-		## p[i, j] is the expected number of times in state i
-		## using mixture component k relative to the expected
-		## number of times in state i
-		##
-		p.new <- p
-		p.new[, 1] <- total.g1/denom.eq52
-		p.new[, 2] <- 1-p.new[,1]
-		sigma.new <- mu.new <- rep(NA, L)
-		I <- seq_len(L)
-		for(i in I){
-			mu.new[i] <- sum(g1[, i] * x, na.rm=TRUE)/total.g1[i]
-		}
-		mu.new[-rohIndex] <- constrainMu(mu.new[-rohIndex], is.log, min.sd)
-		mu.new[rohIndex] <- mu.new[normalIndex]
-		mu.new <- makeNonDecreasing(mu.new)
-		for(i in I){
-			sigma.new[i] <- sqrt(sum(g1[,i]*(x-mu.new[i])^2, na.rm=TRUE)/total.g1[i])
-		}
-		sigma.new <- pmax(sigma.new, min.sd)
-		mu <- mu.new
-		sigma <- sigma.new
-		p <- p.new
-	}
-	return(list(mu, sigma, p))
-}
+##	d.norm <- dnorm(x, mean=matrix(mu, nr, L, byrow=TRUE), sd=matrix(sigma, nr, L, byrow=TRUE))
+##	d.norm <- t(t(d.norm) * p[, 1])
+##	d.unif <- dunif(x, matrix(limits[1], nr, L), matrix(limits[2], nr, L))
+##	d.unif <- t(t(d.unif) * p[, 2])
+##	d1 <- d.norm/(d.norm+d.unif)
+##	if(length(na.index) > 0)
+##		d1[na.index, ] <- dunif(rep(0, length(na.index)), limits[1], limits[2])
+##	if(missing.fv){
+##		g1 <- d1
+##		g2 <- 1-d1
+##	} else {
+##		g1 <- h * d1
+##		g2 <- h * (1-d1)
+##	}
+##	##
+##	## While the outlier component of the mixture is the
+##	## same for each state, the probability of being an
+##	## outlier will differ.  This makes sense as a small
+##	## value should have a relatively large outlier
+##	## probability for the normal distribution and
+##	## relatively small for a deletion
+##	##
+##	total.g1 <- apply(g1, 2, sum, na.rm=TRUE)
+##	## denom.eq52:
+##	denom.eq52 <- apply(g1 + g2, 2, sum, na.rm=TRUE)
+##	## p[i, j] is the expected number of times in state i
+##	## using mixture component k relative to the expected
+##	## number of times in state i
+##	##
+##	p.new <- p
+##	p.new[, 1] <- total.g1/denom.eq52
+##	p.new[, 2] <- 1-p.new[,1]
+##	sigma.new <- mu.new <- rep(NA, L)
+##	I <- seq_len(L)
+##	tmp <- g1 * x
+##	mu.new <- colSums(tmp, na.rm=TRUE)/total.g1
+##	mu.new[-rohIndex] <- constrainMu(mu.new[-rohIndex], is.log)
+##	mu.new[rohIndex] <- mu.new[normalIndex]
+##	mu.new <- makeNonDecreasing(mu.new)
+##	xx <- matrix(x, nr, L)
+##	tmp <- g1*t(t(xx) - mu.new)^2
+##	sigma.new <- sqrt(colSums(tmp, na.rm=TRUE)/total.g1)
+##	sigma.new <- pmax(sigma.new, min.sd)
+##	sigma.new <- constrainSd(sigma.new)
+##	mu <- mu.new
+##	sigma <- sigma.new
+##	p <- p.new
+##	return(list(mu, sigma, p))
+##}
 
 
 tnorm <- function(x, mean, sd, lower=0, upper=1){
@@ -879,13 +855,43 @@ tnorm <- function(x, mean, sd, lower=0, upper=1){
        ## cdf of standard normal
        Phi <- function(x, mu, sigma) pnorm(x, mu, sigma)
        res <- phi(x, mean, sd)/(Phi(upper, mean, sd)-Phi(lower, mean, sd))
-       ind <- which(x < lower | x > upper)
-       if(any(ind)){
-               res[ind] <- 0
-       }
+##       ind <- which(x < lower | x > upper)
+##       if(any(ind)){
+##               res[ind] <- 0
+##       }
        res
 }
 
+trnorm <- function(x){
+	function(mu, sigma, upper=1, lower=0){
+		dnorm(x, mu, sigma)/(pnorm(upper, mu, sigma) - pnorm(lower, mu, sigma))
+	}
+}
+
+##trnorm <- function(x, j){
+##	isMatrix <- is.matrix(x)
+##	if(isMatrix) x <- x[, j]
+##	##if(!isMatrix) x <- as(x, "matrix")
+##	##nr <- nrow(x); nc <- ncol(x)
+##	function(mu, sigma, upper=1, lower=0){
+##		##Mu <- matrix(mu, nr, nc, byrow=TRUE)
+##		##Sigma <- matrix(sigma, nr, nc, byrow=TRUE)
+##		dnorm(x, Mu, Sigma)/(pnorm(upper, Mu, Sigma) - pnorm(lower, Mu, Sigma))
+##	}
+##}
+
+trnorm2 <- function(x, j){
+	isMatrix <- is.matrix(x)
+	if(!isMatrix)
+		x <- as(x, "matrix")
+	nr <- nrow(x); nc <- ncol(x)
+	x <- t(x)
+	function(mu, sigma, upper=1, lower=0){
+		Mu <- matrix(mu, nc, nr, byrow=FALSE)
+		Sigma <- matrix(sigma, nc, nr, byrow=FALSE)
+		dnorm(x, Mu, Sigma)/(pnorm(upper, Mu, Sigma) - pnorm(lower, Mu, Sigma))
+	}
+}
 
 
 getTau <- function(TAUP, pos, S){
@@ -1064,18 +1070,13 @@ getProbB <- function(cdfname, featurenames){
 	return(probB)
 }
 
-keyOffFirstFile <- function(filename, cdfname, universe, lrr.colname, baf.colname, ...){
+keyOffFirstFile <- function(filename, cdfname, genome, lrr.colname, baf.colname, ...){
 	## read in one file
 	## return feature matrix in chromosome, position order
 	dat <- read.bsfiles(filenames=filename, lrr.colname=lrr.colname, baf.colname=baf.colname, ...)
 	cdfpath <- system.file("extdata", package=cdfname)
-	if(universe != ""){
-		load(file.path(cdfpath, paste("snpProbes_", universe, ".rda", sep="")))
-		load(file.path(cdfpath, paste("cnProbes_", universe, ".rda", sep="")))
-	} else {
-		load(file.path(cdfpath, "snpProbes.rda"))
-		load(file.path(cdfpath, "cnProbes.rda"))
-	}
+	load(file.path(cdfpath, paste("snpProbes_", genome, ".rda", sep="")))
+	load(file.path(cdfpath, paste("cnProbes_", genome, ".rda", sep="")))
 	snpProbes <- get("snpProbes")
 	cnProbes <- get("cnProbes")
 	features <- rbind(snpProbes, cnProbes)
@@ -1087,7 +1088,7 @@ keyOffFirstFile <- function(filename, cdfname, universe, lrr.colname, baf.colnam
 
 	issnp <- as.logical(rownames(features) %in% rownames(snpProbes))
 	probB <- as.integer(getProbB(cdfname, rownames(features))*100)
-	arm <- .getArm(features[, "chrom"], features[, "position"])
+	arm <- .getArm(features[, "chrom"], features[, "position"], genome)
 	index <- match(rownames(features), rownames(dat))
 
 	identical(rownames(dat)[index], rownames(features))
@@ -1102,39 +1103,27 @@ keyOffFirstFile <- function(filename, cdfname, universe, lrr.colname, baf.colnam
 	return(features2)
 }
 
-makeNonDecreasing <- function(x){
-	d <- diff(x)
-	if(all(d >= 0)) return(x)
-	index <- which(d < 0)
-	if(index[1] == 1){
-		x[1] <- x[2]
-		index <- index[-1]
-		if(length(index) ==0)
-			return(x)
-	}
-	l <- length(index)
-	if(l == length(x)-1){
-		i <- index[l]
-		x[length(x)] <- x[length(x)-1]
-		index <- index[-l]
-		if(length(index) == 0) return(x)
-	}
-	x[index+1] <- x[index]
-	return(x)
-}
-
 ## ad-hoc.  Do we want to put priors on the means?
-constrainMu <- function(mu, is.log, min.sd){
+constrainMu <- function(mu, is.log){
 	if(is.log){
-		mu[3] <- ifelse(mu[3] < -0.2, -0.2, mu[3])
-		mu[3] <- ifelse(mu[3] > 0.2, 0.2, mu[3])
-		mu[1] <- ifelse(mu[1] > -1, -1, mu[1])
-		mu[2] <- ifelse(mu[2] > -0.25, -0.25, mu[2])
-		##mu[2] <- ifelse(mu[2] > mu[3]-2*min.sd, mu[3]-1.5*min.sd, mu[2])
-		##mu[4] <- ifelse(mu[4] < mu[3]+2*min.sd, mu[3]+1.5*min.sd, mu[4])
-		mu[4] <- ifelse(mu[4] < 0.2, 0.2, mu[4])
-		mu[4] <- ifelse(mu[4] > 0.6, 0.6, mu[4])
-		mu[5] <- ifelse(mu[5] < 0.65, 0.65, mu[5])
+		is.ratio <- all.equal(mu[3], 0, tolerance=0.2) == TRUE
+		if(is.ratio){
+			mu[3] <- ifelse(mu[3] < -0.2, -0.2, mu[3])
+			mu[3] <- ifelse(mu[3] > 0.2, 0.2, mu[3])
+			mu[1] <- ifelse(mu[1] > -1, -1, mu[1])
+			mu[2] <- ifelse(mu[2] > -0.25, -0.25, mu[2])
+			mu[4] <- ifelse(mu[4] < 0.25, 0.25, mu[4])
+			mu[4] <- ifelse(mu[4] > 0.6, 0.6, mu[4])
+			mu[5] <- ifelse(mu[5] < 0.65, 0.65, mu[5])
+		} else {
+			mu[3] <- ifelse(mu[3] < 0.75, 0.75, mu[3])
+			mu[3] <- ifelse(mu[3] > 1.25, 1.25, mu[3])
+			mu[1] <- ifelse(mu[1] > -0.5, -0.5, mu[1])
+			mu[2] <- ifelse(mu[2] > 0.7, 0.7, mu[2])
+			mu[4] <- ifelse(mu[4] < 1.25, 1.25, mu[4])
+			mu[4] <- ifelse(mu[4] > 2, 2, mu[4])
+			mu[5] <- ifelse(mu[5] < 2, 2, mu[5])
+		}
 	} else {
 		mu[1] <- ifelse(mu[1] > 0.8, 0.8, mu[1])
 		mu[2] <- ifelse(mu[2] > 1.7, 1.7, mu[2])
@@ -1148,7 +1137,16 @@ constrainMu <- function(mu, is.log, min.sd){
 	return(mu)
 }
 
-computeTransitionProb <- function(x, TAUP, S, tauMAX=0.9995){
+constrainSd <- function(sigma){
+	sigma[1] <- min(3*sigma[3], max(sigma[1], sigma[3]))
+	sigma[6] <- min(3*sigma[3], max(sigma[6], sigma[3]))
+	sigma[5] <- min(3*sigma[3], max(sigma[5], sigma[3]))
+	sigma[2:4] <- sigma[3]
+	return(sigma)
+}
+
+
+computeTransitionProb <- function(x, TAUP, S, tauMAX=1-5e-6){
 	p <- exp(-2*diff(x)/TAUP)
 	minimum <- 1-1/((S-1)) + 0.01
 	p <- pmax(p, minimum)
@@ -1185,7 +1183,34 @@ guessCnScale <- function(x){
 	is.log
 }
 
-logCnStates <- function() c(-2, -0.5, 0, 0, 0.4, 0.8)
+logCnStates <- function(normalCn, is.ratio) {
+	if(missing(is.ratio))
+		is.ratio <- all.equal(normalCn, 0, tolerance=0.3) == TRUE
+	if(is.ratio){
+		return(c(-2, -0.5, 0, 0, 0.4, 0.8))
+	} else{
+		is.absolute <- all.equal(normalCn, 1, tolerance=0.2)==TRUE
+		if(is.absolute){
+			return(c(-1.5, 0, 1, 1, 1.58, 2))
+		} else{
+			stop("if copy number is on the log base 2 scale, the copy number for the normal state should be either 0 or 1 depending on whether the copy number is relative or absolute, respectively.")
+		}
+	  }
+}
+
+copyNumberStates <- function(normalCn) {
+	is.ratio <- all.equal(normalCn, 1, tolerance=0.2) == TRUE
+	if(is.ratio){
+		return(c(0, 1/2, 1, 1, 3/2, 4/2))
+	} else{
+		is.absolute <- all.equal(normalCn, 2, tolerance=0.2)==TRUE
+		if(is.absolute){
+			return(c(0, 1, 2, 2, 3, 4))
+		} else{
+			stop("median copy number is not near 1 or 2")
+		}
+	  }
+}
 
 rescale <- function(x, l, u){
 	b <- 1/(u-l)
@@ -1213,4 +1238,756 @@ makeNonDecreasing <- function(x){
 	x[index+1] <- x[index]
 	return(x)
 }
+
+stackGRangesList <- function(fit, build){
+	L <- length(fit[[1]])
+	gr <- list()
+	for(i in seq_len(L)){
+		rdl <- lapply(fit, "[[", i)
+		tmp <- stack(GRangesList(rdl))
+		gr[[i]] <- tmp[, -grep("sample", colnames(values(tmp)))]
+	}
+	sl <- getSequenceLengths(build)
+	rd <- GRangesList(gr)#, seqlengths=sl)
+	nms <- unique(as.character(runValue(unlist(seqnames(rd)))))
+	seqlengths(rd) <- sl[match(nms, names(sl))]
+	names(rd) <- names(fit[[1]])
+	metadata(rd) <- list(genome=build)
+	rd
+}
+
+
+initialSigma <- function(sds, J, S){
+	sigmas <- matrix(sds, J, S, byrow=FALSE)
+	## homozygous deletions often have a higher variance.
+	sigmas[, 1] <- sigmas[, 1] * 4
+	sigmas[, 2] <- sigmas[, 2] * 2
+	sigmas
+}
+
+##initialParams <- function(J){
+##	nms <- c("A", "AAAB", "AAB", "AB", "ABB", "ABBB", "B")
+##	mus <- function(J) {
+##		x <- matrix(c(0, 1/4, 1/3, 0.5, 2/3, 3/4, 1), J, 7, byrow=TRUE)
+##		colnames(x) <- nms
+##		x
+##	}
+##	sds <- function(J){
+##		x <- matrix(c(0.02, rep(0.05, 5), 0.02), J, 7, byrow=TRUE)
+##		colnames(x) <- nms
+##		x
+##	}
+##	p <- function(J){
+##		p <- replicate(J, matrix(c(0.99, 0.01), S, 2, byrow=TRUE), simplify=FALSE)
+##	}
+##	list(mu=mus, sd=sds, p=p)
+##}
+
+generatorFun <- function(r, b, gt, is.snp, cnStates,
+			 normalIndex, TAUP, limits, center,
+			 prOutlierBAF, p.hom, position, is.log, computeLLR, chrom){
+	S <- length(cnStates)
+	nc <- ncol(r)
+	nr <- nrow(r)
+	np.index <- which(!is.snp)
+	names(prOutlierBAF)[1] <- "prOutlier"
+	CHR <- paste("chr", oligoClasses::integer2chromosome(chrom), sep="")
+
+	## params for copy number
+	sds <- apply(r, 2, mad, na.rm=TRUE)
+	if(center) r <- centerCopyNumber(r, is.snp) + cnStates[normalIndex]
+	r <- thresholdCopyNumber(r, limits=limits)
+
+	initialCnParams <- function(j){
+		mus <- cnStates
+		sigmas <- rep(sds[j], S)
+		##p <- matrix(c(0.99,  0.01), S, 2, byrow=TRUE)
+		p <- 0.01
+		paramsCN <- list(mu=mus, sigmas=sigmas, p=p)
+	}
+
+	## params for BAF
+	allele.prob <- getPrB()
+	initialBafParams <- function(){
+		musBAF <- c(0, 1/4, 1/3, 0.5, 2/3, 3/4, 1)
+		sdsBAF <- c(0.02, rep(0.05, 5), 0.02)
+		names(musBAF) <- names(sdsBAF) <- c("A", "AAAB", "AAB", "AB", "ABB", "ABBB", "B")
+		paramsBAF <- list(mus=musBAF, sigmas=sdsBAF, prOutlier=prOutlierBAF)
+	}
+
+	g2 <- g1 <- matrix(NA, nr, S)
+	d1 <- matrix(NA, nr, S)
+	isHom <- b < 0.02 | b > 0.98
+	indexHom <- list()
+	for(j in seq_len(nc)) indexHom[[j]] <- which(isHom[, j])
+	emitr <- emitb <- matrix(NA, nr, S)
+	##r.isna <- is.na(r)
+	##r.hasna <- any(r.isna)
+	cn.dunif <- dunif(r, limits[1], limits[2])
+	Gtotal <- matrix(NA, nr, 4)
+	updateBafEmission <- function(bf, params, j){
+		mus <- params[["mus"]]
+		sds <- params[["sigmas"]]
+		##prOutlier <- params$prOutlier$initial
+		prOutlier <- params$prOutlier$prOutlier
+		computeEmitPr <- function(dlist, prOutlier, allele.prob){
+			sumd <- 0
+			q <- 1-prOutlier
+			for(i in seq_along(dlist)){
+				sumd <- sumd + dlist[[i]] * q*allele.prob[i]
+			}
+			##p <- matrix(prOutlier, nc, nr, byrow=TRUE)
+			t(sumd+prOutlier)
+		}
+		trNormal <- trnorm(bf)
+
+		##---------------------------------------------------------------------------
+		## copy number 1
+		dA <- trNormal(mus["A"], sds["A"])
+		dB <- trNormal(mus["B"], sds["B"])
+		emitb[, 2] <- computeEmitPr(list(dA,dB), prOutlier, allele.prob[, c("A", "B")])
+		emitb[, 4] <- emitb[, 2]
+
+		##---------------------------------------------------------------------------
+		## copy number 2
+		dAB <- trNormal(mus["AB"], sds["AB"])
+		emitb[, 3] <- computeEmitPr(list(dA, dAB, dB), prOutlier=prOutlier, allele.prob=allele.prob[, c("AA", "AB", "BB")])
+
+		##---------------------------------------------------------------------------
+		## copy number 3
+		dAAB <- trNormal(mus["AAB"], sds["AAB"])
+		dABB <- trNormal(mus["ABB"], sds["ABB"])
+		emitb[, 5] <- computeEmitPr(list(dA, dAAB, dABB, dB), prOutlier, allele.prob[, c("AAA", "AAB", "ABB", "BBB")])
+
+		##---------------------------------------------------------------------------
+		## copy number 4
+		dAAAB <- trNormal(mus["AAAB"], sds["AAAB"])
+		dABBB <- trNormal(mus["ABBB"], sds["ABBB"])
+		emitb[, 6] <- computeEmitPr(list(dA, dAAAB, dAB, dABBB, dB), prOutlier, allele.prob[, c("AAAA", "AAAB", "AABB", "ABBB", "BBBB")])
+
+		##
+		## small p.hom makes homozygous genotypes less informative
+		##
+		if(p.hom < 1){
+			i <- indexHom[[j]]
+			if(length(i) > 0) emitb[i, c(3, 5, 6)] <- (1-p.hom)*emitb[i, 2] + p.hom*emitb[i, c(3, 5, 6)]
+		}
+		if(length(np.index) > 0) emitb[np.index, ] <- 1
+		nas <- anyMissing(emitb)
+		if(nas) emitb[is.na(emitb)] <- 1
+		##index <- which(rowSums(is.infinite(emitb)) > 0)
+		##if(any(is.infinite(emitb))) browser()
+		return(emitb)
+	}
+
+	## might try dt here instead
+	mydnorm <- function(x){
+		function(mean, sd){
+			mus <- matrix(mean, nr, S, byrow=TRUE)
+			sds <- matrix(sd, nr, S, byrow=TRUE)
+			dnorm(x, mus, sds)
+		}
+	}
+	updateCnEmission <- function(cn, params, j){
+		mus <- params[["mu"]]
+		sds <- params[["sigmas"]]
+		p <- params[["p"]]
+		q <- 1-p
+		normalDens <- mydnorm(cn)
+		d <- normalDens(mus, sds)
+		emitr <- q*d + p*cn.dunif[, j]
+		emitr.na <- is.na(emitr)
+		hasna <- any(emitr.na)
+		if(hasna) emitr[emitr.na] <- 1
+		return(emitr)
+	}
+
+	theoreticalMeans <- c(0,1/4, 1/3, 1/2, 2/3, 3/4, 1)
+	names(theoreticalMeans) <- c("A", "AAAB", "AAB", "AB", "ABB", "ABBB", "B")
+	updateBafParams <- function(bf, params, fv, bv, j) {
+		##hasna <- anyMissing(bf)
+		##if(hasna){
+		weightedMean <- function(w, sumWeights) sum(w*bf, na.rm=TRUE)/sumWeights
+		weightedSd <- function(w, sumWeights, mu) sqrt((sum(w*(bf-mu)^2, na.rm=TRUE))/sumWeights)
+		##		} else {
+		##			weightedMean <- function(w, sumWeights) sum(w*bf)/sumWeights
+		##			weightedSd <- function(w, sumWeights, mu) sqrt((sum(w*(bf-mu)^2))/sumWeights)
+		##		}
+		mus <- params[["mus"]]
+		sigmas <- params[["sigmas"]]
+		pOut <- params[["prOutlier"]]
+		pOutlierMax <- pOut[["max"]]
+		pOutlierMaxROH <- pOut[["maxROH"]]
+		p <- pOut[["prOutlier"]]
+		p <- pmin(p, pOutlierMax)
+		##p[2] <- min(p[2], pOutlierMaxROH)
+		p <- 1-p ## probability not an outlier
+
+		## forward / backward variables
+		h <- matrix(fv*bv, nr, S)
+		m <- rowSums(h, na.rm=TRUE)
+		h <- h/m
+		calculateGamma <- function(d, h, allele.prob){
+			sumd <- 0
+			## conditional on not an outlier
+			G <- length(d)
+			## integrate over G possible genotypes
+			## (marginal probability for CN given not an outlier)
+			for(j in seq_len(G)){
+				d[[j]] <- allele.prob[j]*d[[j]]
+				sumd <- sumd+d[[j]]
+			}
+			## integrate out the outlier indicator to get the marginal probability for the copy number
+			## (marginal probability for CN)
+			##denom <- p*sumd + (1-p)
+			lapply(d, function(d) d*h/sumd)
+		}
+		updateBMoments <- function(gammas, nms){
+			## denom = q.out * [pr(AA) * phi(baf, muAA, sigmaAA) + pAB*phi(baf, muAB, sigmaAB) + pBB*phi(baf, muBB, sigmaBB)) + p.out
+			totalWeights <- sapply(gammas, sum, na.rm=TRUE)
+			isZero <- totalWeights == 0
+			mus <- mapply(weightedMean, w=gammas, sumWeights=totalWeights)
+			## for many near-zero bafs, it seems that the weight for genotype 'AA' is near zero...
+			sigmas <- mapply(weightedSd, w=gammas, sumWeights=totalWeights, mu=mus)
+			if(any(isZero)){
+				## then the baf corresponding to the genotype is probably not observed
+				## the mean should be sampled from the prior (or simply set to the theoretical value)
+				gt <- nms[isZero]
+				mus[isZero] <- theoreticalMeans[gt]
+				sigmas[isZero] <- params$sigmas[gt]
+			}
+			moments <- cbind(mus, sigmas)
+			rownames(moments) <- nms
+			moments
+		}
+		nms <- names(mus)
+		trNormal <- trnorm(bf)
+
+		## For cn = 0, BAF~Unif(0,1)
+		gamma0 <- dunif(bf, 0,1) * h[, 1]
+		gammaTotal <- function(g) {
+			sumg <- 0
+			for(i in seq_len(length(g))) sumg <- sumg+g[[i]]
+			sumg
+		}
+		##if(CHR=="chr10") browser()
+		## BAF means for cn 1
+		dA <- trNormal(mus["A"], sigmas["A"])
+		dB <- trNormal(mus["B"], sigmas["B"])
+		gamma1 <- calculateGamma(list(dA, dB), h[, 2], allele.prob[, c("A", "B")])
+		m1 <- updateBMoments(gamma1, nms=c("A", "B"))
+
+		## BAF means for cn 2
+		dAB <- trNormal(mus["AB"], sigmas["AB"])
+		gamma2 <- calculateGamma(list(dA, dAB, dB), h[, 3], allele.prob[, c("AA", "AB", "BB")])
+		m2 <- updateBMoments(gamma2, nms=c("A", "AB", "B"))["AB", , drop=FALSE]
+
+		## BAF means for cn 3
+		dAAB <- trNormal(mus["AAB"], sigmas["AAB"])
+		dABB <- trNormal(mus["ABB"], sigmas["ABB"])
+		gamma3 <- calculateGamma(list(dA, dAAB, dABB, dB), h[, 5], allele.prob[, c("AAA", "AAB", "ABB", "BBB")])
+		m3 <- updateBMoments(gamma3, nms=c("A", "AAB", "ABB", "B"))[c("AAB", "ABB"), ]
+
+		dAAAB <- trNormal(mus["AAAB"], sigmas["AAAB"])
+		dABBB <- trNormal(mus["ABBB"], sigmas["ABBB"])
+		gamma4 <- calculateGamma(list(dA, dAAAB, dAB, dABBB, dB), h[, 6], allele.prob[,c("AAAA", "AAAB", "AABB", "ABBB", "BBBB")])
+		m4 <- updateBMoments(gamma4, nms=c("A", "AAAB", "AB", "ABBB", "B"))[c("AAAB", "ABBB"), ]
+
+		mus.new <- c(m1[,1], m2[, 1], m3[, 1], m4[, 1])
+		mus.new["A"] <- 0
+		mus.new["B"] <- 1
+		names(mus.new)[3] <- "AB"
+		if(anyMissing(mus.new))  {
+			nas <- is.na(mus.new)
+			mus.new[nas] <- theoreticalMeans[nas]
+		}
+		mus.new <- makeMusBafNondecreasing(mus.new)
+		mus.new <- constrainMuBaf(mus.new)
+		sigmas.new <- c(m1[,2], m2[, 2], m3[,2], m4[,2])
+		names(sigmas.new)[3] <- "AB"
+		sigmas.new <- sigmas.new[nms]
+		sigmas.new <- pmax(sigmas.new, max(max(sigmas.new["A"], sigmas.new["B"]), 5e-4))
+
+		## Update mixture components.
+		Gtotal[, 1] <- gammaTotal(gamma1)
+		Gtotal[, 2] <- gammaTotal(gamma2)
+		Gtotal[, 3] <- gammaTotal(gamma3)
+		Gtotal[, 4] <- gammaTotal(gamma4)
+		## proportion outliers (how to account for homozygous deletions?)
+		##    -- exclude consecutive outliers
+		has.nas <- anyMissing(Gtotal)
+		##nas <- is.na(Gtotal[,1])
+		##has.nas <- any(nas)
+		if(has.nas) {
+			nas <- is.na(Gtotal[,1])
+			Gtotal <- Gtotal[-which(nas), ]
+		}
+		isout <- rowMax(Gtotal) < 0.9
+		p <- mean(diff(isout) != 0)
+		params[["mus"]] <- mus.new
+		params[["sigmas"]] <- sigmas.new
+		##params[["sigmas"]] <- sigmas
+		pOut[["prOutlier"]] <- p
+		params[["prOutlier"]] <- pOut
+		params
+	}
+
+	cn.sd.new <- rep(NA, S)
+	updateCnParams <- function(cn, params, fv, bv, j) {
+		mu <- params[["mu"]]
+		sigma <- params[["sigmas"]]
+		p <- params[["p"]]; q <- 1-p
+		min.sd <- sds[j]/2
+
+		h <- matrix(fv*bv, nr, S)
+		m <- rowSums(h, na.rm=TRUE)
+		h <- h/m
+
+		d.unif <- cn.dunif[, j]
+		d <- q*dnorm(cn, mean=matrix(mu, nr, S, byrow=TRUE), sd=matrix(sigma, nr, S, byrow=TRUE)) + p*d.unif
+		d.total <- d+d.unif
+		d1 <- d/(d+d.unif)
+		d2 <- 1-d1
+		##pout <- mean(rowMax(d1) < 0.5) ## uniform distribution has higher probability than any of the cn states
+
+		g1 <- h * d1  ## emission from observed states
+		g2 <- h * (1-d1) ## emission from outlier state
+
+		total.g1 <- apply(g1, 2, sum, na.rm=TRUE)
+
+		mu.new <- colSums(g1*cn, na.rm=TRUE)/total.g1
+		mu.new[-4] <- constrainMu(mu.new[-4], is.log)
+		mu.new[4] <- mu.new[normalIndex]
+		mu.new <- makeNonDecreasing(mu.new)
+
+		## For loop
+		for(s in seq_len(S)) {
+			cn.sd.new[s] <- sqrt(sum(g1[, s]*(cn-mu.new[s])^2, na.rm=TRUE)/total.g1[s])
+		}
+		cn.sd.new <- pmax(cn.sd.new, min.sd)
+		cn.sd.new <- constrainSd(cn.sd.new)
+		params[["mu"]] <- mu.new
+		params[["sigmas"]] <- cn.sd.new
+
+		total.g2 <- apply(g2, 2, sum, na.rm=TRUE)
+		denom.eq52 <- apply(g1 + g2, 2, sum, na.rm=TRUE)
+		p <- min(total.g2/denom.eq52)  ## altered states will have higher values of total.g2/denom.eq52.
+		params[["p"]] <- min(p, 0.05)
+		params
+	}
+
+	transitionPr <- function(TAUP, tauMAX=1-5e-6){
+		p <- exp(-2*diff(position)/TAUP)
+		minimum <- 1-1/((S-1)) + 0.01
+		p <- pmax(p, minimum)
+		p <- pmin(p, tauMAX)
+		return(as.matrix(p))
+	}
+	tau <- transitionPr(TAUP)
+
+	arm <- integer(nr)
+	statePath <- integer(nr)
+	scaleFactor <- rep(0, nr)
+	bv <- fv <- matrix(0.0, nr*S, 1L)
+	initialProb <- rep(1/S, S)
+
+	fitViterbi <- function(emit){
+		emit <- as.matrix(as.numeric(emit))
+		res <- .C("viterbi2", emit=emit, pi=initialProb, tau=tau,
+			  arm=arm, S=S, nr=nr, statePath=statePath,
+			  fv=fv, bv=bv, 1, 1, 1, 3L, scaleFactor=scaleFactor)[c("statePath", "fv", "bv", "scaleFactor")]
+		statePath <- res[["statePath"]]
+		sf <- res[["scaleFactor"]]
+		fv <- res[["fv"]]
+		bv <- res[["bv"]]
+		res <- list(statePath=statePath, fv=fv, bv=bv, sf=sf)
+	}
+
+	## computeLLR
+	CHR <- paste("chr", oligoClasses::integer2chromosome(chrom), sep="")
+	toGRanges <- function(statePath, j){
+		id <- colnames(r)[j]
+		rl <- Rle(statePath)
+		starts <- position[start(rl)]
+		ends <- position[end(rl)]
+		states <- statePath[start(rl)]
+		GRanges(CHR, IRanges(starts, ends), numberProbes=width(rl), state=states, sample=id)
+	}
+
+	if(computeLLR){
+		log.initial <- log(initialProb)
+		tauC <- 1-tau
+		lP.N2N <- log(1-(tauC*(S-1))) ##probability normal -> normal
+		lP.N2A <- log(tauC) ##probability normal -> altered
+		P.A2A <- sapply(1-(tauC*(1+(S-2))), function(x) max(x, 0.01))
+		lP.A2A <- log(P.A2A) ## probability altered to same altered state
+		lP.A2N <- lP.N2A ##probability altered -> normal
+		lP.A2Astar <- lP.N2A ## probability altered -> different altered state
+		## featureRanges
+		fr <- GRanges(rep(CHR, length(position)), IRanges(position, width=1))
+	}
+	computeLogLikRatio <- function(gr, emit){
+		gr2 <- gr
+		alt.index <- which(state(gr) != normalIndex & numberProbes(gr) > 1)
+		if(length(alt.index)==0) return(rep(0.0, length(gr)))
+		gr <- gr[alt.index, ]
+		log.emission <- log(emit)
+		L <- length(gr)
+		LLR <- rep(NA,  L)
+		olaps <- findOverlaps(gr, fr)
+		index <- subjectHits(olaps)
+		indexList <- split(index, queryHits(olaps))
+		starts <- sapply(indexList, min)
+		ends <- sapply(indexList, max)
+		statePath <- as.integer(state(gr))
+		T <- length(statePath)
+		rangeLogLik <- function(from, to, thisState){
+			index <- seq(from, to)
+			index2 <- index[-1]## t=2, ...., t*
+			if(from == 1){
+				if(to < T){
+					logLik.vit <- log.initial[thisState] + log.emission[from, thisState]  + sum(lP.A2A[index2] + log.emission[index2, thisState]) + lP.A2N[to+1] + log.emission[to+1, normalIndex]
+					logLik.null <- log.initial[normalIndex] + log.emission[from, normalIndex] + sum(lP.N2N[index2] + log.emission[index2, normalIndex]) + lP.N2N[to+1] + log.emission[to+1, normalIndex]
+				} else {
+					logLik.vit <- log.initial[thisState] + log.emission[from, thisState]  + sum(lP.A2A[index2] + log.emission[index2, thisState]) ##+ lP.A2N[last.index+1] + log.emission[last.index+1, normalIndex]
+					logLik.null <- log.initial[normalIndex] + log.emission[from, normalIndex] + sum(lP.N2N[index2] + log.emission[index2, normalIndex]) ##+ lP.N2N[last.index+1] + log.emission[last.index+1, normalIndex]
+				}
+			} else { ## first index > 1
+				index2 <- index[-1]
+				if(to < T){
+					logLik.vit <- lP.N2A[from] +
+						sum(lP.A2A[index2]) +
+							lP.A2N[to+1] +
+								log.emission[from, thisState] +
+									sum(log.emission[index2, thisState]) +
+										log.emission[to+1, normalIndex]
+					logLik.null <-
+						sum(lP.N2N[index]) +
+							lP.N2N[to+1]  +
+								sum(log.emission[index, normalIndex]) +
+									log.emission[to+1, normalIndex]
+				} else {
+					logLik.vit <- lP.N2A[from] + log.emission[from, thisState] + sum(lP.A2A[index2] + log.emission[index2, thisState])
+					logLik.null <- lP.N2N[from] + log.emission[from, normalIndex] + sum(lP.N2N[index2] + log.emission[index2, normalIndex])
+				}
+			}
+			LLR <- logLik.vit - logLik.null
+			return(LLR)
+		}
+		states <- state(gr)
+		for(k in seq_len(L)) LLR[k] <- rangeLogLik(from=starts[k], to=ends[k], thisState=states[k])
+		res <- rep(0.0, length(gr2))
+		res[alt.index] <- LLR
+		return(res)
+	}
+
+	list(initialCnParams=initialCnParams,
+	     initialBafParams=initialBafParams,
+	     updateBafEmission=updateBafEmission,
+	     updateCnEmission=updateCnEmission,
+	     updateBafParams=updateBafParams,
+	     updateCnParams=updateCnParams,
+	     trPr=transitionPr,
+	     fitViterbi=fitViterbi,
+	     toGRanges=toGRanges,
+	     computeLogLikRatio=computeLogLikRatio)
+}
+
+getPrB <- function(pB=NULL){
+	##n <- length(x)
+	if(is.null(pB)){
+		pB <- 0.5
+	}
+	pA <- 1-pB
+	pAA <- pA^2
+	pAB <- 2*pA*pB
+	pBB <- 1-pAA-pAB
+	pAAA <- pA^3
+	pAAB <- 3*pA^2*pB
+	pABB <- 3*pA*pB^2
+	pBBB <- 1-pAAA-pAAB-pABB
+	pAAAA <- pA^4
+	pAAAB <- 4*pA^3*pB
+	pAABB <- 6*pA^2*pB^2
+	pABBB <- 4*pA*pB^3
+	pBBBB <- pB^4
+	p <- matrix(c(pB,
+		      pA,
+		      pAA,
+		      pAB,
+		      pBB,
+		      pAAA,
+		      pAAB,
+		      pABB,
+		      pBBB,
+		      pAAAA,
+		      pAAAB,
+		      pAABB,
+		      pABBB,
+		      pBBBB),
+		    byrow=FALSE, nrow=length(pB), ncol=14)
+	colnames(p) <- c("B", "A", "AA", "AB", "BB",
+			 "AAA", "AAB", "ABB", "BBB",
+			 "AAAA", "AAAB", "AABB", "ABBB", "BBBB")
+	return(p)
+}
+
+generatorFunG <- function(r, gt, is.snp, cnStates,
+			  normalIndex, TAUP, limits, center,
+			  position, is.log, computeLLR, chrom){
+	S <- length(cnStates)
+	nc <- ncol(r)
+	nr <- nrow(r)
+	np.index <- which(!is.snp)
+	CHR <- paste("chr", oligoClasses::integer2chromosome(chrom), sep="")
+
+	## params for copy number
+	sds <- apply(r, 2, mad, na.rm=TRUE)
+	if(center) r <- centerCopyNumber(r, is.snp) + cnStates[normalIndex]
+	r <- thresholdCopyNumber(r, limits=limits)
+
+	initialCnParams <- function(j){
+		mus <- cnStates
+		sigmas <- rep(sds[j], S)
+		##p <- matrix(c(0.99,  0.01), S, 2, byrow=TRUE)
+		p <- 0.01
+		paramsCN <- list(mu=mus, sigmas=sigmas, p=p)
+	}
+
+	g2 <- g1 <- matrix(NA, nr, S)
+	d1 <- matrix(NA, nr, S)
+	emitr <- matrix(NA, nr, S)
+	cn.dunif <- dunif(r, limits[1], limits[2])
+	Gtotal <- matrix(NA, nr, 4)
+
+	## might try dt here instead
+	mydnorm <- function(x){
+		function(mean, sd){
+			mus <- matrix(mean, nr, S, byrow=TRUE)
+			sds <- matrix(sd, nr, S, byrow=TRUE)
+			dnorm(x, mus, sds)
+		}
+	}
+
+	updateCnEmission <- function(cn, params, j){
+		mus <- params[["mu"]]
+		sds <- params[["sigmas"]]
+		p <- params[["p"]]
+		q <- 1-p
+		normalDens <- mydnorm(cn)
+		d <- normalDens(mus, sds)
+		emitr <- q*d + p*cn.dunif[, j]
+		emitr.na <- is.na(emitr)
+		hasna <- any(emitr.na)
+		if(hasna) emitr[emitr.na] <- 1
+		return(emitr)
+	}
+	cn.sd.new <- rep(NA, S)
+	updateCnParams <- function(cn, params, fv, bv, j) {
+		mu <- params[["mu"]]
+		sigma <- params[["sigmas"]]
+		p <- params[["p"]]; q <- 1-p
+		min.sd <- sds[j]/2
+
+		h <- matrix(fv*bv, nr, S)
+		m <- rowSums(h, na.rm=TRUE)
+		h <- h/m
+
+		d.unif <- cn.dunif[, j]
+		d <- q*dnorm(cn, mean=matrix(mu, nr, S, byrow=TRUE), sd=matrix(sigma, nr, S, byrow=TRUE)) + p*d.unif
+		d1 <- d/(d+d.unif)
+
+		g1 <- h * d1
+		g2 <- h * (1-d1)
+
+		total.g1 <- apply(g1, 2, sum, na.rm=TRUE)
+		mu.new <- colSums(g1*cn, na.rm=TRUE)/total.g1
+		mu.new[-4] <- constrainMu(mu.new[-4], is.log)
+		mu.new[4] <- mu.new[normalIndex]
+		mu.new <- makeNonDecreasing(mu.new)
+
+		## For loop
+		for(s in seq_len(S))  cn.sd.new[s] <- sqrt(sum(g1[, s]*(cn-mu.new[s])^2, na.rm=TRUE)/total.g1[s])
+		cn.sd.new <- pmax(cn.sd.new, min.sd)
+		cn.sd.new <- constrainSd(cn.sd.new)
+		params[["mu"]] <- mu.new
+		params[["sigmas"]] <- cn.sd.new
+
+		## update p as the proportion of values not fit by any of the states
+		total.g2 <- apply(g2, 2, sum, na.rm=TRUE)
+		denom.eq52 <- apply(g1 + g2, 2, sum, na.rm=TRUE)
+		p <- min(total.g2/denom.eq52)  ## altered
+		params[["p"]] <- p
+		params
+	}
+
+	transitionPr <- function(TAUP, tauMAX=1-5e-6){
+		p <- exp(-2*diff(position)/TAUP)
+		minimum <- 1-1/((S-1)) + 0.01
+		p <- pmax(p, minimum)
+		p <- pmin(p, tauMAX)
+		return(as.matrix(p))
+	}
+	tau <- transitionPr(TAUP)
+
+	arm <- integer(nr)
+	statePath <- integer(nr)
+	scaleFactor <- rep(0, nr)
+	bv <- fv <- matrix(0.0, nr*S, 1L) ## forward and backward variables
+	initialProb <- rep(1/S, S)
+
+	fitViterbi <- function(emit){
+		emit <- as.matrix(as.numeric(emit))
+		res <- .C("viterbi2", emit=emit, pi=initialProb, tau=tau,
+			  arm=arm, S=S, nr=nr, statePath=statePath,
+			  fv=fv, bv=bv, 1, 1, 1, 3L,
+			  scaleFactor=scaleFactor)[c("statePath", "fv", "bv", "scaleFactor")]
+		statePath <- res[["statePath"]]
+		sf <- res[["scaleFactor"]]
+		fv <- res[["fv"]]
+		bv <- res[["bv"]]
+		res <- list(statePath=statePath, fv=fv, bv=bv, sf=sf)
+	}
+
+	## computeLLR
+	CHR <- paste("chr", oligoClasses::integer2chromosome(chrom), sep="")
+	toGRanges <- function(statePath, j){
+		id <- colnames(r)[j]
+		rl <- Rle(statePath)
+		starts <- position[start(rl)]
+		ends <- position[end(rl)]
+		states <- statePath[start(rl)]
+		GRanges(CHR, IRanges(starts, ends), numberProbes=width(rl), state=states, sample=id)
+	}
+
+	if(computeLLR){
+		log.initial <- log(initialProb)
+		tauC <- 1-tau
+		lP.N2N <- log(1-(tauC*(S-1))) ##probability normal -> normal
+		lP.N2A <- log(tauC) ##probability normal -> altered
+		P.A2A <- sapply(1-(tauC*(1+(S-2))), function(x) max(x, 0.01))
+		lP.A2A <- log(P.A2A) ## probability altered to same altered state
+		lP.A2N <- lP.N2A ##probability altered -> normal
+		lP.A2Astar <- lP.N2A ## probability altered -> different altered state
+		## featureRanges
+		fr <- GRanges(rep(CHR, length(position)), IRanges(position, width=1))
+	}
+	computeLogLikRatio <- function(gr, emit){
+		gr2 <- gr
+		alt.index <- which(state(gr) != normalIndex & numberProbes(gr) > 1)
+		if(length(alt.index)==0) return(rep(0.0, length(gr)))
+		gr <- gr[alt.index, ]
+		log.emission <- log(emit)
+		L <- length(gr)
+		LLR <- rep(NA,  L)
+		olaps <- findOverlaps(gr, fr)
+		index <- subjectHits(olaps)
+		indexList <- split(index, queryHits(olaps))
+		starts <- sapply(indexList, min)
+		ends <- sapply(indexList, max)
+		statePath <- as.integer(state(gr))
+		T <- length(statePath)
+		rangeLogLik <- function(from, to, thisState){
+			index <- seq(from, to)
+			index2 <- index[-1]## t=2, ...., t*
+			if(from == 1){
+				if(to < T){
+					logLik.vit <- log.initial[thisState] + log.emission[from, thisState]  + sum(lP.A2A[index2] + log.emission[index2, thisState]) + lP.A2N[to+1] + log.emission[to+1, normalIndex]
+					logLik.null <- log.initial[normalIndex] + log.emission[from, normalIndex] + sum(lP.N2N[index2] + log.emission[index2, normalIndex]) + lP.N2N[to+1] + log.emission[to+1, normalIndex]
+				} else {
+					logLik.vit <- log.initial[thisState] + log.emission[from, thisState]  + sum(lP.A2A[index2] + log.emission[index2, thisState]) ##+ lP.A2N[last.index+1] + log.emission[last.index+1, normalIndex]
+					logLik.null <- log.initial[normalIndex] + log.emission[from, normalIndex] + sum(lP.N2N[index2] + log.emission[index2, normalIndex]) ##+ lP.N2N[last.index+1] + log.emission[last.index+1, normalIndex]
+				}
+			} else { ## first index > 1
+				index2 <- index[-1]
+				if(to < T){
+					logLik.vit <- lP.N2A[from] +
+						sum(lP.A2A[index2]) +
+							lP.A2N[to+1] +
+								log.emission[from, thisState] +
+									sum(log.emission[index2, thisState]) +
+										log.emission[to+1, normalIndex]
+					logLik.null <-
+						sum(lP.N2N[index]) +
+							lP.N2N[to+1]  +
+								sum(log.emission[index, normalIndex]) +
+									log.emission[to+1, normalIndex]
+				} else {
+					logLik.vit <- lP.N2A[from] + log.emission[from, thisState] + sum(lP.A2A[index2] + log.emission[index2, thisState])
+					logLik.null <- lP.N2N[from] + log.emission[from, normalIndex] + sum(lP.N2N[index2] + log.emission[index2, normalIndex])
+				}
+			}
+			LLR <- logLik.vit - logLik.null
+			return(LLR)
+		}
+		states <- state(gr)
+		for(k in seq_len(L)) LLR[k] <- rangeLogLik(from=starts[k], to=ends[k], thisState=states[k])
+		res <- rep(0.0, length(gr2))
+		res[alt.index] <- LLR
+		return(res)
+	}
+	list(initialCnParams=initialCnParams,
+	     updateCnEmission=updateCnEmission,
+	     updateCnParams=updateCnParams,
+	     trPr=transitionPr,
+	     fitViterbi=fitViterbi,
+	     toGRanges=toGRanges,
+	     computeLogLikRatio=computeLogLikRatio)
+}
+
+
+
+gcPercent <- function(feature.gr, width){
+	##feature.gr <- feature.gr[chromosome(feature.gr) == chrom, ]
+	bsgenomepkg <- paste("BSgenome.Hsapiens.UCSC.", metadata(feature.gr)$genome, sep="")
+	library(bsgenomepkg, character.only=TRUE)
+	Hsapiens <- get("Hsapiens")
+	chrom <- chromosome(feature.gr)[1]
+	chr <- Hsapiens[[chrom]]
+	v <- suppressWarnings(Views(chr, start=start(feature.gr), end=end(feature.gr)))
+	gcFunction <- function(x){
+		alf <- alphabetFrequency(x, as.prob=TRUE)
+		rowSums(alf[, c("G", "C")])
+	}
+	probeGC <- suppressWarnings(gcFunction(v))
+	probeGC <- as.integer(probeGC*100)
+	return(probeGC)
+}
+
+gcCorrect <- function(object, width){
+	feature.gr <- makeFeatureGRanges(object)
+	feature.gr <- sort(feature.gr)
+	feature.gr <- resize(feature.gr, width=width, fix="center")
+
+	arm <- .getArm(chromosome(object), position(object), genomeBuild(object))
+	arm <- factor(arm, levels=unique(arm))
+	feature.grl <- split(feature.gr, arm)
+
+	gcP <- lapply(feature.grl, gcPercent, width=width)
+	binGCcontent <- function(x) bins <- cut(x, breaks=seq(0,100), labels=FALSE)
+	binList <- lapply(gcP, binGCcontent)
+
+	## Calculate mean lrr for each bin.
+	## Subtract the mean lrr for the gc bins.  Add back the grand median so that the
+	## center for the chromosome is unchanged
+	avgRBin <- function(r, bin, grand.median) {
+		bins <- as.integer(factor(bin))
+		ravg <- sapply(split(r, bins), mean, na.rm=TRUE)
+		## what about QN by middle bins..
+		ravg <- ravg[bins]
+		r.adj <- r - ravg + grand.median
+		##boxplot(split(r/100, bins), pch=".")
+		##boxplot(split(r.adj/100, bins), pch=".")
+		return(r.adj)
+	}
+	for(j in seq_len(ncol(object))){
+		rList <- split(lrr(object)[, j], arm)  ## can do this on the integer scale
+		medianR <- sapply(rList, median, na.rm=TRUE)
+		adjR <- mapply(avgRBin, rList, binList, medianR)
+		rvec <- unlist(adjR)
+		lrr(object)[, j] <- rvec
+	}
+	return(object)
+}
+
 

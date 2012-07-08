@@ -124,97 +124,6 @@ fitViterbi2 <- function(object){
 	    scaleFactor=tmp[[14]])
 }
 
-##.checksViterbi <- function(initialCnStateMeans,
-##			   normalIndex,
-##			   is.log){
-##	if(any(diff(initialCnStateMeans) < 0)) stop("initialCnStateMeans must be ordered")
-##	if(missing(is.log)) stop("is.log can not be missing. \n Must specify whether the copy number estimates are on the log-scale (T/F). ")
-##	if(missing(normalIndex)) stop("normalIndex can not be missing")
-##	if(!normalIndex %in% seq_along(initialCnStateMeans)){
-##		stop("normalIndex must be greater than zero and less than or equal to the number of states")
-##	}
-##}
-
-
-##mmFromOligoSnpSet <- function(object,
-##			       initialCnStateMeans=c(0, 1, 2, 2, 3, 4),
-##			       normalIndex,
-##			       TAUP=1e8,
-##			       is.log,
-##			       initialProb=rep(1/length(initialCnStateMeans), length(initialCnStateMeans)),
-##			       ...){
-##	.checksViterbi(initialCnStateMeans=initialCnStateMeans,
-##		       normalIndex=normalIndex,
-##		       is.log=is.log)
-##	S <- length(cnStates)
-##	object <- chromosomePositionOrder(object)
-##	arm <- .getArm(chromosome(object), position(object))
-##	indices <- split(seq_along(arm), arm)
-##
-##	## for each arm
-##	##      - compute initial emission probability estimates
-##	##      - initialize Viterbi object
-##	##      - run viterbi
-##	##      - compute log lik
-##	##      - update model parameters and emission probs.
-##	##      - update emission probs in viterbi object
-##	##      - run viterbi
-##	##      - compare log lik to previous log lik
-##	##        ...
-##	chrlist <- split(chromosome(object), arm)
-##	poslist <- split(position(object), arm)
-##	armlist <- split(arm, arm)
-##	snplist <- split(isSnp(object), arm)
-##
-##	taulist <- foreach(x=poslist) %do% computeTransitionProb(x=x,
-##			   TAUP=TAUP, S=S)
-##	##taulist <- lapply(taulist, as.matrix)
-##	nf <- sapply(armlist, length)
-##	if(use.baf){
-##		baflist <- split(baf(object), arm)
-##		baflist <- lapply(baflist, as.matrix)
-##	} else {
-##		gtlist <- split(calls(object), arm)
-##		gtlist <- lapply(baflist, as.matrix)
-##	}
-##	if(use.baf){
-##		emitb <- foreach(object=baflist,
-##				 is.snp=snplist,
-##				 .packages="VanillaICE") %do% {
-##					 bafEmission(object=object,
-##						     is.snp=is.snp, ...)
-##				 }
-##	} else {
-##		stop("emission for genotypes")
-##	}
-##	emitr <- foreach(object=lrrlist,
-##			 is.snp=snplist,
-##			 chrom=chrlist,
-##			 .packages="VanillaICE") %do% {
-##				 cnEmission(object=object,
-##					    is.snp=is.snp,
-##					    cnStates=initialCnStateMeans,
-##					    is.log=is.log,
-##					    normalIndex=3,...)
-##
-##			 }
-##	emitlist <- foreach(r=emitr, b=emitb) %do% as.matrix(as.numeric(r[,1,]+b[,1,]))
-##	objectlist <- foreach(arm=armlist,
-##			      tau=taulist,
-##			      emission=emitList,
-##			      ) %do% {
-##				      new("Viterbi2",
-##					  numberFeatures=length(arm),
-##					  numberStates=S,
-##					  transitionProb=tau,
-##					  initialProb=initialProb,
-##					  normalIndex=normalIndex,
-##					  emission=emission)
-##			      }
-##
-##
-##
-
 
 setMethod("show", signature(object="Viterbi2"), function(object){
 	cat("Number of features:", object@numberFeatures, "\n")
@@ -225,174 +134,207 @@ setMethod("show", signature(object="Viterbi2"), function(object){
 })
 
 
-viterbi2Wrapper <- function(r, b, gt, pos, is.snp, cnStates,
+viterbi2Wrapper <- function(r, b, pos, is.snp, cnStates,
 			    chrom,
-			    prOutlierBAF=list(initial=1e-3, max=0.01),
-			    p.hom=0.05, TAUP=1e8,
-			    is.log, center=TRUE,
-			    reestimation=TRUE,
+			    prOutlierBAF=list(initial=1e-5, max=1e-3, maxROH=1e-5),
+			    p.hom=0.05,
+			    TAUP=1e8,
+			    is.log,
+			    center=TRUE,
 			    limits,
 			    initialProb=rep(1/length(cnStates), length(cnStates)),
 			    normalIndex=3L,
-			    rohIndex=normalIndex+1L,
 			    nupdates=10,
 			    tolerance=5,
-			    returnViterbiObject=FALSE, ...){
-	S <- length(cnStates)
-	J <- ncol(r)
-	if(missing(b)){
-		stopifnot(rohIndex==4L)
-		emitb <- gtEmission(object=gt,
-				    is.snp=is.snp,
-				    rohIndex=c(2L, 4L),
-				    prGtHom=c(2/3, 0.99, 0.7, 0.99, 1/2, 2/5),
-				    S=S, log.it=FALSE)
-	}
-	##.index=subjectHits(findOverlaps(segs1[2, ], featureData(trioSetff)))
-	##apply(emitb[.index, 3, ], 2, sum)
-	taus <- computeTransitionProb(x=pos, TAUP=TAUP, S=S)
-	sds <- apply(r, 2, mad, na.rm=TRUE)
-	if(center){
-		r <- centerCopyNumber(r, is.snp) + cnStates[normalIndex]
-	}
-	r <- thresholdCopyNumber(r, limits=limits)
-	loglik <- matrix(NA, nupdates, J)
-	viterbiList <- vector("list", J)
-	for(i in seq_len(nupdates)){
-		if(i == 1){
-			mus <- matrix(cnStates, J, S, byrow=TRUE)
-			sigmas <- matrix(sds, J, S, byrow=FALSE)
-			## homozygous deletions often have a higher variance.
-			## Initialize the variance for this state to have a bigger variance
-			sigmas[, 1] <- sigmas[, 1] * 4
-			sigmas[, 2] <- sigmas[, 2] * 2
-			p <- replicate(J, matrix(c(0.99, 0.01), S, 2, byrow=TRUE), simplify=FALSE)
-			musBAF <- matrix(c(0, 1/4, 1/3, 0.5, 2/3, 3/4, 1), J, 7, byrow=TRUE)
-			sdsBAF <- matrix(c(0.02, rep(0.05, 5), 0.02), J, 7, byrow=TRUE)
-			colnames(musBAF) <- colnames(sdsBAF) <- c("A", "AAAB", "AAB", "AB", "ABB", "ABBB", "B")
-			prOutlierMax <- prOutlierBAF[["max"]]
-			prOutlierBAF <- matrix(rep(prOutlierBAF[["initial"]], length(musBAF)), J, 7, byrow=TRUE)
-		} else {
-			j <- NULL
-			mu.sigma <- foreach(j = seq_len(J)) %do% {
-				updateMu(x=r[, j],
-					 mu=mus[j, ],
-					 sigma=sigmas[j, ],
-					 normalIndex=normalIndex,
-					 rohIndex=rohIndex,
-					 limits=limits,
-					 is.log=is.log,
-					 fv=forwardVariable(viterbiList[[j]]),
-					 bv=backwardVariable(viterbiList[[j]]),
-					 nUpdates=1)
-			}
-			mus <- lapply(mu.sigma, "[[", 1)
-			mus <- do.call("rbind", mus)
-			sigmas <- lapply(mu.sigma, "[[", 2)
-			sigmas <- do.call("rbind", sigmas)
-			p <- lapply(mu.sigma, "[[", 3)
-			if(!missing(b)){
-				mu.sigmaBAF <- foreach(j=seq_len(J)) %do% {
-					updateBaf(x=b[, j],
-						  cnStates=cnStates,
-						  mus=musBAF[j, ],
-						  sigmas=sdsBAF[j, ],
-						  normalIndex=normalIndex,
-						  fv=forwardVariable(viterbiList[[j]]),
-						  bv=backwardVariable(viterbiList[[j]]),
-						  prOutlier=prOutlierBAF[j, ],
-						  prOutlierMax=prOutlierMax,
-						  nUpdates=1)
-				}
-				##j <- 3
-				##fv=forwardVariable(viterbiList[[j]])
-				##bv=backwardVariable(viterbiList[[j]])
-				##fv=matrix(fv, nrow(b), 6)
-				##bv=matrix(bv, nrow(b), 6)
-				##stopifnot(all.equal(rowSums(bv),1))
-				##stopifnot(all.equal(rowSums(fv),1))
-				musBAF <- do.call("rbind", lapply(mu.sigmaBAF, "[[", 1))
-				sdsBAF <- do.call("rbind", lapply(mu.sigmaBAF, "[[", 2))
-				prOutlierBAF <- do.call("rbind", lapply(mu.sigmaBAF, "[[", 3)) ## outlier probability
+			    computeLLR=TRUE,
+			    returnEmission=FALSE,
+			    ...){
+	nc <- ncol(r)
+	updateFun <- generatorFun(r, b, is.snp=is.snp, cnStates=cnStates,
+				  normalIndex=normalIndex,  TAUP=TAUP,
+				  limits=limits, center=center,
+				  prOutlierBAF=prOutlierBAF, p.hom=p.hom,
+				  position=pos, is.log=is.log,
+				  computeLLR=computeLLR, chrom=chrom)
+	paramsB <- updateFun$initialBafParams()
+	statePath <- matrix(NA, nrow(r), nc)
+	grl <- vector("list", nc)
+	if(returnEmission) emitArray <- array(NA, dim=c(nrow(r), nc, length(cnStates)))
+	## Things that change with iterator i:
+	##  --  first two moments
+	##  --  mixture probabilities
+	## pseudocode
+	for(j in seq_len(nc)){
+		paramsC <- updateFun$initialCnParams(j)
+		## if we subset r and bf here we wouldn't need to do "[" for each update i
+		bf <- b[, j]
+		cn <- r[, j]
+		sameStatePath <- 0
+		llr <- loglik <- rep(0, nupdates)
+		for(i in seq_len(nupdates)){
+			paramsBprev <- paramsB
+			paramsCprev <- paramsC
+			emitB <- updateFun$updateBafEmission(bf, paramsB, j)
+			emitC <- updateFun$updateCnEmission(cn, paramsC, j)
+			emit <- emitB*emitC
+			vit.res <- updateFun$fitViterbi(emit)
+			if(i > 1) sameStatePath <- if(identical(statePath, vit.res[["statePath"]])) sameStatePath+1 else 0
+			statePath <- vit.res[["statePath"]]
+			fv <- vit.res[["fv"]]
+			bv <- vit.res[["bv"]]
+			paramsB <- updateFun$updateBafParams(bf, paramsB, fv, bv, j)
+			paramsC <- updateFun$updateCnParams(cn, paramsC, fv, bv, j)
+			## can we compare the scale factor across runs?
+			## Equation 103, Rabiner
+			loglik[i] <- sum(log(vit.res[["sf"]]))
+			if(i == 1) next()
+			llr[i] <- loglik[i]-loglik[i-1]
+			cond <- (abs(llr[i]) < tolerance) || (sameStatePath > 1)
+			if(cond | i == nupdates) {
+				statePath <- vit.res[["statePath"]]
+				gr <- updateFun$toGRanges(statePath, j)
+				if(computeLLR) elementMetadata(gr)$LLR <- updateFun$computeLogLikRatio(gr, emit)
+				grl[[j]] <- gr
+				break()
 			}
 		}
-		emitr <- cnEmissionFromMatrix(object=r,
-					      mus=mus,
-					      sds=sigmas,
-					      p=p,
-					      limits=limits,
-					      log.it=FALSE, ...)
-		if(!missing(b)){
-			emitb <- bafEmissionFromMatrix2(BAF=b,
-							is.snp=is.snp,
-							mus=musBAF,
-							sds=sdsBAF,
-							prOutlier=prOutlierBAF,
-							p.hom=p.hom,
-							log.it=FALSE, ...)
-		}
-		e <- emitb*emitr
-		viterbiList <- list()
-		for(j in seq_len(J)){
-			tmp <- new("Viterbi2",
-				   emission=as.matrix(as.numeric(e[, j, ])),
-				   initialProb=initialProb,
-				   transitionProb=taus,
-				   numberStates=length(cnStates),
-				   numberFeatures=nrow(r),
-				   normalIndex=normalIndex)
-			viterbiList[[j]] <- fitViterbi2(tmp)
-			loglik[i,j] <- -sum(log(scaleFactor(viterbiList[[j]])))
-		}
-		if(i > 1){
-			llr <- loglik[i, ]-loglik[i-1, ]
-			check.break <- all(abs(llr) < tolerance)
-		} else check.break <- FALSE
-		if(check.break) break()
+		if(returnEmission) emitArray[, j, ] <- emit
 	}
-	loglik <- loglik[seq_len(i), ]
-	##.index=subjectHits(findOverlaps(ir[1,], featureData(trioSet)))
-##	bb <- b[.index, 3]
-##	rr <- r[.index, 3]
-##	eb <- round(emitb[.index, 3, ],3)
-##	er <- round(emitr[.index, 3, ],3)
-##	ee <- e[.index, 3, ]
-##	tmp <- cbind(eb, bb)
-##	tmp2 <- cbind(er, rr)
-##	colnames(tmp2)[1:7] <- colnames(tmp)[1:7] <- c(paste("cn", c(0,1,2,2,3,4),sep=":"), "obs")
-##	apply(log2(eb), 2, sum)
-##	apply(log2(er), 2, sum)
-##	apply(log2(ee), 2, sum)
-##	ii=which(eoff[, 5] < 0.01)
-##	tmp=cbind(bb, round(eoff, 3))
-##	bb[eoff[, 5] < 1e-3]
-##	loff <- log(eoff)
-##	evit <- emission(viterbiList[[3]])
-##	evit <- matrix(evit, nrow(eoff), 6)
-##	loff <- log(eoff)
-##	lvit <- log(evit)
-##	apply(loff[.index, ], 2, sum)
-##	evit[evit < 1e-5] <- 1e-5
-##	lvit <- log(evit)
-##	apply(lvit[.index, ], 2, sum)
-##
-	##apply(e[.index, 3, ], 2, sum)
-	if(!returnViterbiObject){
-		id <- object <- NULL
-		res <- foreach(object=viterbiList, id=colnames(r)) %do% {
-			computeLoglikFromViterbi2(object=object,
-						  chrom=chrom,
-						  id=id,
-						  pos=pos)
-		}
-		res <- stackRangedData(res)
-		##return(list(viterbi=viterbiObject, loglik=loglik))
-		return(list(rangedData=res, loglik=loglik))
-	} else {
-		## e = log(emission(viterbiList[[3]]))
-		## e = matrix(e, nrow(r), 6)
-		##.index=subjectHits(findOverlaps(segs1[2,], featureData(trioSetff)))
-		##apply(e[.index, 3, ], 2, sum)
-		return(viterbiList)
-	}
+	if(returnEmission) return(emitArray)
+	grl <- GRangesList(grl)
+	names(grl) <- colnames(r)
+	return(grl)
 }
+
+viterbiWrapperG <- function(r, gt, pos, is.snp, cnStates,
+			     chrom,
+			     p.hom=0.05,
+			     TAUP=1e8,
+			     is.log,
+			     center=TRUE,
+			     limits,
+			     initialProb=rep(1/length(cnStates), length(cnStates)),
+			     normalIndex=3L,
+			     nupdates=10,
+			     tolerance=5,
+			     computeLLR=TRUE,
+			     ...){
+	emitG <- gtEmission(object=gt, is.snp=is.snp, rohIndex=c(2L, 4L), prGtHom=c(2/3, 0.99, 0.7, 0.99, 1/2, 2/5), S=length(cnStates), log.it=FALSE)
+	nc <- ncol(r)
+	updateFun <- generatorFunG(r, gt, is.snp=is.snp,
+				   cnStates=cnStates, normalIndex=normalIndex,
+				   TAUP=TAUP, limits=limits, center=center,
+				   position=pos, is.log=is.log,
+				   computeLLR=computeLLR, chrom=chrom)
+	statePath <- matrix(NA, nrow(r), nc)
+	grl <- vector("list", nc)
+	## Things that change with iterator i:
+	##  --  first two moments
+	##  --  mixture probabilities
+	## pseudocode
+	for(j in seq_len(nc)){
+		paramsC <- updateFun$initialCnParams(j)
+		##gt <- g[, j]
+		cn <- r[, j]
+		sameStatePath <- 0
+		llr <- loglik <- rep(0, nupdates)
+		for(i in seq_len(nupdates)){
+			paramsCprev <- paramsC
+			emitC <- updateFun$updateCnEmission(cn, paramsC, j)
+			emit <- emitG[,j,]*emitC
+			vit.res <- updateFun$fitViterbi(emit)
+			if(i > 1) sameStatePath <- if(identical(statePath, vit.res[["statePath"]])) sameStatePath+1 else 0
+			statePath <- vit.res[["statePath"]]
+			fv <- vit.res[["fv"]]
+			bv <- vit.res[["bv"]]
+			##paramsB <- updateFun$updateBafParams(bf, paramsB, fv, bv, j)
+			paramsC <- updateFun$updateCnParams(cn, paramsC, fv, bv, j)
+			loglik[i] <- sum(log(vit.res[["sf"]]))
+			if(i == 1) next()
+			llr[i] <- loglik[i]-loglik[i-1]
+			cond <- abs(llr[i]) < tolerance || sameStatePath>1
+			if(cond | i == nupdates) {
+				statePath <- vit.res[["statePath"]]
+				gr <- updateFun$toGRanges(statePath, j)
+				if(computeLLR) elementMetadata(gr)$LLR <- updateFun$computeLogLikRatio(gr, emit)
+				grl[[j]] <- gr
+				break()
+			}
+		}
+	}
+	grl <- GRangesList(grl)
+	names(grl) <- colnames(r)
+	return(grl)
+}
+
+##		for(j in seq_len(nc)){
+##			tmp <- new("Viterbi2",
+##				   emission=as.matrix(as.numeric(e[, j, ])),
+##				   initialProb=initialProb,
+##				   transitionProb=taus,
+##				   numberStates=length(cnStates),
+##				   numberFeatures=nr,
+##				   normalIndex=normalIndex)
+##			viterbiList[[j]] <- fitViterbi2(tmp)
+##			loglik[i,j] <- -sum(log(scaleFactor(viterbiList[[j]])))
+##		}
+		## fit viterbi
+##	paramsBaf <- updateFun$bafUp(paramsBaf, fv, bv)
+##	paramsCn <- updateFun$cnUp(paramsCn, fv, bv)
+##	emitB <- updateFun$bafE()
+##	emitCn <- updateFun$cnE(paramsCn)
+#	}
+##	for(i in seq_len(nupdates)){
+##		mu.sigma <- list()
+##		for(j in seq_len(J)) mu.sigma[[j]] <- updateMu(x=r[, j], mu=mus[j, ], sigma=sigmas[j, ], normalIndex=normalIndex, rohIndex=rohIndex, limits=limits,  fv=forwardVariable(viterbiList[[j]]),  bv=backwardVariable(viterbiList[[j]]), constrainMu=constraint[["mus.cn"]], is.log=is.log)
+##		mus <- lapply(mu.sigma, "[[", 1)
+##		mus <- do.call("rbind", mus)
+##		sigmas <- lapply(mu.sigma, "[[", 2)
+##		sigmas <- do.call("rbind", sigmas)
+##		p <- lapply(mu.sigma, "[[", 3)
+##		if(!missing(b)){
+##			outlierProb <- prOutlierBAF[["initial"]]
+##			mu.sigmaBAF <- list()
+##			for(j in seq_len(J)){
+##				prOutlierBAF[["initial"]] <- outlierProb[j, ]
+##				mu.sigmaBAF[[j]] <- updateBaf(x=b[, j], cnStates=cnStates, mus=musBAF[j, ], sigmas=sdsBAF[j, ], normalIndex=normalIndex,  fv=forwardVariable(viterbiList[[j]]), bv=backwardVariable(viterbiList[[j]]), prOutlierBAF=prOutlierBAF, nUpdates=1, constraint=constraint[2:3], allele.prob=allele.prob)
+##			}
+##			musBAF <- do.call("rbind", lapply(mu.sigmaBAF, "[[", 1))
+##			sdsBAF <- do.call("rbind", lapply(mu.sigmaBAF, "[[", 2))
+##			## update for next iteration
+##			prOutlierBAF[["initial"]] <- do.call("rbind", lapply(mu.sigmaBAF, "[[", 3)) ## outlier probability
+##		}
+##		emitr <- cnEmissionFromMatrix(object=r, mus=mus, sds=sigmas, p=p, limits=limits, log.it=FALSE, ...)
+##		if(!missing(b)) emitb <- bafEmissionFromMatrix2(BAF=b, is.snp=is.snp, mus=musBAF, sds=sdsBAF, prOutlier=prOutlierBAF[["initial"]], p.hom=p.hom, log.it=FALSE, allele.prob=allele.prob,...)
+##		e <- emitb*emitr
+##		viterbiList <- list()
+##		for(j in seq_len(J)){
+##			tmp <- new("Viterbi2", emission=as.matrix(as.numeric(e[, j, ])), initialProb=initialProb, transitionProb=taus, numberStates=length(cnStates), numberFeatures=nr, normalIndex=normalIndex)
+##			viterbiList[[j]] <- fitViterbi2(tmp)
+##			loglik[i,j] <- -sum(log(scaleFactor(viterbiList[[j]])))
+##		}
+##		if(i > 1){
+##			llr <- loglik[i, ]-loglik[i-1, ]
+##			check.break <- all(abs(llr) < tolerance)
+##		} else check.break <- FALSE
+##		if(check.break) break()
+##	}
+##	loglik <- loglik[seq_len(i), ]
+##	if(!returnViterbiObject){
+##		id <- object <- NULL
+##		res <- foreach(object=viterbiList, id=colnames(r)) %do% {
+##			computeLoglikFromViterbi2(object=object,
+##						  chrom=chrom,
+##						  id=id,
+##						  pos=pos)
+##		}
+##		res <- GRangesList(res)
+##		##res <- stackRangedData(res)
+##		##res <- GRangesList(res)
+##		names(res) <- colnames(r)
+##		return(res)
+##		##return(list(rangedData=res, loglik=loglik))
+##	} else {
+##		return(viterbiList)
+##	}
+##}

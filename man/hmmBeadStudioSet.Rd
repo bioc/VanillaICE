@@ -1,6 +1,8 @@
 \name{hmmBeadStudioSet}
 \alias{hmmBeadStudioSet}
 \alias{hmmOligoSnpSet}
+\alias{hmmBeadStudioSetList}
+\alias{hmmOligoSetList}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
    HMM functions for oligoSnpSet and BeadStudioSet containers
@@ -23,9 +25,17 @@
 
 }
 \usage{
-hmmBeadStudioSet(object, cnStates = logCnStates(), normalIndex =
-3L,rohIndex = normalIndex + 1L, prOutlierCN = 0.01, prOutlierBAF =list(initial=0.001, max=0.01), p.hom = 0.05, TAUP = 1e+08, is.log, initialProb =rep(1/length(cnStates), length(cnStates)), center = TRUE, reestimation =TRUE, nupdates = 10, tolerance = 5, ...)
-hmmOligoSnpSet(object, cnStates = c(0, 1, 2, 2, 3, 4), normalIndex = 3L, rohIndex = normalIndex + 1L, prOutlierCN = 0.01, prOutlierBAF = list(initial=0.001,max=.01), p.hom = 0.05, TAUP = 1e+08, is.log, initialProb = rep(1/length(cnStates), length(cnStates)), center = TRUE, reestimation = TRUE, nupdates = 10, tolerance = 5, ...)
+hmmBeadStudioSet(object, cnStates, normalIndex
+=3L, prOutlierCN = 0.01, p.hom = 0.05, TAUP
+= 1e+08, is.log, initialProb =rep(1/length(cnStates), length(cnStates)),
+center = TRUE, nupdates = 10, tolerance = 5,
+sampleIds, computeLLR, ...)
+hmmOligoSnpSet(object, cnStates = c(0, 1, 2, 2, 3, 4), normalIndex = 3L,
+prOutlierCN = 0.01, TAUP = 1e+08, is.log, initialProb = rep(1/length(cnStates), length(cnStates)),
+center = TRUE, nupdates = 10, tolerance = 5,
+sampleIds, computeLLR=TRUE, ...)
+hmmBeadStudioSetList(object, sampleIds, ...)
+hmmOligoSetList(object, sampleIds, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -51,33 +61,14 @@ hmmOligoSnpSet(object, cnStates = c(0, 1, 2, 2, 3, 4), normalIndex = 3L, rohInde
 
   }
 
-  \item{rohIndex}{
-
-    The state index (integer) for diploid copy number without
-    heterozygotes. This should be '4'.  It is important to include this
-    state even if homozygous regions with diploid copy number are not of
-    interest.
-
-}
 
 \item{prOutlierCN}{
-
     The probability that a copy number estimate is an outlier.  This is
     an initial estimate that is updated for each copy number state via
     EM.
-
 }
 
-  \item{prOutlierBAF}{
-
-    A list with elements 'initial' and 'max' corresponding to the
-    initial estimate of the probability that a B allele frequency (BAF)
-    is an outlier and the maximum value for this parameter.
-
-  }
-
   \item{p.hom}{
-
     \code{numeric}: weight for observing homozygous genotypes.  For
     value \code{0}, homozygous genotypes / B allele frequencies have the
     same emission probability in the 'normal' state as in the states
@@ -130,8 +121,6 @@ hmmOligoSnpSet(object, cnStates = c(0, 1, 2, 2, 3, 4), normalIndex = 3L, rohInde
 
   }
 
-  \item{reestimation}{ Logical, but currently ignored.  }
-
   \item{nupdates}{
 
     The maximum number of reestimation steps for updating the mean,
@@ -148,8 +137,22 @@ hmmOligoSnpSet(object, cnStates = c(0, 1, 2, 2, 3, 4), normalIndex = 3L, rohInde
 
   }
 
+  \item{sampleIds}{ Character vector indicating which samples to
+    process.  If missing, all samples in \code{object} are processed.}
+
+  \item{computeLLR}{
+
+    Logical.  Whether to compute a log likelihood ratio (LLR) comparing
+    the predicted state to the normal state. This is calculated post-hoc
+    and is not precisely the likelihood estimated from the Viterbi
+    algorithm. When \code{FALSE}, the LLR is not calculated and the
+    algorithm is slightly faster.
+
+  }
+
+
   \item{\dots}{
-    Presently ignored
+    Additional arguments can be passed to \code{viterbi2Wrapper}.
   }
 }
 \value{
@@ -160,8 +163,15 @@ hmmOligoSnpSet(object, cnStates = c(0, 1, 2, 2, 3, 4), normalIndex = 3L, rohInde
 R. Scharpf
 }
 
+\note{ \code{prOutlierBAF} can be passed to the \code{viterbi2Wrapper}
+  function through the \code{...} operator. It may be desirable to
+  specify different values for this parameter depending on whether the
+  platform is Affymetrix or Illumina.  See \code{viterbi2Wrapper} for
+  additional details.  }
+
 \seealso{
-  \code{\link{hmmSnpSet}}
+  \code{\link{hmmSnpSet}}, \code{\link{viterbi2Wrapper}},
+  \code{\link{hmm}}, \code{\link{hmm-methods}}
 }
 \keyword{smooth}
 

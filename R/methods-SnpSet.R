@@ -14,7 +14,7 @@ hmmSnpSet <- function(object,
 	marker.index <- validChromosomeIndex(object)
 	object <- object[marker.index, ]
 	object <- chromosomePositionOrder(object)
-	arm <- .getArm(chromosome(object), position(object))
+	arm <- .getArm(chromosome(object), position(object), genomeBuild(object))
 	index <- split(seq_len(nrow(object)), arm)
 	chr <- sapply(index, function(i, chr) unique(chr[i]), chr=chromosome(object))
 	if(ICE) checkAnnotationForICE(object)
@@ -35,7 +35,7 @@ hmmSnpSet <- function(object,
 				 prHomInRoh=prHomInRoh,
 				 TAUP=TAUP,...)
 	}
-	rd <- stackRangedData(rd)
+	rd <- stackGRangesList(rd, genomeBuild(object))
 	return(rd)
 }
 
@@ -91,12 +91,13 @@ viterbiForSnpSet <- function(gt, S=2L,
 							    pos=pos,
 							    log.it=FALSE)
 			  }
-	rd <- stackRangedData(rdlist)
-	return(rd)
+	res <- GRangesList(rdlist)
+	names(res) <- colnames(gt)
+	return(res)
 }
 
 
-setMethod("gtEmission", signature(object="SnpSet"),
+setMethod("gtEmission", signature(object="SnpSet2"),
 	  function(object, hmm.params, ...){
 		  is.ordered <- checkOrder(object)
 		  stopifnot(is.ordered)
@@ -107,7 +108,7 @@ setMethod("gtEmission", signature(object="SnpSet"),
 		  return(log.emit)
 	  })
 
-setMethod("bafEmission", signature(object="SnpSet"),
+setMethod("bafEmission", signature(object="SnpSet2"),
 	  function(object, is.snp, cdfName,
 		   prOutlier=1e-3, p.hom=0.95, ...){
 		  is.ordered <- checkOrder(object)
@@ -120,5 +121,5 @@ setMethod("bafEmission", signature(object="SnpSet"),
 		  return(log.emit)
 	  })
 
-setMethod("baf", signature(object="SnpSet"), function(object) assayDataElement(object, "baf"))
+setMethod("baf", signature(object="SnpSet2"), function(object) assayDataElement(object, "baf"))
 

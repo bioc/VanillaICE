@@ -1,87 +1,75 @@
-setMethod("hmm2", signature(object="oligoSnpSet", hmm.params="HmmOptionList"),
-	  function(object, hmm.params, use.baf=FALSE, k=5, ...){
-		  verbose <- hmm.params[["verbose"]] > 0
-		  log.beta.cn <- cnEmission(object,
-					    cnStates=hmm.params[["copynumberStates"]],
-					    k=k,
-					    is.log=hmm.params[["is.log"]],
-					    is.snp=isSnp(object),
-					    normalIndex=hmm.params[["normalIndex"]],...)
-		  if(use.baf){
-			  if(!"baf" %in% ls(assayData(object))){
-				  stop("use.baf is true, but baf not in assayData.  See calculateRBaf.")
-			  }
-			  log.beta.gt <- bafEmission(object, ...)
-		  } else {
-			  log.beta.gt <- gtEmission(object, hmm.params, ...)
-		  }
-		  ##log.emission <- emit(object, hmm.params)
-		  log.beta <- log.beta.cn+log.beta.gt
-		  ##dimnames(log.beta) <- NULL
-		  dimnames(log.beta) <- list(NULL,
-					     sampleNames(object),
-					     hmm.params$states)
-		  res <- viterbi(object, hmm.params, log.E=log.beta)
-		  return(res)
-})
-
-
 hmmOligoSnpSet <- function(object,
-			   cnStates=c(0, 1, 2, 2, 3, 4),
+			   cnStates= c(0, 1, 2, 2, 3, 4),
 			   normalIndex=3L,
-			   rohIndex=normalIndex+1L,
 			   prOutlierCN=0.01,
-			   prOutlierBAF=list(initial=1e-3,max=0.01),
-			   p.hom=0.05,
 			   TAUP=1e8,
 			   is.log,
 			   initialProb=rep(1/length(cnStates), length(cnStates)),
 			   center=TRUE,
-			   reestimation=TRUE,
 			   nupdates=10,
-			   tolerance=5, ...){
+			   tolerance=5,
+			   sampleIds,
+			   computeLLR=TRUE, ...){
 	##if(missing(is.log)) stop("must specify is.log (TRUE if copy number is on the log-scale)")
-	if(cnStates[normalIndex] != cnStates[rohIndex]){
-		stop("the copy number for the normal state and the copy number for regions of homozogyosity should be the same")
+	if(!missing(cnStates)){
+		if(length(cnStates) != 6) stop("The length of  cnStates should be 6, indicating the initial values for the mean copy number for the states homozygous deletion, hemizygous deletion, normal copy number, normal copy number and no heterozygosity, single-copy amplification, and two-copy amplification.")
+		if(cnStates[normalIndex] != cnStates[4]) stop("the copy number for the normal state and the copy number for regions of homozogyosity should be the same")
 	}
 	marker.index <- validChromosomeIndex(object)
-	object <- object[marker.index, ]
-	if(missing(is.log)) is.log <- guessCnScale(copyNumber(object)[sample(which(chromosome(object) < 23), min(10e3, nrow(object))), sample(seq_len(ncol(object)), min(2, ncol(object))), drop=FALSE]/100)
-	if(is.log) cnStates <- logCnStates()
+	##object <- object[marker.index, ]
+	ns <- min(25e3, nrow(object))
+	if(any(chromosome(object) < 23)){
+		autosomeIndex <- intersect(marker.index, sample(which(chromosome(object) < 23), min(10e3,ns)))
+		cnsamp <- copyNumber(object)[autosomeIndex, sample(seq_len(ncol(object)), min(2, ncol(object))), drop=FALSE]/100
+	} else {
+		if(!any(chromosome(object)==23))
+			return(NULL)
+		cnsamp <- copyNumber(object)[sample(seq_len(nrow(object)), min(10e3, nrow(object))), sample(seq_len(ncol(object)), min(2, ncol(object))), drop=FALSE]/100
+	}
+	med.cn <- median(cnsamp, na.rm=TRUE)
+	if(missing(is.log)) is.log <- guessCnScale(cnsamp)
+	if(missing(cnStates)){
+		cnStates <- if(is.log) logCnStates(med.cn) else copyNumberStates(med.cn)
+	}
 	limits <- copyNumberLimits(is.log)
+	if(!all.equal(cnStates[normalIndex], med.cn, tolerance=0.2)==TRUE){
+		warning("The median copy number is not near cnStates[3]. The initial values for the mean copy number states are not well specified.")
+	}
 	## following is expensive for large data
-	copyNumber(object) <- thresholdCopyNumber(copyNumber(object)/100, limits)
+	if(!missing(sampleIds)) {
+		J <- match(sampleIds, sampleNames(object))
+	} else J <- seq_len(ncol(object))
 	object <- chromosomePositionOrder(object)
-	arm <- .getArm(chromosome(object), position(object))
+	arm <- .getArm(chromosome(object), position(object), genomeBuild(object))
+	arm <- factor(arm, unique(arm))
 	index <- split(seq_len(nrow(object)), arm)
+	if(chromosome(object)[1]==23) center <- FALSE  ## do not center for chrom x
 	i <- NULL
 	v2fit <- foreach(i=index, .packages="VanillaICE", .inorder=TRUE) %do% {
-		viterbi2Wrapper(r=copyNumber(object)[i, , drop=FALSE],
-				gt=calls(object)[i, , drop=FALSE],
+		viterbiWrapperG(r=copyNumber(object)[i, J, drop=FALSE]/100,
+				gt=calls(object)[i, J, drop=FALSE],
 				pos=position(object)[i],
 				is.snp=isSnp(object)[i],
 				chrom=unique(chromosome(object)[i]),
 				cnStates=cnStates,
-				prOutlierBAF=prOutlierBAF,
-				p.hom=p.hom,
 				TAUP=TAUP,
 				is.log=is.log,
 				center=center,
-				reestimation=reestimation,
 				limits=limits,
 				normalIndex=normalIndex,
-				rohIndex=rohIndex,
 				initialProb=initialProb,
 				nupdates=nupdates,
-				tolerance=tolerance)
+				tolerance=tolerance,
+				computeLLR=computeLLR,...)
 	}
-	rd <- stackRangedData(lapply(v2fit, "[[", 1))
-	if(FALSE){
-		loglik <- lapply(v2fit, "[[", 2)
-		names(loglik) <- paste("chr", names(index))
-	}
+	names(v2fit) <- names(index)
+	rd <- stackGRangesList(v2fit, genomeBuild(object))
 	return(rd)
 }
+
+
+
+
 
 
 setMethod("sd", signature(x="oligoSnpSet"),
@@ -111,5 +99,4 @@ setMethod("sd", signature(x="oligoSnpSet"),
 		  getSds(x, na.rm=TRUE)
 	   })
 
-
-
+##setMethod("baf", signature(object="oligoSnpSet"), function(object) assayDataElement(object, "baf"))

@@ -1,6 +1,6 @@
 ##setGeneric("hmm", function(object, hmm.params, use.baf=FALSE, ...) standardGeneric("hmm"))
 setGeneric("hmm", function(object, ...) standardGeneric("hmm"))
-setGeneric("hmm2", function(object, hmm.params, use.baf=FALSE, ...) standardGeneric("hmm2"))
+##setGeneric("hmm2", function(object, hmm.params, use.baf=FALSE, ...) standardGeneric("hmm2"))
 setGeneric("cnEmission", function(object, stdev, ...) standardGeneric("cnEmission"))
 setGeneric("gtEmission", function(object, hmm.params, gt.conf, is.snp, cdfName, ...) standardGeneric("gtEmission"))
 setGeneric("bafEmission", function(object, ...) standardGeneric("bafEmission"))

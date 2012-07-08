@@ -9,15 +9,21 @@ importFrom(utils, setTxtProgressBar, txtProgressBar, packageDescription)
 
 ##Biobase (do we need this)
 import(Biobase)
-##importMethodsFrom(Biobase, sampleNames)
+##importMethodsFrom(Biobase, sampleNames, featureNames, dims, show)
 ##importFrom(Biobase, rowMedians,"assayDataElement<-", "assayData<-")
 
 ##stats
 importFrom(stats, update, sd)
 
+## matrixStats
+##importMethodsFrom(matrixStats, anyMissing)
+##import(matrixStats)
+
 ## IRanges
 import(IRanges)
 importMethodsFrom(IRanges, as.matrix)
+import(GenomicRanges)
+
 
 ## oligoClasses (do we need this)
 import(oligoClasses)
@@ -30,7 +36,7 @@ import(oligoClasses)
 importFrom(msm, rtnorm)
 
 ## crlmm
-##importMethodsFrom(crlmm, coerce)
+importMethodsFrom(crlmm, calculateRBaf)
 
 ##foreach
 import(foreach)
@@ -49,10 +55,10 @@ exportMethods(hmm, sd)
 ## export deprecated classes and functions
 exportClasses(HmmOptionList)
 export(hmm.setup, HmmOptionList, hmmBeadStudioSet, hmmOligoSnpSet,
-       hmmSnpSet)
+       hmmSnpSet, hmmBeadStudioSetList, hmmOligoSetList)
 
 export(copyNumberLimits, rowMAD, viterbi2Wrapper, rescale)
-exportMethods(emission)
+exportMethods(emission, dims)
 
-exportClasses(BeadStudioSetList)
-export(BeadStudioSetList)
+##exportClasses(BeadStudioSetList)
+export(BeadStudioSetList, constructOligoSetListFrom, constructBafLrrSetListFrom)

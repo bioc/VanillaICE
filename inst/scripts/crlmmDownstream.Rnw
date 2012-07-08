@@ -50,7 +50,7 @@ library(RColorBrewer)
 ##setCacheDir("/nexsan2/disk3/rscharpf/VanillaICE")
 @
 
-\section{For datasets with more than 10 samples}
+%\section{For datasets with more than 10 samples}
 
 For datasets with more than 10 samples processed in a batch, copy
 number estimation using the linear model described in Scharpf et al,
@@ -60,8 +60,7 @@ the \Rpackage{crlmm} package, one obtains an object of class
 estimates integrating information from the B allele frequencies.  We
 begin with a \Robject{CNSet} object containing the information on
 chromosome 8 for two samples.  These samples were processed as part of
-a larger batch, which is why estimates from the linear model are
-available.
+a larger batch, making estimates from the linear model available.
 
 <<cnSetExample>>=
 data(cnSetExample, package="crlmm")
@@ -69,93 +68,119 @@ data(cnSetExample, package="crlmm")
 
 We begin by ordering the \Robject{CNSet} object by chromosome and
 physical position, then coercing the ordered \code{CNSet} object to an
-object of class \code{oligoSnpSet}.  If the \code{CNSet} object were
-very large, we might want to subset the \code{CNSet} by batch prior to
-subsetting. See the Section \ref{large:cnset} for details.  Here, the
-object is small by design and there is no need for additional
-subsetting.  After coercion, the copy number estimates are saved on
-the log base 2 scale.
+object of class \Robject{BafLrrSetList}.
 
 <<coerceToOligoSnpSet>>=
 cnSetExample <- chromosomePositionOrder(cnSetExample)
-oligoSet <- as(cnSetExample, "oligoSnpSet")
-range(copyNumber(oligoSet), na.rm=TRUE)
-@
-
-As BAFs may help improve the detection of hemizygous deletions and
-copy number duplications, we add estimates of the B allele frequencies
-to the \Robject{oligoSet} object as follows.
-
-<<BAFs>>=
-assayDataElement(oligoSet, "baf") <- calculateRBaf(cnSetExample)[["baf"]]
-@
-
-As in the \texttt{VanillaICE} vignette, we generate default parameters
-for the \Rfunction{hmm} using the \Robject{HmmOptionList} constructor.
-
-<<HmmOptionList>>=
-hmmOpts <- HmmOptionList(oligoSet, is.log=TRUE)
+brList <- constructBafLrrSetListFrom(cnSetExample)
 @
 
 We now smooth the copy number estimates, integrating emission
-probabilities obtained from copy number and the emission probabilities
-obtained from the BAFs. See the documentation for
-\Rfunction{cnEmission} and \Rfunction{bafEmission} for details
-regarding the estimation of emission probabilities.
+probabilities obtained from log R ratios and BAFs.  As a first step,
+we fit the HMM to a single sample / chromosome and visually inspect
+the inferred states to verify that the default settings are suitable.
 
-<<fitWithBAF>>=
-fit <- hmm(oligoSet, hmmOpts, use.baf=TRUE)
+<<fit1>>=
+fit1 <- hmm(brList[[1]][, 1])
 @
 
-The \Robject{fit} object is an object of class \Rclass{RangedDataHMM}.
-Several useful accessors are defined for this class, including
-\Rfunction{sampleNames}, \Rfunction{state}, and
-\Rfunction{chromosome}.  In addition, \code{findOverlaps} methods
-defined for the class can be useful for identifying which markers in
-the original \code{oligoSet} object lie within a particular range.
-Methods for visualizing the low level summaries along with the
+The \Robject{fit} object is an object of class
+\Rclass{GRangesList}. Each element in the list is a \Robject{GRanges}
+object for one sample that provides the start and stop positions of
+the inferred copy number state. The \Rpackage{IRanges} function
+\Rfunction{findOverlaps} can be useful for identifying which markers
+in the original \code{BafLrrSetList} object lie within a particular
+range.  Methods for visualizing the low level summaries along with the
 inferred breakpoints for the copy number states make use of the
-\Rfunction{findOverlaps}.  For example, in the following code chunk we
-plot the copy number estimates color coded by genotype for each of the
-range.  Using the argument \code{frame}, we can include more or fewer
-markers to the left and right of the breakpoints. See the function
-\Rfunction{xypanel} for details on how to modify the appearance of the
-plotting symbols.
-
+\Rfunction{findOverlaps}. In the following code chunk we use the
+function \Rfunction{xyplotLrrBaf} to plot the log R ratios and B
+allele frequencies for the genomic intervals in the \Robject{GRanges}
+object.  We plot a 2 megabase window framing the genomic intervals by
+passing the argument \texttt{frame=2e6}. See the function
+\Rfunction{xypanelBaf} for details on how to modify the appearance of
+the plotting symbols.
 
 <<visualizationCopyNumber,fig=TRUE>>=
-cnfig <- xyplot(cn ~ x | range, data=oligoSet, range=fit[1:10, ], frame=2e6,
-		panel=xypanel, cex=0.3, pch=21, border="blue",
-		scales=list(x="free", cex=0.6),
-		col.hom="lightblue", col.het="salmon", col.np="grey60", fill.np="grey60")
+library(SNPchip)
+brSet <- brList[chromosome(brList) == 8][[1]]
+rd.sample1 <- fit[[1]]
+rd <- rd.sample1[chromosome(rd.sample1)=="chr8", ]
+cnfig <- xyplotLrrBaf(rd, brSet[,1], frame=2e6,
+		      panel=xypanelBaf, cex=0.3, pch=21, border="blue",
+		      scales=list(x="free", cex=0.6))
 print(cnfig)
 @
 
-<<visualizationBAFs,fig=TRUE>>=
-baffig <- xyplot(baf ~ x | range, data=oligoSet, range=fit[1:10, ], frame=2e6,
-		 panel=xypanel, cex=0.3, pch=21, border="blue",
-		 scales=list(x="free", cex=0.6),
-		 col.hom="lightblue", col.het="salmon", col.np="grey60", fill.np="grey60")
-print(baffig)
+As the HMM states for this sample appear reasonable, one can fit the
+HMM to all samples and all chromosome by
+
+
+<<fit2>>=
+fit2 <- hmm(brList)
+@
+
+Since there are only 2 samples in the \Robject{brList} object, the
+length of fit2 is only two.
+
+<<fit2length>>=
+length(fit2)
+@
+
+The \Robject{GRangesList} object can be stacked to create a
+\Robject{GRanges} object as follows:
+
+<<granges>>=
+library(GenomicRanges)
+gr <- stack(fit2)
+gr
 @
 
 
-\subsection{Large \code{CNSet} objects}
-\label{large:cnset}
+\section{Troubleshooting}
 
-Recall that any subset operation pulls the data from disk to RAM.
+Missing values are permissable for the LRRs and BAFs:
 
-<<subsetLargeCNSet,eval=FALSE>>=
-sample.index.list <- split(seq_len(ncol(bigCnSet)), batch(bigCnSet))
-for(i in seq_along(sample.index.list)){
-	sample.index <- sample.index.list[[i]]
-	cnSet <- bigCnSet[, sample.index]
-	cnSet <- order(cnSet)
-	oligoSet <- as(cnSet, "oligoSnpSet")
-	## and so on
-}
+<<SNR>>=
+set.seed(1)
+brSet <- brList[[1]]
+lrr(brSet)[sample(1:nrow(brSet), 50), 1] <- NA
+baf(brSet)[sample(1:nrow(brSet), 50), 1] <- NA
+fit2 <- hmm(brSet)
+all.equal(state(fit2[[1]]), state(fit[[1]]))
 @
 
+While permissable, a large number of NA's may indicate problems with
+the preprocessing or the \Rfunction{crlmmCopynumber} step described in
+the \texttt{copynumber} vignette in the \Rpackage{crlmm}
+package. First, verify that the signal to noise ratio (SNR) is in an
+acceptable range. For Affymetrix, the SNR should be above 5 and for
+Illumina the SNR should be above 25.
+
+<<affySNR>>=
+isTRUE(all(cnSetExample$SNR[] > 5))
+@
+
+Next, check that the percentage of missing values is reasonably low:
+
+<<percentageNA>>=
+r <- lrr(brList[[1]])[,]
+isTRUE(all(apply(is.na(r), 2, sum) < 0.01))
+snp.index <- which(isSnp(brList[[1]]))
+b <- baf(brList[[1]])[snp.index,]
+isTRUE(all(apply(is.na(b), 2, sum) < 0.01))
+@
+
+If, for example, all the log R ratios / BAFs are missing, this
+indicates that the \Rfunction{crlmmCopynumber} step was either not
+performed or unsucessful. Specifically, the following unevaluated step
+is needed:
+
+<<crlmmCopynumber,eval=FALSE>>=
+crlmmCopyNumber(cnSetExample)
+@
+
+\noindent where \Robject{cnSetExample} is an object of class
+\Rclass{CNSet}.
 
 
 \section{Session Information}

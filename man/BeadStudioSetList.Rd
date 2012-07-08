@@ -7,7 +7,7 @@
   and construct a BeadStudioList object.
 }
 \usage{
-BeadStudioSetList(fnames, annotationPkg, genomeBuild = "hg19", outdir = ldPath(), sampleIds, phenoData, ...)
+BeadStudioSetList(fnames, annotationPkg, genome = c("hg19", "hg18"), outdir = ldPath(), sampleIds, phenoData, byArm=FALSE, centromere, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -17,8 +17,9 @@ BeadStudioSetList(fnames, annotationPkg, genomeBuild = "hg19", outdir = ldPath()
   \item{annotationPkg}{
     \code{character} string indicating the name of the annotation package.
 }
-  \item{genomeBuild}{
-    \code{character} string indicating which genome build
+  \item{genome}{
+    \code{character} string indicating which genome build.  Supported
+    entries are UCSC builds "hg19" and "hg18".
 }
   \item{outdir}{
     \code{character} string indicating where to store ff files for
@@ -33,6 +34,15 @@ BeadStudioSetList(fnames, annotationPkg, genomeBuild = "hg19", outdir = ldPath()
   \item{phenoData}{
     An \code{AnnotatedDataFrame} containing covariates for the samples.
   }
+
+  \item{byArm}{
+       Logical.  Whether each element in the list should be a chromosome
+       arm.  If TRUE, centromere must be provided. (experimental)
+     }
+
+     \item{centromere}{
+       \code{data.frame} containing start and stop coordinates of centromeres.
+     }
 
   \item{\dots}{
     Additional arguments passed to the initialization method for \code{BeadStudioSetList}.

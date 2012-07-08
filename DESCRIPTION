@@ -1,21 +1,22 @@
 Package: VanillaICE
-Version: 1.19.3
+Version: 1.19.23
 Title: A Hidden Markov Model for high throughput genotyping arrays
 Author: Robert Scharpf <rscharpf@jhsph.edu>, Kevin Scharpf, and  Ingo Ruczinski <ingo@jhsph.edu>
 Maintainer: Robert Scharpf <rscharpf@jhsph.edu>
 Depends: R (>= 2.14.0)
-Imports: stats, utils, methods, Biobase, oligoClasses (>= 1.17.36), lattice, IRanges (>= 1.13.22), grid, msm, crlmm (>= 1.13.12), foreach
-Suggests: genomewidesnp6Crlmm, hapmapsnp6, RColorBrewer, genefilter, RSQLite, foreach, RUnit, pd.mapping50k.hind240, SNPchip (>= 2.0.3)
+Imports: stats, utils, methods, Biobase, oligoClasses (>= 1.19.33),lattice, IRanges (>= 1.13.22), grid, msm, crlmm, foreach, GenomicRanges, matrixStats
+Suggests: genomewidesnp6Crlmm, hapmapsnp6, RColorBrewer, genefilter, RSQLite, foreach, RUnit, pd.mapping50k.hind240, SNPchip (>= 2.2.0)
 Enhances: DNAcopy, crlmm
 Description:  Hidden Markov Models for characterizing chromosomal alterations in high throughput SNP arrays
 License: LGPL-2
 LazyLoad: yes
 Collate:  AllGenerics.R
           AllClasses.R
+          methods-AssayData.R
 	  methods-CopyNumberSet.R
 	  methods-oligoSnpSet.R
+	  methods-gSetList.R
 	  methods-BeadStudioSet.R
-	  methods-RangedDataHMM.R
 	  methods-HmmOptionList.R
 	  methods-CNSet.R
 	  methods-matrix.R
@@ -23,8 +24,8 @@ Collate:  AllGenerics.R
 	  methods-Vit.R
 	  methods-Viterbi.R
 	  methods-Viterbi2.R
-	  methods-GenomeAnnotatedDataFrame.R
 	  methods-BeadStudioSetList.R
+	  methods-oligoSetList.R
 	  hmm-methods.R
 	  updateBaf.R
 	  functions.R

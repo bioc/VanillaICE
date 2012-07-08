@@ -9,39 +9,55 @@
   updating the mean and variances in a copy number HMM.
 }
 \usage{
-viterbi2Wrapper(r, b, gt, pos, is.snp, cnStates, chrom, prOutlierBAF =
-list(initial=0.001, max=0.01), p.hom = 0.05, TAUP = 1e+08, is.log, center = TRUE, reestimation = TRUE, limits, initialProb = rep(1/length(cnStates), length(cnStates)), normalIndex = 3L, rohIndex = normalIndex + 1L, nupdates = 10, tolerance = 5, returnViterbiObject = FALSE, ...)
+viterbi2Wrapper(r, b, pos, is.snp, cnStates, chrom, prOutlierBAF =
+list(initial=1e-5, max=1e-3, maxROH=1e-5), p.hom = 0.05, TAUP = 1e+08,
+is.log, center = TRUE, limits, initialProb = rep(1/length(cnStates),
+length(cnStates)), normalIndex = 3L, nupdates = 10, tolerance = 5,
+computeLLR, returnEmission=FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{r}{
     \code{matrix} of copy number estimates.
-}
+  }
+
   \item{b}{
     \code{matrix} of B allele frequencies
-}
-  \item{gt}{
-    \code{matrix} of genotype calls (1=AA, 2=AB, 3=BB).  Ignored unless
-    \code{b} is missing.
-}
+  }
+
+
   \item{pos}{
     \code{integer} vector of genomic position along a chromosome.
-}
+  }
+
   \item{is.snp}{
     \code{indicator} for whether the marker is polymorphic. Must be the
     same length as the number of rows in \code{r} and \code{b}, and the
     same length as the vector \code{pos}.
-}
+  }
+
   \item{cnStates}{
     \code{numeric} vector for the initial copy number state means.
-}
+  }
+
   \item{chrom}{
     \code{integer}: the chromosome.
-}
+  }
+
   \item{prOutlierBAF}{
-    \code{list}: the initial probability for observing an outlier in the
-    B allele frequencies (BAFs) and the maximum probability for a BAF outlier.
-}
+    A list with elements 'initial', 'max', and 'maxROH' corresponding to
+    the initial estimate of the probability that a B allele frequency
+    (BAF) is an outlier, the maximum value for this parameter over
+    states that do not involve homozygous genotypes, and the maximum
+    value over states that assume homozygous genotypes.  This parameter
+    is experimental and could be used to fine tune the HMM for different
+    platforms. For example, the BAFs for the Affy platform are typically
+    more noisey than the BAFs for Illumina.  One may want to set small
+    values of these parameters for Illumina (e.g, 1e-5, 1e-3, and 1e-5)
+    and larger values for Affy (e.g., 1e-3, 0.01, 1e-3).
+
+  }
+
 \item{p.hom}{
 
     \code{numeric}: weight for observing homozygous genotypes.  For
@@ -72,15 +88,6 @@ list(initial=0.001, max=0.01), p.hom = 0.05, TAUP = 1e+08, is.log, center = TRUE
 
 }
 
-  \item{reestimation}{
-
-    \code{logical}: if TRUE, the initial values provided for the mean of
-    the copy number states will be reestimated as described previously
-    (Rabiner, 1989) as a function of the forward and backward
-    probabilities from the Viterbi algorithm and the mixture
-    probabilities from the Normal-uniform mixture model for each state.
-
-  }
 
   \item{limits}{
 
@@ -104,12 +111,9 @@ list(initial=0.001, max=0.01), p.hom = 0.05, TAUP = 1e+08, is.log, center = TRUE
     that states must be ordered by the mean of the copy number
     state. E.g., state 1 is homozygous deletion (0 copies), state 2 is hemizygous
     deletion (1 copy), normal (2 copies), ...  In a 6-state HMM,
-    normalIndex should be 3. }
-
-  \item{rohIndex}{
-    \code{integer} specifying the index for copy-neutral region of
-    homozygosity.  In a 6-state HMM, the \code{rohIndex} should be 4.
+    normalIndex should be 3.
   }
+
 
   \item{nupdates}{
 
@@ -118,18 +122,42 @@ list(initial=0.001, max=0.01), p.hom = 0.05, TAUP = 1e+08, is.log, center = TRUE
     states.  The number of iterations may be fewer than \code{nupdates}
     if the difference in the log-likelihood between successive
     iterations is less than \code{tolerance}.
-
   }
+
 
   \item{tolerance}{ \code{numeric} value for indicating convergence of
     the log-likelihood. If the difference in the log-likelihood of the
     observed data given the HMM model at iteration i and i-1 is less
     than tolerance, no additional updates of model parameters using the
-    EM algorithm is needed.  }
+    EM algorithm is needed.
+  }
 
-  \item{returnViterbiObject}{
-    \code{logical}: whether to return an object of class
-    \code{Viterbi}.  For internal use only.
+
+%  \item{constraint}{ Named list with 3 elements: 'mus.cn', 'mus.baf',
+%    'sds.baf', corresponding to constraints of the copy number means,
+%    mean B allele frequency, and B allele frequency standard deviations.
+%    See VanillaICE:::constrainMu, VanillaICE:::constrainMuBaf, and
+%    VanillaICE:::constrainSdBaf for the default constraints.
+%    Experimental.
+%
+%  }
+
+  \item{computeLLR}{
+
+    Logical.  Whether to compute a log likelihood ratio (LLR) comparing
+    the predicted state to the normal state. This is calculated post-hoc
+    and is not precisely the likelihood estimated from the Viterbi
+    algorithm. When \code{FALSE}, the LLR is not calculated and the
+    algorithm is slightly faster.
+
+  }
+
+  \item{returnEmission}{
+
+    Logical. If TRUE, an array of emission probabilities are returned.
+    The dimensions of the array are SNPs, samples, and copy number
+    states.
+
   }
 
   \item{\dots}{
@@ -144,7 +172,10 @@ list(initial=0.001, max=0.01), p.hom = 0.05, TAUP = 1e+08, is.log, center = TRUE
 }
 
 \value{
-  A \code{RangedDataHMM} object if \code{returnViterbiObject} is FALSE.
+
+  A \code{GRanges} object if \code{returnEmission} is FALSE.  Otherwise,
+  an array is returned.
+
 }
 
 \author{

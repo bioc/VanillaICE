@@ -24,19 +24,26 @@ setClass("Viterbi2", contains="Vit",
 			scaleFactor="numeric"))
 
 
-setClass("BeadStudioSetList",
-	 representation(assayDataList="AssayData",
-			phenoData="AnnotatedDataFrame",
-			featureDataList="list",
-			chromosome="integer",
-			annotation="character",
-			genomeBuild="character"))
 
+##	 representation(assayDataList="AssayData",
+##			phenoData="AnnotatedDataFrame",
+##			featureDataList="list",
+##			chromosome="integer",
+##			annotation="character",
+##			genomeBuild="character"))
+##setClass("BeadStudioSetList",
+##	 representation(assayDataList="AssayData",
+##			phenoData="AnnotatedDataFrame",
+##			featureDataList="list",
+##			chromosome="integer",
+##			annotation="character",
+##			genomeBuild="character"))
+##
 
 setValidity("BeadStudioSetList", function(object){
 	nms <- ls(assayData(object))
-	if(!all(c("BAF", "logRRatio") %in% nms)){
-		msg <- "BAF and logRRatio are required elements of the assayData"
+	if(!all(c("baf", "lrr") %in% nms)){
+		msg <- "baf and lrr are required elements of the assayData"
 		return(msg)
 	}
 	if(length(object) > 0){

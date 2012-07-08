@@ -3,7 +3,8 @@
 #include <assert.h>
 #include <math.h>
 #include <string.h>
-#include "Rinternals.h"
+#include <Rinternals.h>
+#include <R.h>
 
 static void updateTransitionMatrix(double *pAA, const int t, const int nCols, const int NS, double *tau, double *c1, double *c2, double *c3)
 {
