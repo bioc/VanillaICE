@@ -12,11 +12,6 @@ setMethod("hmm", signature(object="BeadStudioSet"),
 		  hmmBeadStudioSet(object, ...)
 	  })
 
-setMethod("hmm", signature(object="CNSet"),
-	  function(object, ...){
-		  hmmCNSet(object, ...)
-	  })
-
 setMethod("hmm", signature(object="SnpSet2"),
 	  function(object, ...){
 		  hmmSnpSet(object, ...)

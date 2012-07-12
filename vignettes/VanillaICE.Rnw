@@ -402,55 +402,65 @@ for(i in seq_len(length(fit.chr1))){
 legend("bottomleft", fill=cols, legend=rev(c("region of homozygosity", "Normal")), bty="n")
 @
 
-%\section{Quality control}
-%
-%\subsection{Noisey data}
-%
-%\subsection{Outliers}
-%
-%%% could remove this section and discuss Uniform-Gaussian mixture
-%Copy number outliers can cause the HMM to become too jumpy.  One
-%approach to reduce the influence of outliers is to some
-%\textit{light}-smoothing prior to fitting the HMM, as suggested in the
-%\R{} package \texttt{DNAcopy}. For instance, one could identify
-%outliers by some criteria and then average the outliers using the
-%estimates from neigboring probes. Here, we use the defaults in
-%\Robject{smooth.CNA}.
-%
-%<<smoothing>>=
-%if(require("DNAcopy")){
-%	##create an outlier
-%	copyNumber(cnSet)[50] <- 10
-%	copyNumber(cnSet)[45:55]
-%	cnaObj <- CNA(genomdat=copyNumber(cnSet),
-%		      chrom=chromosome(cnSet),
-%		      maploc=position(cnSet),
-%		      data.type="logratio",
-%		      sampleid=sampleNames(cnSet))
-%	smoothed.cnaObj <- smooth.CNA(cnaObj)
-%	copyNumber(cnSet) <- matrix(smoothed.cnaObj[, "NA06993"], nrow(cnSet), 1)
-%	copyNumber(cnSet)[50]
-%}
-%@
-%
-%\noindent One could also increase the value of \Robject{TAUP} in the
-%viterbi algorithm to encourage a fit with fewer jumps. Note that with
-%improved estimates of copy number uncertainty, many of these
-%\textit{post-hoc} approaches for addressing outliers would be less
-%critical.
-%
-%\subsection{Batch effects} \Rpackage{VanillaICE} can be used in
-%conjunction with the \Rpackage{crlmm} package to reduce batch
-%effects. See \citep{Scharpf2010} for details regarding the
-%\Rpackage{crlmm} package.
-%
-%\section{Alternatives}
-%
-%See the \texttt{crlmmDownstream} vignette located in
-%\texttt{inst/test} for an alternative approach that computes emission
-%probabilities directly on the bivariate normal log(A) versus log(B)
-%space \citep{Korn2008}. The estimation procedure for copy number in
-%\Rpackage{crlmm} is described elsewhere \citep{Scharpf2010}.
+
+\section{Trouble shooting}
+
+Read in previously saved data for chromosome 1:
+
+<<readdata>>=
+bset <- readRDS(file.path(system.file("extdata", package="VanillaICE"), "bset.rds"))
+@
+
+The hmm is fit independently to each arm.  We can determine the arm
+for each marker in the \Robject{bset} object using the function \Rfunction{getArm}.
+
+<<arm>>=
+library(oligoClasses)
+arm <- getArm(bset)
+table(arm)
+@
+
+We will fit the hmm to arm `chr1p' and monitor the updates to the mean
+parameters for the copy number states by setting
+\texttt{verbose=TRUE}:
+
+<<fit1p>>=
+b1p <- bset[arm=="chr1p", ]
+fit1p <- hmm(b1p, verbose=TRUE)
+@
+
+Each line beginning with the header ``A   AAAB `` is one iteration of
+the Viterbi algorithm. The numeric vector below the header is the mean
+for the different genotype states.  Note that we use the same mean for
+homozygous genotypes (mean of A = mean of AA = mean of AAA). The next
+line is the mean of the log R ratios for copy number states homozygous
+deletion, hemizygous deletion, diploid, copy-neutral homozygosity,
+single copy gain, and two-copy gain, respectively. We can plot the
+data and see whether the means in the last iteration are consistent
+with what we observe.
+
+<<fig1p,fig=TRUE>>=
+par(mfrow=c(2,1), las=1)
+x <- position(b1p)/1e6
+plot(x, lrr(b1p)/100, pch=".", col="grey")
+abline(h=-0.07547)
+plot(x, baf(b1p)/1000, pch=".", col="grey")
+abline(h=0.542)
+@
+
+<<fit1q>>=
+b1q <- bset[arm=="chr1q", ]
+fit1q <- hmm(b1q, verbose=TRUE)
+@
+
+<<fig1q,fig=TRUE>>=
+par(mfrow=c(2,1), las=1)
+x <- position(b1q)/1e6
+plot(x, lrr(b1q)/100, pch=".", col="grey")
+abline(h=c(0, .359778))
+plot(x, baf(b1q)/1000, pch=".", col="grey")
+abline(h=c(0.235, 0.790))
+@
 
 \section{Session Information}
 

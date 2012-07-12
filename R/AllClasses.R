@@ -1,5 +1,4 @@
 setClass("HmmOptionList", contains="list")
-
 setClass("Vit",
 	 representation(emission="matrix",
 			initialProb="numeric",
@@ -22,23 +21,6 @@ setClass("Viterbi2", contains="Vit",
 	 representation(forwardVariable="matrix",
 			backwardVariable="matrix",
 			scaleFactor="numeric"))
-
-
-
-##	 representation(assayDataList="AssayData",
-##			phenoData="AnnotatedDataFrame",
-##			featureDataList="list",
-##			chromosome="integer",
-##			annotation="character",
-##			genomeBuild="character"))
-##setClass("BeadStudioSetList",
-##	 representation(assayDataList="AssayData",
-##			phenoData="AnnotatedDataFrame",
-##			featureDataList="list",
-##			chromosome="integer",
-##			annotation="character",
-##			genomeBuild="character"))
-##
 
 setValidity("BeadStudioSetList", function(object){
 	nms <- ls(assayData(object))

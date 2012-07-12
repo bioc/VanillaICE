@@ -13,7 +13,7 @@ viterbi2Wrapper(r, b, pos, is.snp, cnStates, chrom, prOutlierBAF =
 list(initial=1e-5, max=1e-3, maxROH=1e-5), p.hom = 0.05, TAUP = 1e+08,
 is.log, center = TRUE, limits, initialProb = rep(1/length(cnStates),
 length(cnStates)), normalIndex = 3L, nupdates = 10, tolerance = 5,
-computeLLR, returnEmission=FALSE, ...)
+computeLLR=TRUE, returnEmission=FALSE, verbose=FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -159,6 +159,12 @@ computeLLR, returnEmission=FALSE, ...)
     states.
 
   }
+
+  \item{verbose}{
+
+    Logical. Whether to print some of the details of the processing.
+
+    }
 
   \item{\dots}{
     Additional arguments can be passed to the function

@@ -22,27 +22,4 @@ setMethod("[[", signature(x="oligoSetList"),
 		  }
 	  })
 
-hmmOligoSetList <- function(object, sampleIds, ...){
-	message("Fitting HMM to each chromosome")
-	if(isPackageLoaded("ff")) pkgs <- c("ff", "Biobase", "VanillaICE") else pkgs <- c("Biobase", "VanillaICE")
-	if(missing(sampleIds)) sampleIds <- sampleNames(object)
-	if(ncol(object[[1]]) < ocSamples()){
-		rdl <- foreach(obj=object, .packages=pkgs) %dopar% {
-			hmmOligoSnpSet(object=obj, sampleIds=sampleIds, ...)
-		}
-		rd <- stackRangedData(rdl)
-	} else {
-		sample.index <- splitIndicesByLength(seq_along(sampleIds), ocSamples())
-		## create a single stream of tasks that can be executed in parallel
-		obj <- NULL; j <- NULL
-		rdl <- foreach(j=sample.index, .packages=pkgs) %:%
-			foreach(obj=object) %dopar%{
-				hmmOligoSnpSet(object=obj, sampleIds=sampleNames(object)[j], ...)
-			}
-		rdl2 <- foreach(ranges=rdl) %do% stack(RangedDataList(ranges))
-		rdl2 <- foreach(ranges=rdl2) %do% ranges[, -ncol(ranges)]
-		rdl3 <- stack(RangedDataList(rdl2))
-		rd <- rdl3[, -ncol(rdl3)]
-	}
-	return(rd)
-}
+

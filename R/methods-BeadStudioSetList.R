@@ -338,31 +338,4 @@ stackFeatureDataList <- function(x){
 			   row.names=fns)
 }
 
-hmmBeadStudioSetList <- function(object, sampleIds, ...){
-	message("Fitting HMM to each chromosome")
-	if(isPackageLoaded("ff")) pkgs <- c("ff", "Biobase", "VanillaICE") else pkgs <- c("Biobase", "VanillaICE")
-	if(missing(sampleIds)) sampleIds <- sampleNames(object)
-	##if(ncol(object[[1]]) < ocSamples()){
-	if(length(sampleIds) < ocSamples()){
-		rdl <- foreach(obj=object, .packages=pkgs) %dopar% {
-			hmmBeadStudioSet(object=obj, sampleIds=sampleIds, ...)
-		}
-		rd <- stackGRangesList(rdl, genomeBuild(object))
-		names(rd) <- sampleIds
-	} else {
-		index <- match(sampleIds, sampleNames(object))
-		sample.index <- splitIndicesByLength(index, ocSamples())
-		## create a single stream of tasks that can be executed in parallel
-		obj <- NULL; j <- NULL
-		rdl <- foreach(j=sample.index, .packages=pkgs) %:%
-			foreach(obj=object) %dopar%{
-				hmmBeadStudioSet(object=obj, sampleIds=sampleNames(object)[j], ...)
-			}
-		rd <- foreach(ranges=rdl) %do% stackGRangesList(rdl, genomeBuild(object))
-##		rdl2 <- foreach(ranges=rdl) %do% stack(RangedDataList(ranges))
-##		rdl2 <- foreach(ranges=rdl2) %do% ranges[, -ncol(ranges)]
-##		rdl3 <- stack(RangedDataList(rdl2))
-##		rd <- rdl3[, -ncol(rdl3)]
-	}
-	return(rd)
-}
+

@@ -35,78 +35,78 @@ setMethod("delta", signature(object="Viterbi"),
 setMethod("pAA", signature(object="Viterbi"),
 	  function(object) object@pAA)
 
-setValidity("Viterbi", function(object){
-	ns <- nStates(object)
-	##nf <- nrow(object)
-	nf <- object@numberFeatures
-	nf.ns <- ns*nf
-	emit <- emission(object)
-	if(ncol(emit) != 1){
-		return("emission matrix should have a single column")
-	}
-	if(nrow(emit) != nf.ns){
-		return("emission matrix should have number of features x number of states elements")
-	}
-	delta <- delta(object)
-	if(!all(dim(emit) == dim(delta))){
-		return("emission matrix and delta should have the same dimension")
-	}
-	statePath <- viterbiStatePath(object)
-	if(length(statePath) != nf){
-		return("viterbiStatePath should have the same length as the number of features")
-	}
-	if(ns > 0){
-		ni <- normalStateIndex(object)
-		if(ni <= 0 | ni > ns){
-			return("the index for the normal state (normalIndex) \n must be an integer greater than zero and \n less than or equal to the number of states")
-		}
-		if(sum(exp(initialProb(object))) != 1)
-			return("exp(initialProb) must sum to 1")
-	}
-	if(nf > 0){
-		tp <- transitionProb(object)
-		if(length(tp) != (nf-1)){
-			return("transitionProb vector should be the number of features -1")
-		}
-	}
-})
+##setValidity("Viterbi", function(object){
+##	ns <- nStates(object)
+##	##nf <- nrow(object)
+##	nf <- object@numberFeatures
+##	nf.ns <- ns*nf
+##	emit <- emission(object)
+##	if(ncol(emit) != 1){
+##		return("emission matrix should have a single column")
+##	}
+##	if(nrow(emit) != nf.ns){
+##		return("emission matrix should have number of features x number of states elements")
+##	}
+##	delta <- delta(object)
+##	if(!all(dim(emit) == dim(delta))){
+##		return("emission matrix and delta should have the same dimension")
+##	}
+##	statePath <- viterbiStatePath(object)
+##	if(length(statePath) != nf){
+##		return("viterbiStatePath should have the same length as the number of features")
+##	}
+##	if(ns > 0){
+##		ni <- normalStateIndex(object)
+##		if(ni <= 0 | ni > ns){
+##			return("the index for the normal state (normalIndex) \n must be an integer greater than zero and \n less than or equal to the number of states")
+##		}
+##		if(sum(exp(initialProb(object))) != 1)
+##			return("exp(initialProb) must sum to 1")
+##	}
+##	if(nf > 0){
+##		tp <- transitionProb(object)
+##		if(length(tp) != (nf-1)){
+##			return("transitionProb vector should be the number of features -1")
+##		}
+##	}
+##})
 
-setMethod("show", signature(object="Viterbi"), function(object){
-	cat("Number of features:", object@numberFeatures, "\n")
-	cat("Number of states:", nStates(object), "\n")
-})
+##setMethod("show", signature(object="Viterbi"), function(object){
+##	cat("Number of features:", object@numberFeatures, "\n")
+##	cat("Number of states:", nStates(object), "\n")
+##})
 
-setMethod("fit", signature(object="Viterbi"), function(object){
-	fitViterbi(object)
-})
+##setMethod("fit", signature(object="Viterbi"), function(object){
+##	fitViterbi(object)
+##})
 
-fitViterbi <- function(object){
-	tmp <- .C("viterbi",
-		  emission(object),
-		  initialProb(object),
-		  transitionProb(object), ## log scale?
-		  object@arm,
-		  nStates(object),
-		  object@numberFeatures,
-		  viterbiStatePath(object),
-		  delta(object),
-		  object@normal2altered,
-		  object@altered2normal,
-		  object@altered2altered,
-		  normalStateIndex(object),
-		  pAA(object))
-	new("Viterbi",
-	    emission=emission(object),
-	    initialProb=initialProb(object),
-	    transitionProb=transitionProb(object),
-	    arm=object@arm,
-	    numberStates=nStates(object),
-	    numberFeatures=object@numberFeatures,
-	    viterbiStatePath=tmp[[7]],
-	    delta=tmp[[8]],
-	    normal2altered=object@normal2altered,
-	    altered2normal=object@altered2normal,
-	    altered2altered=object@altered2altered,
-	    normalIndex=normalStateIndex(object),
-	    pAA=pAA(object))
-}
+##itViterbi <- function(object){
+##	tmp <- .C("viterbi",
+##		  emission(object),
+##		  initialProb(object),
+##		  transitionProb(object), ## log scale?
+##		  object@arm,
+##		  nStates(object),
+##		  object@numberFeatures,
+##		  viterbiStatePath(object),
+##		  delta(object),
+##		  object@normal2altered,
+##		  object@altered2normal,
+##		  object@altered2altered,
+##		  normalStateIndex(object),
+##		  pAA(object))
+##	new("Viterbi",
+##	    emission=emission(object),
+##	    initialProb=initialProb(object),
+##	    transitionProb=transitionProb(object),
+##	    arm=object@arm,
+##	    numberStates=nStates(object),
+##	    numberFeatures=object@numberFeatures,
+##	    viterbiStatePath=tmp[[7]],
+##	    delta=tmp[[8]],
+##	    normal2altered=object@normal2altered,
+##	    altered2normal=object@altered2normal,
+##	    altered2altered=object@altered2altered,
+##	    normalIndex=normalStateIndex(object),
+##	    pAA=pAA(object))
+##

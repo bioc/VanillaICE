@@ -38,11 +38,13 @@ test_hmm_oligoSnpSetWithBAFs <- function(){
 		plot(position(oligoset)/1e6, copyNumber(oligoset)/100, pch=".", col="black")
 		##trace(rect2, browser)
 		rect2(fit[[1]])
+		rect2(res2[[1]])
 		plot(position(oligoset)/1e6, baf(oligoset)/1000, pch=".", col="black")
 		rect2(fit)
 	}
 	res2 <- hmm(object=oligoset, is.log=FALSE, p.hom=0,
-		   prOutlierBAF=list(initial=1e-4, max=1e-3, maxROH=1e-5))
+		    cnStates=c(0.5, 1, 2, 2, 3, 3.5),
+		    prOutlierBAF=list(initial=1e-4, max=1e-3, maxROH=1e-5))
 	nmarkers2 <- nmarkers[-c(1,2)]
 	nmarkers2[1] <- sum(nmarkers[1:3])
 	checkEquals(coverage2(res2[[1]]), nmarkers2, tolerance=0.02)
@@ -97,31 +99,26 @@ test_hmm_cnset <- function(){
 	res <- res[[1]]
 	rd <- res[state(res)!=3 & coverage2(res) >= 5, ]
 	if(FALSE){
-		SNPchip:::xyplotLrrBaf(rd, oligoset2,
-				       frame=200e3,
-				       panel=SNPchip:::xypanelBaf,
-				       cex=0.5,
-				       scales=list(x=list(relation="free"),
-				       y=list(alternating=1,
-				       at=c(-1, 0, log2(3/2), log2(4/2)),
-				       labels=expression(-1, 0, log[2](3/2), log[2](4/2)))),
-				       par.strip.text=list(cex=0.7),
-				       ylim=c(-3,1),
-				       col.hom="grey50",
-				       col.het="grey50",
-				       col.np="grey20",
-				       key=list(text=list(c(expression(log[2]("R ratios")), expression("B allele freqencies")),
-						col=c("grey", "blue")), columns=2))
+		xyplotLrrBaf(rd, oligoset2,
+			     frame=200e3,
+			     panel=xypanelBaf,
+			     cex=0.5,
+			     scales=list(x=list(relation="free"),
+			     y=list(alternating=1,
+			     at=c(-1, 0, log2(3/2), log2(4/2)),
+			     labels=expression(-1, 0, log[2](3/2), log[2](4/2)))),
+			     par.strip.text=list(cex=0.7),
+			     ylim=c(-3,1),
+			     col.hom="grey50",
+			     col.het="grey50",
+			     col.np="grey20",
+			     key=list(text=list(c(expression(log[2]("R ratios")), expression("B allele freqencies")),
+				      col=c("grey", "blue")), columns=2))
 		i <- subjectHits(findOverlaps(rd[6, ], oligoset2))
 		b <- baf(oligoset2)[i, 2]
 		b <- b/1000
 		hist(b, breaks=100)
 	}
-	##checkIdentical(state(rd), as.integer(c(5,2,4, 2)))
-	##checkEquals(coverage2(rd), as.integer(c(775, 36, 45, 4)), tolerance=5)
-	##checkIdentical(state(rd), as.integer(c(5,2)))
-	##checkEquals(coverage2(rd), as.integer(c(778,25)), tolerance=5)
-	##rd2 <- RangedDataCNV(IRanges(3.7e6, 3.8e6), sampleId=sampleNames(rd)[1],chrom=8)
 	query <- GRanges("chr8", IRanges(3.7e6,3.8e6))
 	j <- subjectHits(findOverlaps(query, rd))
 	checkTrue(state(rd)[j]==5)
@@ -160,7 +157,18 @@ test_oligoSnpSetGT <- function(){
 	index <- subjectHits(findOverlaps(GRanges("chr1", IRanges(70.1e6, 73e6)), hmmResults[[1]]))
 	checkTrue(state(hmmResults[[1]])[index] >= 5)
 	options(warn=2)
-	checkException(hmm(oligoSet, cnStates=c(-3, 2, 4, 4, 6, 7)))
+	## bad starting values, but works out ok
+	res2 <- hmm(oligoSet, cnStates=c(-3, 2, 4, 4, 6, 7))
+	checkIdentical(state(res2[[1]]), state(hmmResults[[1]]))
 }
 
 
+temp_test_armSplit <- function(){
+	object <- bset
+	arm <- getArm(object)
+	##arm <- oligoClasses:::.getArm(chromosome(object), position(object), genomeBuild(object))
+	arm <- factor(arm, unique(arm))
+	index <- split(seq_len(nrow(object)), arm)
+	l <- elementLengths(index)
+	index <- index[l > 10]
+}

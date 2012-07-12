@@ -64,8 +64,5 @@ constructBafLrrSetListFrom <- function(object, ...){
 	return(object)
 }
 
-hmmCNSet <- function(object, ...){
-	object <- as(object, "oligoSnpSet")
-	hmmOligoSnpSet(object, ...)
-}
+
 
