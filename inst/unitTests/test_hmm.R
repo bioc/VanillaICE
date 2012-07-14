@@ -76,25 +76,17 @@ test_hmm_genotypesOnly <- function(){
 
 test_hmm_cnset <- function(){
 	library(oligoClasses)
-	##library(IRanges)
 	library(GenomicRanges)
 	library(Biobase)
 	library2(crlmm)
+	data(cnSetExample, package="crlmm")
 	if(FALSE){
-		## FAILS and prevents rest of error checking
-		data(cnSetExample, package="crlmm")
-		if(FALSE){
-			cnSetExample@genome <- "hg19"
-			save(cnSetExample, file="~/Software/crlmm/data/cnSetExample.rda")
-		}
-		oligoset2 <- constructOligoSetListFrom(cnSetExample)
-		save(oligoset2, file="~/Software/VanillaICE/inst/extdata/oligoset2.rda")
-	} else {
-		path <- system.file("extdata", package="VanillaICE")
-		load(file.path(path, "oligoset2.rda"))
+		cnSetExample@genome <- "hg19"
+		save(cnSetExample, file="~/Software/crlmm/data/cnSetExample.rda")
 	}
+	oligoset2 <- constructOligoSetListFrom(cnSetExample)
 	library(foreach);registerDoSEQ()
-	res <- hmm(oligoset2, p.hom=0, prOutlierBAF=list(initial=1e-4, max=1e-1, maxROH=1e-3))
+	res <- hmm(oligoset2, p.hom=0)
 	checkEquals(names(res), sampleNames(oligoset2))
 	res <- res[[1]]
 	rd <- res[state(res)!=3 & coverage2(res) >= 5, ]
