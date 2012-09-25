@@ -6,6 +6,8 @@
 %\alias{[[,gSetList-method}
 \alias{[[,BeadStudioSetList,ANY,ANY-method}
 \alias{[[,BafLrrSetList,ANY,ANY-method}
+\alias{[[<-,BafLrrSetList,ANY,ANY,BafLrrSet-method}
+\alias{[[<-,BafLrrSetList,ANY,ANY,BafLrrSet}
 \alias{[[,oligoSetList,ANY,ANY-method}
 \alias{$,gSetList-method}
 \alias{$<-,gSetList-method}
@@ -41,6 +43,13 @@
       Returns a \code{BeadStudioSet} or a \code{oligoSnpSet} object,
       depending on whether the class of \code{object} is a \code{BeadStudioSetList}
       or an \code{oligoSetList}.
+
+    }
+
+    \item{}{\code{object[[i]] <- value }:
+
+      Replaces the ith element of the \code{BafLrrSetList} object by
+      \code{value}. The object \code{value} must be a \code{BafLrrSet} object.
 
     }
 

@@ -14,7 +14,7 @@ import(Biobase)
 importFrom(stats, update, sd)
 
 import(IRanges)
-importMethodsFrom(IRanges, as.matrix)
+importMethodsFrom(IRanges, as.matrix, as.list)
 import(GenomicRanges)
 
 import(oligoClasses)

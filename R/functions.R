@@ -291,7 +291,13 @@ stackGRangesList <- function(fit, build){
 	for(i in seq_len(L)){
 		rdl <- lapply(fit, "[[", i)
 		tmp <- stack(GRangesList(rdl))
-		gr[[i]] <- tmp[, -grep("sample", colnames(values(tmp)))]
+		## above adds column called sample
+		##ids <- unlist(sapply(fit, sampleNames))
+		gr[[i]] <- tmp[, -match("sample", colnames(values(tmp)))]
+		j <- match("sample.1", colnames(values(gr[[i]])))
+		if(length(j) > 0){
+			colnames(values(gr[[i]]))[j] <- "sample"
+		}
 	}
 	sl <- getSequenceLengths(build)
 	rd <- GRangesList(gr)#, seqlengths=sl)
@@ -560,11 +566,10 @@ generatorFun <- function(r, b, gt, is.snp, cnStates,
 		p <- mean(diff(isout) != 0)
 		params[["mus"]] <- mus.new
 		params[["sigmas"]] <- sigmas.new
-		pOut[["prOutlier"]] <- p
+		pOut[["prOutlier"]] <- min(p, 0.001)
 		params[["prOutlier"]] <- pOut
 		return(params)
 	}
-
 	cn.sd.new <- rep(NA, S)
 	updateCnParams <- function(cn, params, h, j) {
 		mu <- params[["mu"]]
@@ -597,7 +602,6 @@ generatorFun <- function(r, b, gt, is.snp, cnStates,
 		totalh <- apply(g1, 2, sum, na.rm=TRUE)
 		##round(total.g1,3)
 		## if total.g1 is small, then there's little data to estimate the means.
-		##  -- todo: could shrink the updated estimates to the prior mean
 		mu.new <- colSums(g1*cn, na.rm=TRUE)/totalh
 		if(any(!estimable))
 			mu.new[!estimable] <- params[["mu"]][!estimable]
@@ -676,11 +680,16 @@ generatorFun <- function(r, b, gt, is.snp, cnStates,
 	CHR <- paste("chr", oligoClasses::integer2chromosome(chrom), sep="")
 	toGRanges <- function(statePath, j){
 		id <- colnames(r)[j]
+		if(is.null(id)) id <- paste("sample", length(j), sep="")
 		rl <- Rle(statePath)
 		starts <- position[start(rl)]
 		ends <- position[end(rl)]
 		states <- statePath[start(rl)]
-		GRanges(CHR, IRanges(starts, ends), numberProbes=width(rl), state=states, sample=id)
+		if(!is.null(id)){
+			gr <- GRanges(CHR, IRanges(starts, ends), numberProbes=width(rl), state=states, sample=id)
+		} else {
+			gr <- GRanges(CHR, IRanges(starts, ends), numberProbes=width(rl), state=states)
+		}
 	}
 
 	if(computeLLR){

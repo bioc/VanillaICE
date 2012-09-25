@@ -71,7 +71,7 @@ hmmOligoSnpSet <- function(object,
 }
 
 hmmBeadStudioSet <- function(object,
-			     cnStates=c(-2, -0.4, 0, 0, 0.5, 1),
+			     cnStates=c(-2, -0.4, 0, 0, 0.4, 1),
 			     normalIndex=3L,
 			     prOutlierCN=0.01,
 			     p.hom=0.05,
@@ -128,6 +128,7 @@ hmmBeadStudioSet <- function(object,
 	} else J <- seq_len(ncol(object))
 	i <- NULL
 	if(chromosome(object)[1]==23) center <- FALSE  ## do not center for chrom x
+	## if object contains data for one chromosome, it is inefficient to unnecessarily subset it
 	v2fit <- foreach(i=index, .packages="VanillaICE") %do% {
 		viterbi2Wrapper(r=copyNumber(object)[i, J, drop=FALSE]/100,
 				b=baf(object)[i, J, drop=FALSE]/1000,
@@ -154,33 +155,41 @@ hmmBeadStudioSet <- function(object,
 	return(rd)
 }
 
+fithmm <- function(object, j, sample.size, ...){
+	grl <- list()
+	m <- 1
+	for(k in seq_along(object)){
+		obj <- object[[k]] ## one chromosome
+		## hmmBeadStudioSet has overhead -- inefficient if there are many samples
+		sb <- splitIndicesByLength(j, sample.size)
+		for(i in seq_along(sb)){
+			jj <- sb[[i]]
+			grl[[m]] <- hmmBeadStudioSet(obj[, jj], ...)
+			elementMetadata(grl[[m]])$sample <- sampleNames(obj)[jj]
+			m <- m+1
+		}
+	}
+	gr <- stackGRangesList(grl, genomeBuild(object))
+	return(gr)
+}
+
 hmmBeadStudioSetList <- function(object, sampleIds, ...){
 	message("Fitting HMM to each chromosome")
-	if(isPackageLoaded("ff")) pkgs <- c("ff", "Biobase", "VanillaICE") else pkgs <- c("Biobase", "VanillaICE")
+	pkgs <- c("GenomicRanges", "Biobase", "VanillaICE", "oligoClasses")
+	if(isPackageLoaded("ff")) pkgs <- c("ff", pkgs)
 	if(missing(sampleIds)) sampleIds <- sampleNames(object)
 	##if(ncol(object[[1]]) < ocSamples()){
-	if(length(sampleIds) < ocSamples()){
-		rdl <- foreach(obj=object, .packages=pkgs) %dopar% {
-			hmmBeadStudioSet(object=obj, sampleIds=sampleIds, ...)
-		}
-		rd <- stackGRangesList(rdl, genomeBuild(object))
-		names(rd) <- sampleIds
-	} else {
-		index <- match(sampleIds, sampleNames(object))
-		sample.index <- splitIndicesByLength(index, ocSamples())
-		## create a single stream of tasks that can be executed in parallel
-		obj <- NULL; j <- NULL
-		rdl <- foreach(j=sample.index, .packages=pkgs) %:%
-			foreach(obj=object) %dopar%{
-				hmmBeadStudioSet(object=obj, sampleIds=sampleNames(object)[j], ...)
-			}
-		rd <- foreach(ranges=rdl) %do% stackGRangesList(rdl, genomeBuild(object))
-##		rdl2 <- foreach(ranges=rdl) %do% stack(RangedDataList(ranges))
-##		rdl2 <- foreach(ranges=rdl2) %do% ranges[, -ncol(ranges)]
-##		rdl3 <- stack(RangedDataList(rdl2))
-##		rd <- rdl3[, -ncol(rdl3)]
-	}
-	return(rd)
+	## hmmBeadStudioSet parallelizes over chromosome arms, but not samples
+	## So, when passing a single chromosome, it will at most do two jobs in parallel.
+	sample.index <- match(sampleIds, sampleNames(object))
+	if(any(is.na(sample.index))) stop(paste("the following sampleIds are not in sampleNames(object): ", sampleIds[is.na(sampleIds)]))
+	chromBatches <- splitIndicesByNode(seq_along(object))
+	##fithmm(object, sample.index, sample.size=ocSamples(), ...)
+	sample.size <- ocSamples()
+	grl <- foreach(i=chromBatches, .packages=pkgs) %dopar% VanillaICE:::fithmm(object=object[i], sample.index, sample.size=sample.size, ...)
+	##grl <- foreach(i=chromBatches, .packages=pkgs) %dopar% print(pkgs)
+	gr <- stackGRangesList(grl, genomeBuild(object))
+	return(gr)
 }
 
 hmmSnpSet <- function(object,
@@ -231,23 +240,32 @@ hmmOligoSetList <- function(object, sampleIds, ...){
 	message("Fitting HMM to each chromosome")
 	if(isPackageLoaded("ff")) pkgs <- c("ff", "Biobase", "VanillaICE") else pkgs <- c("Biobase", "VanillaICE")
 	if(missing(sampleIds)) sampleIds <- sampleNames(object)
-	if(ncol(object[[1]]) < ocSamples()){
-		rdl <- foreach(obj=object, .packages=pkgs) %dopar% {
-			hmmOligoSnpSet(object=obj, sampleIds=sampleIds, ...)
-		}
-		rd <- stackRangedData(rdl)
-	} else {
-		sample.index <- splitIndicesByLength(seq_along(sampleIds), ocSamples())
-		## create a single stream of tasks that can be executed in parallel
-		obj <- NULL; j <- NULL
-		rdl <- foreach(j=sample.index, .packages=pkgs) %:%
-			foreach(obj=object) %dopar%{
-				hmmOligoSnpSet(object=obj, sampleIds=sampleNames(object)[j], ...)
+	##if(ncol(object[[1]]) < ocSamples()){
+	## hmmBeadStudioSet parallelizes over chromosome arms, but not samples
+	## So, when passing a single chromosome, it will at most do two jobs in parallel.
+	sample.index <- match(sampleIds, sampleNames(object))
+	if(any(is.na(sample.index))) stop(paste("the following sampleIds are not in sampleNames(object): ", sampleIds[is.na(sampleIds)]))
+	chromBatches <- splitIndicesByNode(seq_along(object))
+	is.baf <- "baf" %in% ls(assayData(object))
+	fithmm <- function(object, j, ...){
+		grl <- list()
+		m <- 1
+		for(k in seq_along(object)){
+			obj <- object[[k]] ## one chromosome
+			## hmmBeadStudioSet has overhead -- inefficient if there are many samples
+			sb <- splitIndicesByLength(j, ocSamples())
+			for(i in seq_along(sb)){
+				jj <- sb[[i]]
+				if(is.baf){
+					grl[[m]] <- hmmBeadStudioSet(obj[, jj], ...)
+				} else grl[[m]] <- hmmOligoSnpSet(obj[, jj], ...)
+				m <- m+1
 			}
-		rdl2 <- foreach(ranges=rdl) %do% stack(RangedDataList(ranges))
-		rdl2 <- foreach(ranges=rdl2) %do% ranges[, -ncol(ranges)]
-		rdl3 <- stack(RangedDataList(rdl2))
-		rd <- rdl3[, -ncol(rdl3)]
+		}
+		gr <- stackGRangesList(grl, genomeBuild(object))
+		return(gr)
 	}
+	rdl <- foreach(i=chromBatches, .packages="VanillaICE") %dopar% fithmm(object[i], sample.index)
+	rdl <- stackGRangesList(rd, genomeBuild(object))
 	return(rd)
 }

@@ -1,3 +1,4 @@
+
 setMethod("[", signature(x="gSetList"),
 	  function(x, i, j, ..., drop=FALSE){
 		  ## using 'i' to subset markers does not really make
@@ -6,6 +7,7 @@ setMethod("[", signature(x="gSetList"),
 		  ## Use i to subset the list. example, x[1] is still a BeadStudioSetList, but is one chromosome
 		  ##
 		  if(!missing(i) & !missing(j)){
+			  browser()
 			  ad <- assayDataList(x)
 			  nms <- ls(ad)
 			  for(k in seq_along(nms)){
@@ -56,6 +58,9 @@ setMethod("show", signature(object="gSetList"),
 	  })
 
 setMethod("assayDataList", signature(object="gSetList"),
+	  function(object)  object@assayDataList)
+
+setMethod("assayDataList", signature(object="oligoSetList"),
 	  function(object)  object@assayDataList)
 
 setMethod("featureDataList", signature(object="gSetList"),

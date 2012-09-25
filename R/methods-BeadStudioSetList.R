@@ -247,9 +247,20 @@ setMethod("[[", signature(x="BeadStudioSetList"),
 
 setMethod("[[", signature(x="BafLrrSetList"),
 	  function(x, i, j, ..., exact=TRUE){
+		 x <- callNextMethod()
+		 new("BafLrrSet",
+		     assayData=assayData(x),
+		     phenoData=phenoData(x),
+		     featureData=featureData(x),
+		     genome=genomeBuild(x),
+		     annotation=annotation(x))
+	  })
+
+setMethod("[", signature(x="gSetList"),
+	  function(x, i, j, ..., drop=TRUE){
 		  if(missing(i)) return(x)
 		  ad <- assayDataList(x)
-		  fdlist <- featureData(x)
+		  fdlist <- featureData(x)[i]
 		  adnew <- switch(storage.mode(ad),
 			  lockedEnvironment =,
 				  environment = new.env(parent=emptyenv()),
@@ -257,18 +268,35 @@ setMethod("[[", signature(x="BafLrrSetList"),
 		  nms <- ls(ad)
 		  if(length(i) == 1){
 			  for (nm in ls(ad)){
-				  elt <- ad[[nm]][[i]]
-				  dimnames(elt) <- lapply(dimnames(elt), unname)
+				  elt <- ad[[nm]][i]
+				  ##dimnames(elt) <- lapply(dimnames(elt), unname)
 				  adnew[[nm]] <- elt
 			  }
 		  }
-		  x <- new("BafLrrSet",
-			   assayData=adnew,
-			   phenoData=phenoData(x),
-			   featureData=fdlist[[i]],
-			   genome=genomeBuild(x),
-			   annotation=annotation(x))
+		  x@assayDataList <- adnew
+		  x@featureDataList <- fdlist
+		  x@chromosome <- x@chromosome[i]
+		  return(x)
 	  })
+
+setReplaceMethod("[[", signature(x="BafLrrSetList", value="BafLrrSet"),
+		 function(x, i, j, ..., value){
+			 fdl <- x@featureDataList
+			 fdl[[i]] <- featureData(value)
+			 adl <- x@assayDataList
+			 r <- adl[["lrr"]]
+			 r[[i]] <- lrr(value)
+			 b <- adl[["baf"]]
+			 b[[i]] <- baf(value)
+			 adl <- AssayDataList(lrr=r, baf=b)
+			 new("BafLrrSetList",
+			     assayDataList=adl,
+			     featureDataList=fdl,
+			     phenoData=phenoData(x),
+			     chromosome=chromosome(x),
+			     annotation=annotation(x),
+			     genome=genomeBuild(x))
+		 })
 
 setMethod("copyNumber", signature(object="oligoSetList"),
 	  function(object) assayData(object)[["copyNumber"]])

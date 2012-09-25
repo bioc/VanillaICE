@@ -59,7 +59,7 @@ Next, we fit a 6-state hidden markov model from estimates of the B
 allele frequency and log R ratios.
 
 <<hmm>>=
-res <- hmm(oligoSet, prOutlierBAF=list(initial=1e-4, max=1e-2, maxROH=1e-4))
+res <- hmm(oligoSet, p.hom=0.1, nupdates=5, TAUP=1e8)
 @
 
 The \texttt{TAUP} parameter scales the transition probability matrix.

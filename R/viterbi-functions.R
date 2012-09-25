@@ -80,12 +80,16 @@ viterbi2Wrapper <- function(r, b, pos, is.snp, cnStates,
 				break()
 			}
 		}
-		if(returnEmission) emitArray[, j, ] <- emit
+		if(returnEmission)  emitArray[, j, ] <- emit
 	}
-	if(returnEmission) return(emitArray)
-	grl <- GRangesList(grl)
-	names(grl) <- colnames(r)
-	return(grl)
+	if(returnEmission) {
+		result <- emitArray
+	} else {
+		grl <- GRangesList(grl)
+		names(grl) <- colnames(r)
+		result <- grl
+	}
+	return(result)
 }
 
 viterbiWrapperG <- function(r, gt, pos, is.snp, cnStates,

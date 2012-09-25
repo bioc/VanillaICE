@@ -74,7 +74,7 @@ test_hmm_genotypesOnly <- function(){
 	hmm(snpSet, S=2L, ICE=TRUE, normalIndex=1L)
 }
 
-test_hmm_cnset <- function(){
+xxxtest_hmm_cnset <- function(){
 	library(oligoClasses)
 	library(GenomicRanges)
 	library(Biobase)
@@ -85,7 +85,8 @@ test_hmm_cnset <- function(){
 		save(cnSetExample, file="~/Software/crlmm/data/cnSetExample.rda")
 	}
 	oligoset2 <- constructOligoSetListFrom(cnSetExample)
-	library(foreach);registerDoSEQ()
+ 	library(foreach);registerDoSEQ()
+	##trace(hmmBeadStudioSet, browser)
 	res <- hmm(oligoset2, p.hom=0)
 	checkEquals(names(res), sampleNames(oligoset2))
 	res <- res[[1]]
