@@ -258,24 +258,35 @@ setMethod("[[", signature(x="BafLrrSetList"),
 
 setMethod("[", signature(x="gSetList"),
 	  function(x, i, j, ..., drop=TRUE){
-		  if(missing(i)) return(x)
+		  ##if(!missing(i)) return(x)
+		  if(missing(i) && missing(j)) return(x)
 		  ad <- assayDataList(x)
-		  fdlist <- featureData(x)[i]
+		  if(!missing(i)){
+			  fdlist <- featureData(x)[i]
+		  }
 		  adnew <- switch(storage.mode(ad),
 			  lockedEnvironment =,
 				  environment = new.env(parent=emptyenv()),
 				  list = list())
 		  nms <- ls(ad)
-		  if(length(i) == 1){
+		  if(!missing(i)){
 			  for (nm in ls(ad)){
 				  elt <- ad[[nm]][i]
-				  ##dimnames(elt) <- lapply(dimnames(elt), unname)
 				  adnew[[nm]] <- elt
 			  }
 		  }
+		  if(missing(j)){
+			  x@featureDataList <- fdlist
+			  x@chromosome <- x@chromosome[i]
+		  } else {
+			  for (nm in ls(ad)){
+				  elt <- lapply(ad[[nm]], function(y, j) y[, j, drop=FALSE], j=j)
+				  adnew[[nm]] <- elt
+			  }
+			  phenoData(x) <- phenoData(x)[j, ]
+			  x@protocolData <- x@protocolData[j, ]
+		  }
 		  x@assayDataList <- adnew
-		  x@featureDataList <- fdlist
-		  x@chromosome <- x@chromosome[i]
 		  return(x)
 	  })
 

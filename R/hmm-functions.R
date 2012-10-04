@@ -114,6 +114,22 @@ hmmBeadStudioSet <- function(object,
 ##	}
 	arm <- oligoClasses:::.getArm(chromosome(object)[marker.index], position(object)[marker.index], genomeBuild(object))
 	arm <- factor(arm, unique(arm))
+	if(any(table(arm) < 1000)){
+		drop.level <- names(table(arm))[table(arm) < 1000]
+		if(length(grep("p", drop.level)) > 0){
+			collapselevel <- gsub("p", "q", drop.level[grep("p", drop.level)])
+			for(i in seq_along(drop.level)){
+				arm[arm == drop.level[i]] <- collapselevel[i]
+			}
+		}
+		if(length(grep("q", drop.level)) > 0){
+			collapselevel <- gsub("q", "p", drop.level[grep("q", drop.level)])
+			for(i in seq_along(drop.level)){
+				arm[arm == drop.level[i]] <- collapselevel[i]
+			}
+		}
+		arm <- factor(arm, unique(arm))
+	}
 	index <- split(marker.index, arm)
 	l <- elementLengths(index)
 	if(any(l < 10)) index <- index[l >= 10]
@@ -178,16 +194,11 @@ hmmBeadStudioSetList <- function(object, sampleIds, ...){
 	pkgs <- c("GenomicRanges", "Biobase", "VanillaICE", "oligoClasses")
 	if(isPackageLoaded("ff")) pkgs <- c("ff", pkgs)
 	if(missing(sampleIds)) sampleIds <- sampleNames(object)
-	##if(ncol(object[[1]]) < ocSamples()){
-	## hmmBeadStudioSet parallelizes over chromosome arms, but not samples
-	## So, when passing a single chromosome, it will at most do two jobs in parallel.
 	sample.index <- match(sampleIds, sampleNames(object))
 	if(any(is.na(sample.index))) stop(paste("the following sampleIds are not in sampleNames(object): ", sampleIds[is.na(sampleIds)]))
 	chromBatches <- splitIndicesByNode(seq_along(object))
-	##fithmm(object, sample.index, sample.size=ocSamples(), ...)
 	sample.size <- ocSamples()
 	grl <- foreach(i=chromBatches, .packages=pkgs) %dopar% VanillaICE:::fithmm(object=object[i], sample.index, sample.size=sample.size, ...)
-	##grl <- foreach(i=chromBatches, .packages=pkgs) %dopar% print(pkgs)
 	gr <- stackGRangesList(grl, genomeBuild(object))
 	return(gr)
 }
@@ -247,7 +258,7 @@ hmmOligoSetList <- function(object, sampleIds, ...){
 	if(any(is.na(sample.index))) stop(paste("the following sampleIds are not in sampleNames(object): ", sampleIds[is.na(sampleIds)]))
 	chromBatches <- splitIndicesByNode(seq_along(object))
 	is.baf <- "baf" %in% ls(assayData(object))
-	fithmm <- function(object, j, ...){
+	fitoligo <- function(object, j, ...){
 		grl <- list()
 		m <- 1
 		for(k in seq_along(object)){
@@ -265,7 +276,7 @@ hmmOligoSetList <- function(object, sampleIds, ...){
 		gr <- stackGRangesList(grl, genomeBuild(object))
 		return(gr)
 	}
-	rdl <- foreach(i=chromBatches, .packages="VanillaICE") %dopar% fithmm(object[i], sample.index)
+	rdl <- foreach(i=chromBatches, .packages="VanillaICE") %dopar% fitoligo(object[i], sample.index)
 	rdl <- stackGRangesList(rd, genomeBuild(object))
 	return(rd)
 }

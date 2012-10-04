@@ -110,4 +110,14 @@ print(fig)
     side given by the \texttt{frame} argument.}
 \end{figure}
 
+
+\section{Session Information}
+
+The version number of R and packages loaded for generating the vignette
+were:
+
+<<echo=FALSE, results=tex>>=
+toLatex(sessionInfo())
+@
+
 \end{document}
