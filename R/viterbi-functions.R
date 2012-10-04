@@ -1,6 +1,7 @@
 
 
-viterbi2Wrapper <- function(r, b, pos, is.snp, cnStates,
+viterbi2Wrapper <- function(r, b,
+			    pos, is.snp, cnStates,
 			    chrom,
 			    prOutlierBAF=list(initial=1e-5, max=1e-3, maxROH=1e-5),
 			    p.hom=0.05,
@@ -64,7 +65,9 @@ viterbi2Wrapper <- function(r, b, pos, is.snp, cnStates,
 			if(anyNP){
 				paramsB <- updateFun$updateBafParams(bf, paramsB, h[is.snp, ], j)
 			} else paramsB <- updateFun$updateBafParams(bf, paramsB, h, j)
+			if(verbose) print(paramsB)
 			paramsC <- updateFun$updateCnParams(cn, paramsC, h, j)
+			if(verbose) print(paramsC)
 			## can we compare the scale factor across runs?
 			## Equation 103, Rabiner
 			loglik[i] <- sum(log(vit.res[["sf"]]))

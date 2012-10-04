@@ -310,9 +310,11 @@ stackGRangesList <- function(fit, build){
 
 generatorFun <- function(r, b, gt, is.snp, cnStates,
 			 normalIndex, TAUP, limits, center,
-			 prOutlierBAF, p.hom, position, is.log, computeLLR, chrom, verbose=FALSE){
+			 prOutlierBAF, p.hom, position, is.log,
+			 computeLLR, chrom, verbose=FALSE){
 	S <- length(cnStates)
 	nc <- ncol(r)
+	## remove nonpolymorphic markers
 	b <- b[is.snp, , drop=FALSE]
 	nr <- nrow(r)
 	nb <- nrow(b)
@@ -340,7 +342,9 @@ generatorFun <- function(r, b, gt, is.snp, cnStates,
 	allele.prob <- getPrB()
 	initialBafParams <- function(){
 		musBAF <- c(0, 0.1, 1/3, 0.5, 2/3, 0.9, 1)
-		sdsBAF <- c(0.02, rep(0.05, 5), 0.02)
+		## we have already removed the nonpolymorphic markers
+		sdA <- sd(b[b[,1] < 0.25, 1], na.rm=TRUE)
+		sdsBAF <- c(sdA, rep(sdA*1.5, 5), sdA)
 		names(musBAF) <- names(sdsBAF) <- c("A", "AAAB", "AAB", "AB", "ABB", "ABBB", "B")
 		paramsBAF <- list(mus=musBAF, sigmas=sdsBAF, prOutlier=prOutlierBAF)
 	}
@@ -562,8 +566,11 @@ generatorFun <- function(r, b, gt, is.snp, cnStates,
 			nas <- is.na(Gtotal[,1])
 			Gtotal <- Gtotal[-which(nas), ]
 		}
-		isout <- rowMax(Gtotal) < 0.9
-		p <- mean(diff(isout) != 0)
+		rmax <- tryCatch(rowMax(Gtotal), error=function(e) NULL)
+		if(!is.null(rmax)){
+			isout <- rmax < 0.9
+			p <- mean(diff(isout) != 0)
+		} else p <- pOut
 		params[["mus"]] <- mus.new
 		params[["sigmas"]] <- sigmas.new
 		pOut[["prOutlier"]] <- min(p, 0.001)
