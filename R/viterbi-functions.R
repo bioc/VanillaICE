@@ -18,6 +18,7 @@ viterbi2Wrapper <- function(r, b,
 			    verbose=FALSE,
 			    ...){
 	nc <- ncol(r); nr <- nrow(r); S <- length(cnStates)
+	if(center) r <- centerCopyNumber(r, is.snp) + cnStates[normalIndex]
 	anyNP <- any(!is.snp)
 	if(anyNP) {
 		snp.index <- which(is.snp)

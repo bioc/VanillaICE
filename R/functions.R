@@ -324,7 +324,7 @@ generatorFun <- function(r, b, gt, is.snp, cnStates,
 	##
 	## params for copy number
 	sds <- apply(r, 2, mad, na.rm=TRUE)
-	if(center) r <- centerCopyNumber(r, is.snp) + cnStates[normalIndex]
+	##if(center) r <- centerCopyNumber(r, is.snp) + cnStates[normalIndex]
 	initialCnParams <- function(j){
 		mus <- cnStates
 		sigmas <- rep(sds[j], S)
