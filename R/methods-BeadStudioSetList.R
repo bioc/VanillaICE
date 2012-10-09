@@ -258,7 +258,6 @@ setMethod("[[", signature(x="BafLrrSetList"),
 
 setMethod("[", signature(x="gSetList"),
 	  function(x, i, j, ..., drop=TRUE){
-		  ##if(!missing(i)) return(x)
 		  if(missing(i) && missing(j)) return(x)
 		  ad <- assayDataList(x)
 		  if(!missing(i)){
@@ -274,6 +273,7 @@ setMethod("[", signature(x="gSetList"),
 				  elt <- ad[[nm]][i]
 				  adnew[[nm]] <- elt
 			  }
+			  ad <- adnew
 		  }
 		  if(missing(j)){
 			  x@featureDataList <- fdlist
