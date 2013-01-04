@@ -2,7 +2,7 @@ useDynLib("VanillaICE", .registration=TRUE)
 
 ## methods
 importMethodsFrom(methods, initialize, show)
-importFrom(methods, "@<-", callNextMethod, new, validObject)
+importFrom(methods, callNextMethod, new, validObject)
 
 ##utils
 importFrom(utils, setTxtProgressBar, txtProgressBar, packageDescription)
