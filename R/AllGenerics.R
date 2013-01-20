@@ -15,8 +15,7 @@ setGeneric("altered2normal", function(object) standardGeneric("altered2normal"))
 setGeneric("altered2altered", function(object) standardGeneric("altered2altered"))
 setGeneric("delta", function(object) standardGeneric("delta"))
 setGeneric("pAA", function(object) standardGeneric("pAA"))
-setGeneric("assayDataList", function(object) standardGeneric("assayDataList"))
-setGeneric("featureDataList", function(object) standardGeneric("featureDataList"))
+
 
 
 

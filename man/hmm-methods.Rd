@@ -3,10 +3,12 @@
 \alias{hmm}
 \alias{hmm-methods}
 \alias{hmm,BeadStudioSet-method}
+\alias{hmm,BafLrrSet-method}
 \alias{hmm,CNSet-method}
 \alias{hmm,oligoSnpSet-method}
 \alias{hmm,SnpSet2-method}
 \alias{hmm,BeadStudioSetList-method}
+\alias{hmm,BafLrrSetList-method}
 \alias{hmm,oligoSetList-method}
 \title{Hidden Markov Model methods}
 \description{
@@ -22,21 +24,22 @@
     containers for use with genotyping platforms are the
     \code{BeadStudioSet} and \code{oligoSnpSet} classes.  The primary
     difference between these two containers are the requirements for the
-    assay data elements.  A \code{BeadStudioSet} object must have assay
-    data elements "lrr" (log R ratios) and "baf" (B allele frequencies).
-    As of version 1.18.0, all matrices stored in assay data are assumed
-    to be integers.  For copy number and relative copy number, the
+    assay data elements.  A \code{BeadStudioSet} or \code{BafLrrSet}
+    object (and the corresponding list classes) must have assay data
+    elements "lrr" (log R ratios) and "baf" (B allele frequencies).  As
+    of version 1.18.0, all matrices stored in assay data are assumed to
+    be integers.  For copy number and relative copy number, the
     estimates should be scaled by 100.  For B allele frequencies, the
     estimates should be scaled by 1000.  The helper function
     \code{integerMatrix} in the oligoClasses package can be useful for
     the conversion. Genotype calls are optional for the
-    \code{BeadStudioSet} object.  As the name implies, the
-    \code{BeadStudioSet} container would typically be generated as part
-    of a pipeline to process data from Illumina array platforms.  By
-    contrast, the \code{oligoSnpSet} object has required assay data
-    elements "call" (genotype calls), "callProbability" (genotype
-    confidence scores), "copyNumber", and "cnConfidence".  As B allele
-    frequencies are perhaps more informative than the genotype calls for
+    \code{BeadStudioSet} and \code{BafLrrSet} objects.  The
+    \code{BafListSet} container can be generated as part of a pipeline
+    to process data from either the Illumina or Affymetrix platforms.
+    The \code{oligoSnpSet} object has required assay data elements
+    "call" (genotype calls), "callProbability" (genotype confidence
+    scores), "copyNumber", and "cnConfidence".  As B allele frequencies
+    are perhaps more informative than the genotype calls for
     distinguishing copy number states (particularly amplifications), an
     assay data element named "baf" can be included in the assay data for
     an \code{oligoSnpSet} object.  The presence of a "baf" element in
@@ -122,13 +125,13 @@ is implemented.  Otherwise, the \code{hmmOligoSnpSet} is implemented.
 }
 }
 
-\seealso{
-	\code{\linkS4class{oligoSetList}}, \code{\linkS4class{BeadStudioSetList}},
-	\code{\link{hmmBeadStudioSet}}, \code{\link{hmmOligoSnpSet}},
-  \code{\link{hmmSnpSet}}.  For plotting copy number and B allele
-  frequencies, see \code{\link[SNPchip]{xyplotLrrBaf}},
-  \code{\link[SNPchip]{xypanelBaf}}.
-
+\seealso{ \code{\linkS4class{oligoSetList}},
+	\code{\linkS4class{BeadStudioSetList}},
+	\code{\linkS4class{BafLrrSetList}} \code{\link{hmmBafLrrSet2}},
+	\code{\link{hmmOligoSnpSet2}}, \code{\link{hmmSnpSet2}}
+	\code{\link{hmmBafLrrSetList2}}.  For plotting copy number and B
+	allele frequencies, see \code{\link[SNPchip]{xyplotLrrBaf}},
+	\code{\link[SNPchip]{xypanelBaf}}.
  }
 
 \examples{
@@ -147,7 +150,6 @@ is implemented.  Otherwise, the \code{hmmOligoSnpSet} is implemented.
 		## of the state boundary.
 		##
 		res <- hmmResults[[1]]
-                elementMetadata(res)$sampleId <- names(hmmResults)
 		xyplot(cn~x, oligoSet, range=res[2, ], frame=10e6,
 		       panel=xypanel, pch=21, cex=0.3,
 		       col.hom="royalblue", fill.hom="royalblue",
@@ -217,8 +219,8 @@ is implemented.  Otherwise, the \code{hmmOligoSnpSet} is implemented.
 		}
 		b <- rescale(baf(oligoset)/1000, -1, 0)
 		rect2(fit)
-		franges <- makeFeatureGRanges(oligoset)
-		o <- subjectHits(findOverlaps(fit[4, ], franges))
+		##franges <- makeFeatureGRanges(oligoset)
+		##o <- subjectHits(findOverlaps(fit[4, ], franges))
 		points(position(oligoset)/1e6, b, pch=".", col="royalblue")
 		axis(side=4, at =c(-1, -0.5, 0), labels=c(0, 0.5, 1), col="blue")
 		text(10, 0.1, "BAF", col="blue")
@@ -233,13 +235,13 @@ is implemented.  Otherwise, the \code{hmmOligoSnpSet} is implemented.
 	library2(crlmm)
 	data(cnSetExample, package="crlmm")
 	## coerce to an object with log R ratios and B allele frequencies
-	oligosetlist <- constructOligoSetListFrom(cnSetExample)
+	oligosetlist <- OligoSetList(cnSetExample)
 	oligoset <- oligosetlist[[1]]
 	res <- hmm(oligoset, p.hom=0, prOutlierBAF=list(initial=1e-4, max=1e-1, maxROH=1e-3))
-	res <- res[["NA19007"]]
+	res <- res[[1]]
 	rd <- res[state(res)!=3 & numberProbes(res) >= 5, ]
 	elementMetadata(rd)$sampleId <- "NA19007"
-	if(FALSE){
+	if(require(lattice) && require(SNPchip)){
 		## a lattice display for multiple CNV calls ranges.
 		library(Biobase)
 		library(IRanges)

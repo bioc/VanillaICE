@@ -1,7 +1,5 @@
 \name{oligoSetList-methods}
 \docType{methods}
-%\alias{hmm}
-%\alias{hmm-methods}
 \alias{[[,oligoSetList-method}
 \alias{dims,oligoSetList-method}
 
@@ -46,14 +44,14 @@
   }
 }
 
-\seealso{\code{\link{hmmBeadStudioSetList}}, \code{\link{hmmOligoSetList}}}
+\seealso{\code{\link{hmmBafLrrSetList2}}}
 
 \examples{
 	library(oligoClasses)
 	library2(crlmm)
 	data(cnSetExample, package="crlmm")
 	## coerce to an object with log R ratios and B allele frequencies
-	oligosetlist <- constructOligoSetListFrom(cnSetExample)
+	oligosetlist <- OligoSetList(cnSetExample)
 	oligoset <- oligosetlist[[1]]
 }
 \keyword{methods}

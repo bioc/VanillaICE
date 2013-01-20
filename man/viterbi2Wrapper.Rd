@@ -7,41 +7,40 @@
   The viterbi algorithm, implemented in C,  estimates the optimal state
   path as well as the forward and backward variables that are used for
   updating the mean and variances in a copy number HMM.
+
+  The function \code{viterbi2Wrapper} should not be called directly be
+  the user. Rather, users should fit the HMM by passing an appropriate
+  container to the method \code{hmm}.  We document the
+  \code{viterbi2Wrapper} arguments as several of the arguments can be
+  modified from their default value when passed from the \code{hmm}
+  method through the \code{...}. In particular, \code{nupdates},
+  \code{p.hom}, and \code{prOutlierBaf}.
+
 }
 \usage{
-viterbi2Wrapper(r, b, pos, is.snp, cnStates, chrom, prOutlierBAF =
-list(initial=1e-5, max=1e-3, maxROH=1e-5), p.hom = 0.05, TAUP = 1e+08,
-is.log, center = TRUE, limits, initialProb = rep(1/length(cnStates),
-length(cnStates)), normalIndex = 3L, nupdates = 10, tolerance = 5,
-computeLLR=TRUE, returnEmission=FALSE, verbose=FALSE, ...)
+
+viterbi2Wrapper(index.samples, cnStates, prOutlierBAF=list(initial=1e-5, max=1e-3, maxROH=1e-5),
+			    p.hom=0.05,
+			    is.log,
+			    limits,
+			    normalIndex=3L,
+			    nupdates=10,
+			    tolerance=5,
+			    computeLLR=TRUE,
+			    returnEmission=FALSE,
+			    verbose=FALSE,
+			    grFun,
+			    matrixFun,
+			    snp.index,
+			    anyNP)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{r}{
-    \code{matrix} of copy number estimates.
-  }
 
-  \item{b}{
-    \code{matrix} of B allele frequencies
-  }
-
-
-  \item{pos}{
-    \code{integer} vector of genomic position along a chromosome.
-  }
-
-  \item{is.snp}{
-    \code{indicator} for whether the marker is polymorphic. Must be the
-    same length as the number of rows in \code{r} and \code{b}, and the
-    same length as the vector \code{pos}.
-  }
+  \item{index.samples}{Index for the samples that are to be processed.}
 
   \item{cnStates}{
     \code{numeric} vector for the initial copy number state means.
-  }
-
-  \item{chrom}{
-    \code{integer}: the chromosome.
   }
 
   \item{prOutlierBAF}{
@@ -70,24 +69,10 @@ computeLLR=TRUE, returnEmission=FALSE, verbose=FALSE, ...)
 
   }
 
-  \item{TAUP}{ \code{numeric}: scalar for the transition probability
-    matrix.  Larger values discourage transitions from the normal state.
-  }
-
   \item{is.log}{
     \code{logical}: Whether the copy number estimates in the \code{r}
     matrix are on the log-scale.
 }
-
-
-\item{center}{
-
-    \code{logical}: If TRUE, the copy number estimates for a chromosomal
-    arm are recentered such that the median value is the value specified
-    for the mean of the normal copy number state.
-
-}
-
 
   \item{limits}{
 
@@ -97,15 +82,6 @@ computeLLR=TRUE, returnEmission=FALSE, verbose=FALSE, ...)
 
   }
 
-
-  \item{initialProb}{
-
-    \code{numeric} vector indicating the initial state probabilities for
-    the hidden Markov model.  The length of \code{initialProb} must be
-    the same as the length of \code{cnStates}.
-
-}
-
   \item{normalIndex}{
     \code{integer} specifying the index for the normal state.  Note
     that states must be ordered by the mean of the copy number
@@ -113,7 +89,6 @@ computeLLR=TRUE, returnEmission=FALSE, verbose=FALSE, ...)
     deletion (1 copy), normal (2 copies), ...  In a 6-state HMM,
     normalIndex should be 3.
   }
-
 
   \item{nupdates}{
 
@@ -164,23 +139,34 @@ computeLLR=TRUE, returnEmission=FALSE, verbose=FALSE, ...)
 
     Logical. Whether to print some of the details of the processing.
 
-    }
-
-  \item{\dots}{
-    Additional arguments can be passed to the function
-    \code{cnEmissionFromMatrix} and is currently for internal use only.
   }
+
+  \item{grFun}{ An R function for coercing the state-path from the HMM
+  to a GRanges object. Takes advantage of lexical scope.  }
+
+  \item{matrixFun}{ An R function for subsetting the assay data (takes
+    advantage of lexical scope).  }
+
+  \item{snp.index}{The SNP indices}
+
+  \item{anyNP}{An indicator for whether any of the markers are
+  nonpolymorphic, and therefore BAFs / genotypes are ignored}
+
+%  \item{\dots}{
+%%    Additional arguments can be passed to the function
+%%    \code{cnEmissionFromMatrix} and is currently for internal use only.
+%  }
 }
 
 \details{
-  This function is used by related packages extending \pkg{VanillaICE}
-  and is not intended to be called directly by the user.
+  This function is called from the \code{hmm} methods implemented in
+  this package.
 }
 
 \value{
 
   A \code{GRanges} object if \code{returnEmission} is FALSE.  Otherwise,
-  an array is returned.
+  an array of emission probabilities is returned.
 
 }
 

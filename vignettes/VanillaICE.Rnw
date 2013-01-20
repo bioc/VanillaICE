@@ -134,6 +134,7 @@ oligoSet <- new("oligoSnpSet",
 		genome="hg19")
 oligoSet <- oligoSet[!is.na(chromosome(oligoSet)), ]
 oligoSet <- oligoSet[chromosome(oligoSet) < 3, ]
+oligoSet <- chromosomePositionOrder(oligoSet)
 @
 
 %If confidence scores or inverse standard errors for the copy number
@@ -170,25 +171,18 @@ class \Rclass{oligoSnpSet} and \Rclass{BeadStudioSet}.
 
 \noindent The viterbi algorithm is used to obtain the most likely
 sequence of hidden states given the observed data.  The value returned
-is an object of class \Robject{RangedDataHMM} with genomic coordinates
+is an object of class \Robject{GRangesList} with genomic coordinates
 of the normal and altered regions.  We also return the log-likelihood
 ratio (LLR) of the predicted sequence in an interval versus the
 likelihood of diploid copy number. For intervals inferred to have
 diploid copy number, the LLR is zero.
 
 <<fit_van>>=
-oligoSet <- oligoSet[chromosome(oligoSet) <= 2, ]
 fit.van <- hmm(oligoSet)
+fit.van <- fit.van[[1]]
 @
 
-The \Rclass{GRangesList} object groups ranges by sample.
-
-<<samplids>>=
-names(fit.van)
-fit.van <- fit.van[["NA06993"]]
-@
-
-
+%The \Rclass{GRangesList} object groups ranges by sample.
 
 Figure \ref{fig:chr1} plots the data for chromosome 1 and the
 predictions from the hidden markov model:
@@ -199,7 +193,6 @@ if(require(RColorBrewer)){
 } else cols <- rainbow(n=6)
 chr1 <- oligoSet[chromosome(oligoSet)==1,]
 fit.chr1 <- fit.van[chromosome(fit.van) == "chr1", ]
-##fit.chr1 <- fit.van[fit.van$chrom==1, ]
 isHet <- snpCall(chr1)==2
 par(las=1)
 plot(position(chr1), copyNumber(chr1)/100, pch=".", cex=2, col="royalblue",
@@ -233,8 +226,8 @@ To find the names of the 102 markers that are included in
 this genomic interval, one could do the following
 <<findOverlaps>>=
 frange <- makeFeatureGRanges(oligoSet)
-mm <- as.matrix(findOverlaps(fit.van, frange))
-markersInRange <- featureNames(oligoSet)[mm[,1]==2]
+markersInterval2 <- subsetByOverlaps(frange, fit.van[2, ])
+markersInterval2
 @
 Multipanel displays can be useful for visualizing the low-level data
 for copy number alterations.  We extend the \Rfunction{xyplot} method
@@ -257,12 +250,12 @@ xyplot(cn ~ x | id, oligoSet, range=RangedDataObject, ylim=c(-0.5,4), scales=lis
 @
 \noindent The function \Rfunction{xypanel} provides default colors for
 annotating the plotting symbols by genotype and by whether the markers
-are polymorphic. The \Robject{RangedDataHMM} must be passed by the
+are polymorphic. The \Robject{GenomicRanges} must be passed by the
 name \emph{range} to the \Rfunction{xyplot} method.
 
 \paragraph{By sample.}
 To plot the low-level data for multiple alterations occurring in a
-single sample, one can again pass a \Rclass{RangedDataHMM} object with
+single sample, one can again pass a \Rclass{GenomicRanges} object with
 name \emph{range} to the \Rfunction{xyplot}. For example, see Figure
 \ref{fig:xy}. The code for producing Figure \ref{fig:xy} is in the
 following code chunk.  Note that the formula in the example below
@@ -271,8 +264,8 @@ variable for displaying multiple panels of a single sample must be
 called 'range'. We plot a 2 Mb window surrounding each of the
 alterations in the simulated data by specifying \texttt{frame=2e6}.
 <<xyplotExample,fig=TRUE,include=FALSE, width=9, height=6,results=hide>>=
-ranges.altered <- fit.van[!state(fit.van) %in% c(3,4) & coverage2(fit.van) > 5, ]
-elementMetadata(ranges.altered)$sampleId <- sampleNames(oligoSet)
+ranges.altered <- fit.van[!state(fit.van) %in% c(3,4) & numberProbes(fit.van) > 5, ]
+##elementMetadata(ranges.altered)$sampleId <- sampleNames(oligoSet)
 xy.example <- xyplot(cn ~ x | range, oligoSet, range=ranges.altered, frame=2e6,
 		     scales=list(x="free"), ylim=c(-1,3),
 		     panel=xypanel, cex.pch=0.4, pch=21, border="grey",
@@ -320,18 +313,18 @@ since this platform is supported.
 ann <- annotation(oligoSet)
 annotation(oligoSet) <- "genomewidesnp6"
 fit.ice <- hmm(oligoSet, ICE=TRUE)
-fit.ice
+fit.ice <- fit.ice[[1]]
 annotation(oligoSet) <- ann
 @
 
 
 <<fig3, fig=TRUE, width=8, echo=FALSE, eval=FALSE>>=
-fit.chr1 <- fit.ice[chromosome(fit.ice)==1, ]
+fit.chr1 <- fit.ice[chromosome(fit.ice)=="chr1", ]
 widths <- width(fit.chr1)
 fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
 par(las=1)
-plot(position(chr1), copyNumber(chr1)/100, pch=".", ylab="log2 copy number", xlab="physical position", cex=2, col="royalblue")
-points(position(chr1)[isHet], copyNumber(chr1)[isHet]/100, col="red", pch=".", cex=2)
+plot(position(chr1)/1e6, copyNumber(chr1)/100, pch=".", ylab="log2 copy number", xlab="physical position", cex=2, col="royalblue")
+points(position(chr1)[isHet]/1e6, copyNumber(chr1)[isHet]/100, col="red", pch=".", cex=2)
 abline(h=log2(1:3), col="grey70")
 sts <- start(fit.chr1); ends <- end(fit.chr1)
 xx <- range(c(sts,ends))
@@ -374,12 +367,12 @@ hemizygous deletions tends to be all homozygous calls).
 <<genotypesOnly>>=
 snpSet <- as(oligoSet, "SnpSet2")
 fit.gt <- hmm(snpSet, prGtHom=c(0.7, 0.99), normalIndex=1L, S=2L)
+fit.gt <- fit.gt[[1]]
 @
 
 \noindent A suggested visualization:
 
 <<fig5, fig=TRUE, width=8, echo=FALSE>>=
-fit.gt <- fit.gt[["NA06993"]]
 fit.chr1 <- fit.gt[chromosome(fit.gt)=="chr1", ]
 widths <- width(fit.chr1)
 fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
