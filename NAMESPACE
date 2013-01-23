@@ -29,6 +29,7 @@ importFrom(matrixStats, colMedians)
 
 ##foreach
 import(foreach)
+import(iterators)
 
 ##----------------------------------------------------------------------------
 ## export

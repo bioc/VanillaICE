@@ -4,7 +4,7 @@ Title: A Hidden Markov Model for high throughput genotyping arrays
 Author: Robert Scharpf <rscharpf@jhsph.edu>, Kevin Scharpf, and  Ingo Ruczinski <ingo@jhsph.edu>
 Maintainer: Robert Scharpf <rscharpf@jhsph.edu>
 Depends: R (>= 2.14.0)
-Imports: stats, utils, methods, Biobase, oligoClasses (>= 1.21.12),lattice, IRanges (>= 1.13.22), grid, msm, foreach, GenomicRanges, matrixStats
+Imports: stats, utils, methods, Biobase, oligoClasses (>= 1.21.12),lattice, IRanges (>= 1.13.22), grid, msm, iterators, foreach, GenomicRanges, matrixStats
 Suggests: genomewidesnp6Crlmm (>= 1.0.7), hapmapsnp6, RColorBrewer, genefilter, RSQLite, foreach, RUnit, pd.mapping50k.hind240, SNPchip (>= 2.5.7), doSNOW
 Enhances: DNAcopy, crlmm (>= 1.17.14)
 Description:  Hidden Markov Models for characterizing chromosomal alterations in high throughput SNP arrays

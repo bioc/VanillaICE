@@ -27,9 +27,6 @@
 
 \maketitle
 
-We load a portion of chromosome 8 from 2 HapMap samples that were
-processed using the \Rpackage{crlmm} package.
-
 <<loadData>>=
 library(oligoClasses)
 library(VanillaICE)
@@ -37,13 +34,31 @@ library(crlmm)
 library(SNPchip)
 library(IRanges)
 library(foreach)
+@
+
+We load a portion of chromosome 8 from 2 HapMap samples that were
+processed using the \Rpackage{crlmm} package.
+
+
+<<data>>=
+data(cnSetExample, package="crlmm")
+@
+
+In the following unevaluated code chunk, we could enable
+parallelization of the hidden Markov models using the package
+\Rpackage{snow}.
+
+<<snow,eval=FALSE>>=
 ##registerDoSEQ()
 library(snow)
 library(doSNOW)
 cl <- makeCluster(2, type="SOCK")
 registerDoSNOW(cl)
 ocSamples(2)
-data(cnSetExample, package="crlmm")
+@
+
+<<echo=FALSE,results=hide>>=
+registerDoSEQ()
 @
 
 The data \Robject{cnSetExample} is an object of class \Rclass{CNSet}.
@@ -153,8 +168,6 @@ chromosome, or a \Rclass{BafLrrSetList} object containing data for
 multiple chromosomes.
 
 <<hmm>>=
-##res <- hmm(oligoSet, p.hom=0.1, nupdates=5, TAUP=1e8)
-##trace(VanillaICE:::hmmBafLrrSetList2, browser)
 res <- hmm(oligoList, p.hom=0.1, nupdates=5, TAUP=1e10)
 @
 
