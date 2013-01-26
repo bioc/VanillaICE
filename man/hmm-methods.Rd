@@ -150,7 +150,7 @@ is implemented.  Otherwise, the \code{hmmOligoSnpSet} is implemented.
 		## of the state boundary.
 		##
 		res <- hmmResults[[1]]
-		xyplot(cn~x, oligoSet, range=res[2, ], frame=10e6,
+		xyplot2(cn~x, oligoSet, range=res[2, ], frame=10e6,
 		       panel=xypanel, pch=21, cex=0.3,
 		       col.hom="royalblue", fill.hom="royalblue",
 		       col.het="red", fill.het="red", xlab="Mb",
@@ -163,7 +163,7 @@ is implemented.  Otherwise, the \code{hmmOligoSnpSet} is implemented.
 		##  these are all the ranges from one individual's chromosome,
 		##  the ranges are overlapping The range 'in focus' is
 		##  demarcated by vertical blue lines
-		xyplot(cn~x | range, oligoSet, range=res, frame=2e6,
+		xyplot2(cn~x | range, oligoSet, range=res, frame=2e6,
 		       panel=xypanel,
 		       pch=21,
 		       cex=0.3,
