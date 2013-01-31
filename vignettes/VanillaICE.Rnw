@@ -238,25 +238,25 @@ by-sample.
 a given locus, we provide an unevaluated code chunk below (our example
 contains only a single sample):
 <<multipanelSingleLocus,eval=FALSE>>=
-xyplot(cn ~ x | id, oligoSet, range=RangedDataObject, ylim=c(-0.5,4), panel=xypanel)
+xyplot2(cn ~ x | id, oligoSet, range=RangedDataObject, ylim=c(-0.5,4), panel=xypanel)
 @
 
 \noindent Note that the default in the above command is to use a
 common x- and y-scale for each panel.  To allow the x-axes to change
 for each panel, one could set the x-scales to 'free':
 <<multipanelSingleLocus,eval=FALSE>>=
-xyplot(cn ~ x | id, oligoSet, range=RangedDataObject, ylim=c(-0.5,4), scales=list(x="free"),
+xyplot2(cn ~ x | id, oligoSet, range=RangedDataObject, ylim=c(-0.5,4), scales=list(x="free"),
        panel=xypanel)
 @
 \noindent The function \Rfunction{xypanel} provides default colors for
 annotating the plotting symbols by genotype and by whether the markers
 are polymorphic. The \Robject{GenomicRanges} must be passed by the
-name \emph{range} to the \Rfunction{xyplot} method.
+name \emph{range} to the \Rfunction{xyplot2} method.
 
 \paragraph{By sample.}
 To plot the low-level data for multiple alterations occurring in a
 single sample, one can again pass a \Rclass{GenomicRanges} object with
-name \emph{range} to the \Rfunction{xyplot}. For example, see Figure
+name \emph{range} to the \Rfunction{xyplot2}. For example, see Figure
 \ref{fig:xy}. The code for producing Figure \ref{fig:xy} is in the
 following code chunk.  Note that the formula in the example below
 conditions on \emph{range} instead of \emph{id}.  The conditioning
@@ -266,10 +266,10 @@ alterations in the simulated data by specifying \texttt{frame=2e6}.
 <<xyplotExample,fig=TRUE,include=FALSE, width=9, height=6,results=hide>>=
 ranges.altered <- fit.van[!state(fit.van) %in% c(3,4) & numberProbes(fit.van) > 5, ]
 ##elementMetadata(ranges.altered)$sampleId <- sampleNames(oligoSet)
-xy.example <- xyplot(cn ~ x | range, oligoSet, range=ranges.altered, frame=2e6,
-		     scales=list(x="free"), ylim=c(-1,3),
-		     panel=xypanel, cex.pch=0.4, pch=21, border="grey",
-		     ylab=expression(log[2]("copy number")))
+xy.example <- xyplot2(cn ~ x | range, oligoSet, range=ranges.altered, frame=2e6,
+		      scales=list(x="free"), ylim=c(-1,3),
+		      panel=xypanel, cex.pch=0.4, pch=21, border="grey",
+		      ylab=expression(log[2]("copy number")))
 @
 \noindent See \texttt{?xyplot} for additional details.
 
