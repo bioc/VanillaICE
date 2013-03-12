@@ -209,16 +209,16 @@ se <- as(brList, "SummarizedExperiment")
 
 Next, we use the lattice function \texttt{xyplot} to plot the log R
 ratios and B allele frequencies for each genomic interval in the
-\Robject{gr} object.  Lattice plots require a \code{data.frame}, and
+\Robject{gr} object.  Lattice plots require a \Robject{data.frame}, and
 so we create a \Robject{data.frame} object using the method
 \Rfunction{dataFrame}.  Additional arguments such as \texttt{maxgap}
 are passed to the \Rfunction{findOverlaps} function in the
-\RPackage{GenomicRanges} package. Here, we frame each alteration by a
+\Rpackage{GenomicRanges} package. Here, we frame each alteration by a
 genomic interval of 200kb by specifying \texttt{maxgap=200e3}.
 
 <<data.frame>>=
 df <- dataFrame(gr, se, maxgap=500e3)
-str(df)
+head(df)
 @
 
 Finally, we create separate \Rclass{trellis} objects for the log R
