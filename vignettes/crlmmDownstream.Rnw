@@ -71,6 +71,7 @@ chromosome.
 
 <<coerce2OligoSnpSet>>=
 oligoList <- BafLrrSetList(cnSetExample)
+oligoList[[1]]
 @
 
 \section*{Wave correction}
@@ -129,6 +130,21 @@ oligoList2 <- gcCorrect(oligoList, increms=c(10,10e3), maxwins=c(10,10e3),
 
 \section*{HMM}
 
+To identify CNVs, we fit a 6-state hidden markov model from estimates
+of the B allele frequency and log R ratios. A \Rfunction{hmm} method
+is defined for the \Rclass{BafLrrSetList} class, and we apply the
+method directly with a few parameters that change the arguments from
+their default values.  For example, the \texttt{TAUP} parameter scales
+the transition probability matrix.  Larger values of \texttt{TAUP}
+makes it more expensive to transition from the normal copy number
+state to states with altered copy number.
+
+<<hmm>>=
+res <- hmm(oligoList, p.hom=0.1, nupdates=5, TAUP=1e10)
+@
+
+\section*{Commonly used accessors for the BafLrrSetList class}
+
 The \verb+[[+ method can be used to extract a \Rclass{BafLrrSet} object
 for one chromosome. This object is similar to an \Rclass{ExpressionSet}
 in the Biobase package, but with assay data elements for the log R
@@ -161,27 +177,14 @@ r <- r/100
 b <- b/1000
 @
 
-To identify CNVs, we fit a 6-state hidden markov model from estimates
-of the B allele frequency and log R ratios. The \Rfunction{hmm} method
-can be applied to either the \Rclass{BafLrrSet} object for a single
-chromosome, or a \Rclass{BafLrrSetList} object containing data for
-multiple chromosomes.
 
-<<hmm>>=
-res <- hmm(oligoList, p.hom=0.1, nupdates=5, TAUP=1e10)
-@
-
-The \texttt{TAUP} parameter scales the transition probability matrix.
-Larger values of \texttt{TAUP} makes it more expensive to transition
-from the normal copy number state to states with altered copy
-number.
-
-\section*{Visualization of genomic intervals with log R ratios and B
-  alllele frequencies}
+\section*{Visualization of genomic intervals (e.g., CNVs) with log R
+  ratios and B allele frequencies}
 
 In this section, we use lattice-style plots to visualize the genomic
 intevals of the altered copy number states.  We begin by subsetting
-the \Robject{GRanges} to contain only the altered copy number states.
+the \Robject{GRanges} object from the HMM to contain only the altered
+copy number states.
 
 <<gr.altered>>=
 gr <- unlist(res)
@@ -232,7 +235,7 @@ figs <- latticeFigs(gr, df, colors=colors)
 @
 
 We can arrange the two trellis objects using the function
-\Rfunction{arrangeFigs}.
+\Rfunction{arrangeFigs} defined in the \Rpackage{SNPchip} package.
 
 %<<fig, fig=TRUE,include=FALSE, width=8, height=6>>=
 %print(fig)
