@@ -151,8 +151,8 @@ generatorGRanges <- function(chrom, position, build, ids, TAUP, tauMAX){
 				lP.A2Astar=lP.A2Astar,
 				fr=fr)
 	funs <- list(toGRanges=toGRanges,
-		     tau=tau,
-		     transitionProbs=transitionProbs)
+				 tau=tau,
+				 transitionProbs=transitionProbs)
 	return(funs)
 }
 
@@ -173,7 +173,7 @@ generatorViterbi <- function(rlist, blist, chr, center, snp.index, anyNP){
 				r <- sweep(r, 2, meds)
 			} else{
 				autosome.index <- which(chr <= 22)
-				rauto <- r[autosome.index, ]
+				rauto <- r[autosome.index, , drop=FALSE]
 				meds <- colMedians(rauto, na.rm=TRUE)
 				r[autosome.index, ] <- sweep(rauto, 2, meds)
 			}

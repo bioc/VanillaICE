@@ -1,11 +1,11 @@
 Package: VanillaICE
-Version: 1.25.2
+Version: 1.25.4
 Title: A Hidden Markov Model for high throughput genotyping arrays
 Author: Robert Scharpf <rscharpf@jhsph.edu>, Kevin Scharpf, and Ingo
         Ruczinski <ingo@jhsph.edu>
 Maintainer: Robert Scharpf <rscharpf@jhsph.edu>
-Date: Tue Nov 12 17:32:53 EST 2013
-Depends: R (>= 2.14.0)
+Date: Tue Mar  4 21:16:45 EST 2014
+Depends: R (>= 3.0.0)
 Imports: stats, utils, methods, Biobase, oligoClasses (>=
         1.21.12),lattice, IRanges (>= 1.13.22), grid, msm, iterators,
         foreach, GenomicRanges, matrixStats
@@ -17,15 +17,29 @@ Description: Hidden Markov Models for characterizing chromosomal
         alterations in high throughput SNP arrays
 License: LGPL-2
 LazyLoad: yes
-Collate: AllGenerics.R AllClasses.R methods-AssayData.R
-        methods-CopyNumberSet.R methods-BeadStudioSet.R
-        methods-GRanges.R methods-SnpSet.R methods-Vit.R
-        methods-Viterbi.R methods-Viterbi2.R
-        methods-BeadStudioSetList.R methods-oligoSetList.R
-        hmm-methods.R deprecated-functions.R genotype-functions.R
-        hmm-functions.R simulation-functions.R viterbi-functions.R
-        functions.R generator-functions.R utils.R zzz.R
+Collate:  AllGenerics.R
+          AllClasses.R
+          methods-AssayData.R
+	  methods-CopyNumberSet.R
+	  methods-BeadStudioSet.R
+	  methods-GRanges.R
+	  methods-SnpSet.R
+	  methods-Vit.R
+	  methods-Viterbi.R
+	  methods-Viterbi2.R
+	  methods-BeadStudioSetList.R
+	  methods-oligoSetList.R
+	  hmm-methods.R
+	  deprecated-functions.R
+	  genotype-functions.R
+	  hmm-functions.R
+	  simulation-functions.R
+	  viterbi-functions.R
+	  functions.R
+	  generator-functions.R
+	  utils.R
+	  zzz.R
+biocViews: CopyNumberVariants
 ## Local Variables:
 ## time-stamp-pattern: "8/Date: %3a %3b %2d %02H:%02M:%02S %Z %:y\n"
 ## End:
-biocViews: CopyNumberVariation, SNP, GeneticVariability, Visualization

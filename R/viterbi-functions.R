@@ -26,17 +26,17 @@ viterbi2Wrapper <- function(index.samples,
 	##if(center) r <- centerCopyNumber(r, is.snp) + cnStates[normalIndex]
 	r <- thresholdCopyNumber(r, limits=limits)
 	updateFun <- generatorFun(r, b,
-				  snp.index=snp.index,
-				  cnStates=cnStates,
-				  normalIndex=normalIndex,
-				  tau=tau,
-				  limits=limits,
-				  prOutlierBAF=prOutlierBAF,
-				  p.hom=p.hom,
-				  is.log=is.log,
-				  computeLLR=computeLLR,
-				  verbose=verbose,
-				  transitionProbs=transitionProbs)
+							  snp.index=snp.index,
+							  cnStates=cnStates,
+							  normalIndex=normalIndex,
+							  tau=tau,
+							  limits=limits,
+							  prOutlierBAF=prOutlierBAF,
+							  p.hom=p.hom,
+							  is.log=is.log,
+							  computeLLR=computeLLR,
+							  verbose=verbose,
+							  transitionProbs=transitionProbs)
 	statePath <- matrix(NA, nrow(r), nc)
 	grl <- vector("list", nc)
 	if(returnEmission) emitArray <- array(NA, dim=c(nrow(r), nc, length(cnStates)))
