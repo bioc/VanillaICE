@@ -1,5 +1,5 @@
 Package: VanillaICE
-Version: 1.27.0
+Version: 1.27.1
 Title: A Hidden Markov Model for high throughput genotyping arrays
 Author: Robert Scharpf <rscharpf@jhsph.edu>, Kevin Scharpf, and Ingo
         Ruczinski <ingo@jhsph.edu>
@@ -39,7 +39,7 @@ Collate:  AllGenerics.R
 	  generator-functions.R
 	  utils.R
 	  zzz.R
-biocViews: CopyNumberVariants
+biocViews: CopyNumberVariation
 ## Local Variables:
 ## time-stamp-pattern: "8/Date: %3a %3b %2d %02H:%02M:%02S %Z %:y\n"
 ## End:
