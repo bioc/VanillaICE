@@ -1,45 +1,49 @@
 Package: VanillaICE
-Version: 1.27.1
+Version: 1.27.13
 Title: A Hidden Markov Model for high throughput genotyping arrays
-Author: Robert Scharpf <rscharpf@jhsph.edu>, Kevin Scharpf, and Ingo
-        Ruczinski <ingo@jhsph.edu>
+Author: Robert Scharpf <rscharpf@jhsph.edu>, Kevin Scharpf, and Ingo Ruczinski
+    <ingo@jhsph.edu>
 Maintainer: Robert Scharpf <rscharpf@jhsph.edu>
-Date: Tue Mar  4 21:16:45 EST 2014
-Depends: R (>= 3.0.0)
-Imports: stats, utils, methods, Biobase, oligoClasses (>=
-        1.21.12),lattice, IRanges (>= 1.13.22), grid, msm, iterators,
-        foreach, GenomicRanges, matrixStats
-Suggests: genomewidesnp6Crlmm (>= 1.0.7), hapmapsnp6, RColorBrewer,
-        genefilter, RSQLite, foreach, RUnit, pd.mapping50k.hind240,
-        SNPchip (>= 2.5.7), doSNOW
-Enhances: DNAcopy, crlmm (>= 1.17.14)
-Description: Hidden Markov Models for characterizing chromosomal
-        alterations in high throughput SNP arrays
+Description: Hidden Markov Models for characterizing chromosomal alterations in
+    high throughput SNP arrays
+Date: Tue Jul  8 21:22:36 EDT 2014
+Depends:
+    R (>= 3.0.0),
+    GenomicRanges
+Imports:
+    Biobase,
+    oligoClasses (>= 1.24.0),
+    IRanges (>= 1.14.0),
+    foreach,
+    matrixStats,
+    data.table
+Collate:
+    help.R
+    AllGenerics.R
+    AllClasses.R
+    datasets.R
+    defunct.R
+    functions.R
+    hmm-methods.R
+    methods-ArrayViews.R
+    methods-EmissionParam.R
+    methods-GStudioScanParams.R
+    methods-HmmGRanges.R
+    methods-HmmParam.R
+    methods-LogLik.R
+    methods-SnpArrayExperiment.R
+    methods-SnpDataFrame.R
+    methods-TransitionParam.R
+    methods-Viterbi.R
+    updates.R
+    zzz.R
+Suggests:
+    RUnit
+Enhances: doMC, doMPI, doSNOW, doParallel, doRedis
 License: LGPL-2
 LazyLoad: yes
-Collate:  AllGenerics.R
-          AllClasses.R
-          methods-AssayData.R
-	  methods-CopyNumberSet.R
-	  methods-BeadStudioSet.R
-	  methods-GRanges.R
-	  methods-SnpSet.R
-	  methods-Vit.R
-	  methods-Viterbi.R
-	  methods-Viterbi2.R
-	  methods-BeadStudioSetList.R
-	  methods-oligoSetList.R
-	  hmm-methods.R
-	  deprecated-functions.R
-	  genotype-functions.R
-	  hmm-functions.R
-	  simulation-functions.R
-	  viterbi-functions.R
-	  functions.R
-	  generator-functions.R
-	  utils.R
-	  zzz.R
-biocViews: CopyNumberVariation
+biocViews: CopyNumberVariants
+Roxygen: list(wrap=FALSE)
 ## Local Variables:
 ## time-stamp-pattern: "8/Date: %3a %3b %2d %02H:%02M:%02S %Z %:y\n"
 ## End:

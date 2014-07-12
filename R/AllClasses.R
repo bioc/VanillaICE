@@ -1,26 +1,10 @@
 setClass("HmmOptionList", contains="list")
-setClass("Vit",
-	 representation(emission="matrix",
-			initialProb="numeric",
-			transitionProb="matrix",
-			arm="integer",
-			numberStates="integer",
-			numberFeatures="integer",
-			viterbiStatePath="integer",
-			normal2altered="numeric",
-			altered2normal="numeric",
-			altered2altered="numeric",
-			normalIndex="integer",
-			"VIRTUAL"))
 
-setClass("Viterbi", contains="Vit",
-	 representation(delta="matrix",
-			pAA="numeric"))
 
-setClass("Viterbi2", contains="Vit",
-	 representation(forwardVariable="matrix",
-			backwardVariable="matrix",
-			scaleFactor="numeric"))
+setClass("Viterbi",
+         representation(state="integer",
+                        loglik="numeric",
+                        forward_backward="matrix"))
 
 setValidity("BeadStudioSetList", function(object){
 	nms <- ls(assayData(object))
@@ -51,6 +35,77 @@ setValidity("BeadStudioSetList", function(object){
 	}
 })
 
+setClass("EmissionParam",
+         representation=representation(
+           cn_means="numeric",
+           cn_sds="numeric",
+           baf_means="numeric",
+           baf_sds="numeric",
+           initial="numeric",
+           EMupdates="integer",
+           CN_range="numeric",
+           proportionOutlier="numeric",
+           temper="numeric"))
+
+setClass("TransitionParam",
+         representation(
+           taup="numeric",
+           taumax="numeric"))
+
+## should change the name to ViterbiLogLik
+setClass("LogLik", representation(loglik="numeric", tolerance="numeric"))
+
+setClass("HmmParam",
+         representation(
+           emission="matrix",
+           emission_param="EmissionParam",
+           transition="numeric",
+           chromosome="character",
+           loglik="LogLik",
+           viterbi="Viterbi",
+           verbose="logical"))
 
 
+#' @export
+setClass("SnpDataFrame", contains="DataFrame")
 
+#' @export
+setClass("SnpGRanges", contains="GRanges",
+         representation(elementMetadata="SnpDataFrame"))
+
+
+#' @rdname SnpArrayExperiment-class
+#' @export
+setClass("SnpArrayExperiment", contains = "SummarizedExperiment",
+         representation(rowData="SnpGRanges"))
+
+#' @aliases HmmGRanges-class
+#' @rdname HmmGRanges-class
+#' @export
+setClass("HmmGRanges", contains="GRanges")
+
+##setClass("SummarizedHMM",
+##         representation(loglik="numeric",
+##                        rowData="HmmGRanges"))
+##
+
+#' @export
+setClass("ArrayViews",
+         representation(colData="DataFrame",
+                        rowData="GRanges",
+                        index="integer",
+                        filePaths="character",
+                        scale="numeric",
+                        datadir="character"))
+
+#' @export
+setClass("GStudioViews", contains="ArrayViews")
+
+#' @export
+setClass("GStudioScanParams", representation(readfun="function",
+                                             index_genome="integer",
+                                             cnvar="character",
+                                             bafvar="character",
+                                             gtvar="character",
+                                             scale="numeric",
+                                             select="integer"))

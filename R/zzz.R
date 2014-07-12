@@ -1,22 +1,11 @@
 THISPKG <- "VanillaICE"
 
-##.First.lib <- function(libname, pkgname){
-##	library.dynam(THISPKG, pkgname, libname)
-##}
-##
-
-##.onLoad <- function(libname, pkgname){
-##	require("methods")
-##}
-
 .onAttach <- function(libname, pkgname) {
-	packageStartupMessage("Welcome to VanillaICE version ", packageDescription(THISPKG, fields="Version"))
+  packageStartupMessage("Welcome to VanillaICE version ", packageDescription(THISPKG, fields="Version"))
 }
 
 .onUnload <- function(libpath){
-	library.dynam.unload(THISPKG, libpath)
+  library.dynam.unload(THISPKG, libpath)
 }
 
 .vanillaIcePkgEnv <- new.env(parent=emptyenv())
-
-

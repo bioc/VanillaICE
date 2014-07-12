@@ -9,7 +9,8 @@ test_hmm_oligoSnpSetWithBAFs <- function(){
     oligoset <- VanillaICE:::artificialData(states, nmarkers)
     save(oligoset, file="~/Software/VanillaICE/inst/extdata/oligosetForUnitTest.rda")
   } else {
-    path <- system.file("extdata", package="VanillaICE")
+    path <- tryCatch(system.file("extdata", package="VanillaICE", mustWork=TRUE), error=function(e) NULL)
+    if(is.null(path)) path <- "~/Software/VanillaICE/inst/extdata"
     load(file.path(path, "oligosetForUnitTest.rda"))
   }
   ## produces an error -- can't find replacement method for baf
@@ -55,6 +56,7 @@ test_hmm_cnset <- function(){
   library(oligoClasses)
   library(GenomicRanges)
   library(Biobase)
+  library(foreach);registerDoSEQ()
   library2(crlmm)
   data(cnSetExample, package="crlmm")
   if(FALSE){
@@ -62,7 +64,7 @@ test_hmm_cnset <- function(){
     save(cnSetExample, file="~/Software/crlmm/data/cnSetExample.rda")
   }
   brList <- BafLrrSetList(cnSetExample)
-  library(foreach);registerDoSEQ()
+  ##trace(hmmBafLrrSetList2, browser)
   res <- hmm(brList, p.hom=0, TAUP=1e10)
   res <- res[[1]]
   rd <- res[state(res)!=3 & numberProbes(res) >= 5, ]

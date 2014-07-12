@@ -1,112 +1,104 @@
-setMethod("initialize", signature(.Object="Viterbi"),
-	  function(.Object,
-		   numberFeatures=0L,
-		   numberStates=6L,
-		   emission=matrix(0L, numberFeatures*numberStates, 1L),
-		   initialProb=log(rep(1/numberStates, numberStates)),
-		   arm=integer(numberFeatures),
-		   transitionProb=matrix(numeric(max(c(numberFeatures-1, 0))), ncol=1L),
-		   viterbiStatePath=integer(numberFeatures),
-		   normalIndex=3L,
-		   delta=matrix(0, nrow(emission), 1L),
-		   normal2altered=1,
-		   altered2normal=1,
-		   altered2altered=1,
-		   pAA=numeric(numberStates^2)){
-		  callNextMethod(.Object,
-				 numberFeatures=numberFeatures,
-				 numberStates=numberStates,
-				 emission=emission,
-				 initialProb=initialProb,
-				 arm=arm,
-				 transitionProb=transitionProb,
-				 viterbiStatePath=viterbiStatePath,
-				 normalIndex=normalIndex,
-				 delta=delta,
-				 normal2altered=normal2altered,
-				 altered2normal=altered2normal,
-				 altered2altered=altered2altered,
-				 pAA=pAA)
-	  })
+setMethod(Viterbi, signature(state="missing"),
+          function(state=integer(), loglik=numeric(),
+                   forward_backward=new("matrix")){
+            new("Viterbi", state=state, loglik=loglik,
+                forward_backward=forward_backward)
+          })
 
-setMethod("delta", signature(object="Viterbi"),
-	  function(object) object@delta)
+setMethod(Viterbi, signature(state="integer"),
+          function(state, loglik=numeric(1),
+                   forward_backward=matrix(0.0, length(state),6)){
+            new("Viterbi", ##state=Rle(state),
+                state=state,
+                loglik=loglik,
+                forward_backward=forward_backward)
+          })
 
-setMethod("pAA", signature(object="Viterbi"),
-	  function(object) object@pAA)
+setMethod(Viterbi, signature(state="Rle"),
+          function(state, loglik=numeric(1),
+                   forward_backward=matrix(0.0, length(state),6)){
+            new("Viterbi", state=as.integer(state), loglik=loglik,
+                forward_backward=forward_backward)
+          })
 
-##setValidity("Viterbi", function(object){
-##	ns <- nStates(object)
-##	##nf <- nrow(object)
-##	nf <- object@numberFeatures
-##	nf.ns <- ns*nf
-##	emit <- emission(object)
-##	if(ncol(emit) != 1){
-##		return("emission matrix should have a single column")
-##	}
-##	if(nrow(emit) != nf.ns){
-##		return("emission matrix should have number of features x number of states elements")
-##	}
-##	delta <- delta(object)
-##	if(!all(dim(emit) == dim(delta))){
-##		return("emission matrix and delta should have the same dimension")
-##	}
-##	statePath <- viterbiStatePath(object)
-##	if(length(statePath) != nf){
-##		return("viterbiStatePath should have the same length as the number of features")
-##	}
-##	if(ns > 0){
-##		ni <- normalStateIndex(object)
-##		if(ni <= 0 | ni > ns){
-##			return("the index for the normal state (normalIndex) \n must be an integer greater than zero and \n less than or equal to the number of states")
-##		}
-##		if(sum(exp(initialProb(object))) != 1)
-##			return("exp(initialProb) must sum to 1")
-##	}
-##	if(nf > 0){
-##		tp <- transitionProb(object)
-##		if(length(tp) != (nf-1)){
-##			return("transitionProb vector should be the number of features -1")
-##		}
-##	}
-##})
+setMethod(forward_backward, "Viterbi", function(x) x@forward_backward)
 
-##setMethod("show", signature(object="Viterbi"), function(object){
-##	cat("Number of features:", object@numberFeatures, "\n")
-##	cat("Number of states:", nStates(object), "\n")
-##})
+setMethod(show, signature(object="Viterbi"),
+          function(object){
+            cat("class Viterbi\n")
+            cat("state: vector of length", length(state(object)), "\n")
+            cat("loglik:", round(loglik(object), 2), "\n")
+            fv <- forward_backward(object)
+            cat("forward_backward: ", nrow(fv), "x", ncol(fv), "matrix\n")
+          })
 
-##setMethod("fit", signature(object="Viterbi"), function(object){
-##	fitViterbi(object)
-##})
+setMethod(state, "Viterbi", function(object) object@state)
 
-##itViterbi <- function(object){
-##	tmp <- .C("viterbi",
-##		  emission(object),
-##		  initialProb(object),
-##		  transitionProb(object), ## log scale?
-##		  object@arm,
-##		  nStates(object),
-##		  object@numberFeatures,
-##		  viterbiStatePath(object),
-##		  delta(object),
-##		  object@normal2altered,
-##		  object@altered2normal,
-##		  object@altered2altered,
-##		  normalStateIndex(object),
-##		  pAA(object))
-##	new("Viterbi",
-##	    emission=emission(object),
-##	    initialProb=initialProb(object),
-##	    transitionProb=transitionProb(object),
-##	    arm=object@arm,
-##	    numberStates=nStates(object),
-##	    numberFeatures=object@numberFeatures,
-##	    viterbiStatePath=tmp[[7]],
-##	    delta=tmp[[8]],
-##	    normal2altered=object@normal2altered,
-##	    altered2normal=object@altered2normal,
-##	    altered2altered=object@altered2altered,
-##	    normalIndex=normalStateIndex(object),
-##	    pAA=pAA(object))
-##
+
+setValidity("Viterbi", function(object){
+  msg <- TRUE
+  ll <- loglik(object)
+  if(length(ll) == 1){
+    if(is.nan(ll)) msg <- "Invalid log lik.  Check that starting values are correctly specified, and that assay data is on the correct scale."
+  }
+  msg
+})
+
+
+#' Viterbi algorithm
+#'
+#' @export
+calculateViterbi <- function(param=HmmParam()){
+  NR <- nrow(param)
+  NC <- ncol(param)
+  emitv <- as.numeric(emission(param))
+  ##nNA <- sum(is.na(emitv))/NC
+  ##NR <- NR_total-nNA
+  forvar <- matrix(0.0, NR*NC, 1)
+  backvar <- matrix(0.0, NR*NC, 1)
+  states <- integer(NR)
+  scale_amount <- numeric(NR)
+  emit <- as.matrix(emitv)
+  res <- .C("viterbi2",
+            emit,
+            initial(param),
+            transition(param),
+            integer(NR),
+            NC,
+            NR,
+            states,
+            forvar,
+            backvar,
+            1,
+            1,
+            1,
+            3L,
+            scale_amount)
+  forvar <- matrix(res[[9]], NR, NC)
+  bakvar <- matrix(res[[10]], NR, NC)
+  loglik <- -sum(log(res[[14]]))
+  FV <- scaleForwardBackward(forvar, bakvar)
+  colnames(FV) <- FV_columns()
+  Viterbi(state=res[[7]],
+          loglik=loglik,
+          forward_backward=FV)
+}
+
+chromosomeRunLengths <- function(x){
+  stateL <- split(x, names(x))
+  tmp <- lapply(stateL, Rle)
+  runval <- unlist(lapply(tmp, runValue))
+  runlen <- unlist(lapply(tmp, runLength))
+  Rle(runval, runlen)
+}
+
+setMethod(loglik, "Viterbi", function(object) object@loglik)
+setMethod(statei, "Viterbi", function(object) as.integer(state(object)))
+setMethod(statef, "Viterbi", function(object) factor(as.integer(state(object)), levels=c(1,2,3,4,5,6)))
+
+scaleForwardBackward <- function(forward_var, backward_var){
+  forward_backward <- forward_var * backward_var
+  totals <- rowSums(forward_backward, na.rm=TRUE)
+  forward_backward <- forward_backward/totals
+  forward_backward
+}
