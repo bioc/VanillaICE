@@ -3,10 +3,18 @@
 #' @docType package
 #' @name VanillaICE
 #' @import oligoClasses
+#' @importFrom oligoClasses baf lrr
+#' @importMethodsFrom oligoClasses state baf lrr copyNumber
+#' @import GenomicRanges
+#' @import methods
 #' @import IRanges
-#' @import Biobase
-#' @import data.table
+#' @import S4Vectors
+#' @importMethodsFrom Biobase pData fData phenoData featureData featureNames sampleNames assayData snpCallProbability
+#' @importFrom Biobase rowMax assayDataElement assayDataElementNames assayDataNew
+#' @importFrom data.table fread
 #' @import foreach
-#' @importFrom matrixStats anyMissing rowMedians
+#' @import grid
+#' @import lattice
+#' @importFrom matrixStats anyMissing rowMedians colMedians
 #' @useDynLib VanillaICE
 NULL

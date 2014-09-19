@@ -43,7 +43,7 @@
 <<loadCnSet>>=
 require("crlmm")
 library(VanillaICE)
-library(RColorBrewer)
+require(RColorBrewer)
 @
 
 <<echo=FALSE>>=

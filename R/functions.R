@@ -1,3 +1,16 @@
+#' Threshold numeric values
+#'
+#' Threshold numeric values according to user-specific limits.  The
+#' thresholded values can also be jittered near the limits.
+#'
+#' @param x numeric matrix or vector
+#' @param lim limit at which to threshold entries in \code{x}
+#' @param amount see \code{\link{jitter}}
+#' @seealso \code{\link{jitter}}
+#' @examples
+#' x <- rnorm(1000, 0, 3)
+#' y <- threshold(x, c(-5,5))
+#' range(y)
 #' @export
 threshold <- function(x, lim=c(-Inf,Inf), amount=0){
   notna <- !is.na(x)
@@ -8,6 +21,14 @@ threshold <- function(x, lim=c(-Inf,Inf), amount=0){
   x[index1] <- x1
   x[index2] <- x2
   return(x)
+}
+
+acf2 <- function(x, lag.max=10, type = c("correlation", "covariance", "partial"),
+                 plot = FALSE, na.action = na.omit, demean = TRUE,
+                 ...){
+  y <- acf(x, lag.max=lag.max, type=type, plot=plot,
+             na.action=na.action, demean=demean, ...)
+  y <- y[[1]][lag.max+1, , 1]
 }
 
 setMethod(NA_index, "list", function(x){
@@ -59,7 +80,7 @@ HMM_STATES <- function() c("TwoCopyLoss",
                            "TwoCopyGain")
 
 CN_MEANS <- function() c(-2, -0.4, 0, 0, 0.4, 1)
-CN_SDS <- function() rep(0.3, 6)
+CN_SDS <- function() c(0.6, rep(0.3, 5))
 BAF_ALLELE_NAMES <- function() c("A", "AAAB", "AAB", "AB", "ABB", "ABBB", "B")
 BAF_MEANS <- function() setNames(c(0, 0.1, 1/3, 0.5, 2/3, 0.9, 1),
                                  BAF_ALLELE_NAMES())
@@ -67,8 +88,8 @@ BAF_SDS <- function() setNames(rep(0.1, 7),
                                BAF_ALLELE_NAMES())
 
 BAF_PRIOR_MEANS <- function() c(0, 1/4, 1/3, 1/2, 2/3, 3/4, 1)
-CN_PRIOR_MEANS <- function() c(-2, -0.5, 0, 0.5, 1)
-CN_PRIOR_SDS <- function() c(0.6, rep(0.3, 4))
+CN_PRIOR_MEANS <- function() CN_MEANS()[-4]
+CN_PRIOR_SDS <- function() CN_SDS()[-4]
 
 
 scalars <- function()
@@ -144,9 +165,16 @@ setMethod(modev, "numeric", function(x){
   return(x_mode)
 })
 
+#' Robust statistics for matrices
+#'
+#' Compute the column-wide or row-wise mode of numeric matrices
+#'
+#' @return numeric vector
+#' @rdname robust-statistics
 #' @export
 rowModes <- function(x) apply(x, 1, modev)
 
+#' @rdname robust-statistics
 #' @export
 colModes <- function(x) apply(x, 2, modev)
 
@@ -157,29 +185,8 @@ colModes <- function(x) apply(x, 2, modev)
 #' @seealso \code{\link{mad}}
 #' @examples
 #' X <- matrix(rnorm(100), 10, 10)
-#' rowMedians(X)
+#' rowMAD(X)
 #' @seealso \code{\link{mad}} \code{\link{rowMedians}}
 #' @rdname robust-statistics
 #' @export
 rowMAD <- function(x, ...)  1.4826*rowMedians(abs(x-rowMedians(x, ...)), ...)
-
-#' Calculate the column-wise median absolute deviation of a matrix
-#'
-#' @param x a numeric matrix
-#' @param takeLog whether to first log2 transform the numeric matrix
-#' @param ... additional arguments to \code{mad}
-#' @seealso \code{\link{mad}}
-#' @rdname robust-statistics
-#' @return a matrix of the same dimension as the input. Within a column, the entries are identical
-#' @examples
-#' data(locusLevelData, package="oligoClasses")
-#' sds <- robustSds(locusLevelData[["copynumber"]]/100,
-#'                  takeLog=TRUE)
-#' @export
-robustSds <- function(x, takeLog=FALSE, ...){
-  if(takeLog) x <- log2(x)
-  sds <- apply(x, 2, "mad", ...)
-  sds <- matrix(sds, nrow(x), ncol(x), byrow=TRUE)
-  dimnames(sds) <- dimnames(x)
-  return(sds)
-}

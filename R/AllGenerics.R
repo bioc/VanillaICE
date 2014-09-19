@@ -1,67 +1,177 @@
+#' Fit a 6-state HMM to log R ratios and B allele frequencies
+#' estimated from SNP arrays
+#'
+#' This function is intended for estimating the integer copy number
+#' from germline or DNA of clonal origin using a 6-state HMM.  The
+#' states are homozygous deletion, hemizygous deletion, diploid copy
+#' number, diploid region of homozygosity, single copy gain, and two+
+#' copy gain.  Because heterozygous markers are more informative for
+#' copy number than homozygous markers and regions of homozgosity are
+#' common in normal genomes, we currently computed a weighted average
+#' of the BAF emission matrix with a uniform 0,1 distribution by the
+#' probability that the marker is heterozygous, thereby downweighting
+#' the contribution of homozygous SNPs to the likelihood.  In addition
+#' to making the detection of copy-neutral regions of homozgosity less
+#' likely, it also helps prevent confusing hemizygous deletions with
+#' copy neutral regions of homozygosity -- the former would be driven
+#' mostly by the log R ratios.  This is experimental and subject to
+#' change.
+#'
+#' The \code{hmm2} method allows parallelization across samples using
+#' the foreach paradigm.  Parallelization is automatic when enabled
+#' via packages such as snow/doSNOW.
+#'
+#'
+#' @param object A \code{\link{SnpArrayExperiment}}
+#' @param emission_param A \code{\link{EmissionParam}} object
+#' @param transition_param A \code{\link{TransitionParam}} object
+#' @param ... currently ignored
 #' @export
 setGeneric("hmm2", function(object, emission_param=EmissionParam(),
-                            transition_param=TransitionParam(),
-                            tolerance=2,
-                            verbose=FALSE, ...) standardGeneric("hmm2"))
+                            transition_param=TransitionParam(), ...) standardGeneric("hmm2"))
 
-#' @export
 setGeneric("loglik", function(object) standardGeneric("loglik"))
 
+#' Calculate the emission probabilities for the 6-state HMM
+#'
+#' Given the data and an object containing parameters for the HMM,
+#' this function computes emission probabilities.  This function is
+#' not intended to be called by the user and is exported for internal
+#' use by other BioC packages.
+#' @return A matrix of emission probabilities. Column correspond to
+#' the HMM states and rows correspond to markers on the array (SNPs
+#' and nonpolymorphic markers)
+#'
+#' @param x list of low-level data with two elements: a numeric vector of log
+#' R ratios and a numeric vector of B allele frequencies
+#' @param param  parameters for the 6-state HMM
+#' @seealso baumWelchUpdate
 #' @export
+#' @aliases calculateEmission,SummarizedExperiment-method calculateEmission,list-method calculateEmission,numeric-method
 setGeneric("calculateEmission", function(x, param=EmissionParam()) standardGeneric("calculateEmission"))
 
 setGeneric("forward_backward", function(x) standardGeneric("forward_backward"))
 
-#' @export
 setGeneric("Viterbi",
            function(state=Rle(), loglik=numeric(1),
                     forward_backward=matrix(0.0, length(state), 6))
            standardGeneric("Viterbi"))
 
-#' @export
 setGeneric("transition", function(object) standardGeneric("transition"))
 
-#' @export
 setGeneric("initial", function(object) standardGeneric("initial"))
 
-#' @export
 setGeneric("statei", function(object) standardGeneric("statei"))
 
 setGeneric("state<-", function(object,value) standardGeneric("state<-"))
 
-#' @export
 setGeneric("statef", function(object) standardGeneric("statef"))
 
+#' A parameter class for computing Emission probabilities
+#'
+#' Parameters for computing emission probabilities for a 6-state HMM,
+#' including starting values for the mean and standard deviations for
+#' log R ratios (assumed to be Gaussian) and B allele frequencies
+#' (truncated Gaussian), and initial state probabilities.
+#'
+#' The log R ratios are assumed to be emitted from a normal
+#' distribution with a mean and standard deviation that depend on the
+#' latent copy number.  Similarly, the BAFs are assumed to be emitted
+#' from a truncated normal distribution with a mean and standard
+#' deviation that depends on the latent number of B alleles relative
+#' to the total number of alleles (A+B).
+#'
+#' @return numeric vector
+#' @examples
+#' ep <- EmissionParam()
+#' cn_means(ep)
+#' @rdname EmissionParam-methods
+#' @aliases cn_means,EmissionParam-method cn_means,HmmParam-method cn_means<-,EmissionParam,numeric-method
 #' @export
 setGeneric("cn_means", function(object) standardGeneric("cn_means"))
 
+#' @examples
+#' ep <- EmissionParam()
+#' cn_sds(ep)
+#' @rdname EmissionParam-methods
+#' @aliases cn_sds,EmissionParam-method cn_sds,HmmParam-method cn_sds<-,EmissionParam,numeric-method
 #' @export
 setGeneric("cn_sds", function(object) standardGeneric("cn_sds"))
 
+
+#' @examples
+#' ep <- EmissionParam()
+#' baf_means(ep)
+#' @rdname EmissionParam-methods
+#' @aliases baf_means,EmissionParam-method baf_means,HmmParam-method
 #' @export
 setGeneric("baf_means", function(object) standardGeneric("baf_means"))
 
+#' @examples
+#' ep <- EmissionParam()
+#' baf_sds(ep)
+#' @rdname EmissionParam-methods
+#' @aliases baf_sds,EmissionParam-method baf_sds,HmmParam-method
 #' @export
 setGeneric("baf_sds", function(object) standardGeneric("baf_sds"))
 
+#' @examples
+#' ep <- EmissionParam()
+#' baf_means(ep) <- baf_means(ep)
+#' @rdname EmissionParam-methods
+#' @aliases baf_means<-,EmissionParam,numeric-method
 #' @export
 setGeneric("baf_means<-", function(object, value) standardGeneric("baf_means<-"))
 
+#' @examples
+#' ep <- EmissionParam()
+#' baf_sds(ep) <- baf_sds(ep)
+#' @param value numeric vector
+#' @rdname EmissionParam-methods
+#' @aliases baf_sds<-,EmissionParam,numeric-method
 #' @export
 setGeneric("baf_sds<-", function(object, value) standardGeneric("baf_sds<-"))
 
+#' @examples
+#' ep <- EmissionParam()
+#' cn_sds(ep) <- cn_sds(ep)
+#' @rdname EmissionParam-methods
 #' @export
 setGeneric("cn_sds<-", function(object, value) standardGeneric("cn_sds<-"))
 
+#' @examples
+#' ep <- EmissionParam()
+#' cn_means(ep) <- cn_means(ep)
+#' @rdname EmissionParam-methods
 #' @export
 setGeneric("cn_means<-", function(object, value) standardGeneric("cn_means<-"))
 
-#' @export
 setGeneric("taup", function(object) standardGeneric("taup"))
 
-#' @export
 setGeneric("taumax", function(object) standardGeneric("taumax"))
 
+#' Constructor for EmissionParam class
+#'
+#'
+#' @param cn_means numeric vector of starting values for log R ratio means (order is by copy number state)
+#' @param cn_sds numeric vector of starting values for log R ratio standard deviations (order is by copy number state)
+#' @param baf_means numeric vector of starting values for BAF means ordered.  See example for details on how these are ordered.
+#' @param baf_sds numeric vector of starting values for BAF means ordered.  See example for details on how these are ordered.
+#' @param initial numeric vector of intial state probabilities
+#' @param EMupdates number of EM updates
+#' @param CN_range the allowable range of log R ratios.  Log R ratios outside this range are thresholded.
+#' @param temper Emission probabilities can be tempered by emit^temper. This is highly experimental.
+#' @param p_outlier probability that an observation is an outlier (assumed to be the same for all markers)
+#' @examples
+#' ep <- EmissionParam()
+#' show(ep)
+#' cn_means(ep)
+#' cn_sds(ep)
+#' baf_means(ep)
+#' baf_sds(ep)
+#' @family EmissionParam-methods
+#' @rdname EmissionParam-methods
+#' @aliases EmissionParam EmissionParam,missing-method EmissionParam,numeric-method
 #' @export
 setGeneric("EmissionParam", function(cn_means=CN_MEANS(),
                                      cn_sds=CN_SDS(),
@@ -70,28 +180,93 @@ setGeneric("EmissionParam", function(cn_means=CN_MEANS(),
                                      initial=rep(1/6, 6),
                                      EMupdates=5L,
                                      CN_range=c(-5, 3),
-                                     proportionOutlier=0.01,
-                                     temper=25)
+                                     temper=1,
+                                     p_outlier=1/100)
            standardGeneric("EmissionParam"))
 
+#' Accessor for the maximum number of Baum-Welch updates
+#'
+#' This function is exported primarily for internal use by other BioC
+#' packages.
+#'
+#' @param object see \code{showMethods("EMupdates")}
+#' @aliases EMupdates,EmissionParam-method EMupdates,HmmParam-method
+#' @rdname EmissionParam-methods
 #' @export
 setGeneric("EMupdates", function(object) standardGeneric("EMupdates"))
 
-#' @export
 setGeneric("EMupdates<-", function(object,value) standardGeneric("EMupdates<-"))
 
+setGeneric("probOutlier", function(object) standardGeneric("probOutlier"))
+
+#' Methods to set and get emission probabilities
+#'
+#' Get or set a matrix of emission probabilities. This function is
+#' exported primarily for internal use by other BioC packages.
+#'
+#' @return matrix
+#' @param object  see \code{showMethods(emission)}
 #' @export
+#' @rdname emission
+#' @aliases emission,HmmParam-method
 setGeneric("emission", function(object) standardGeneric("emission"))
 
+## used by MinimumDistance
+
+#' @param value a matrix of emission probabilities
+#' @rdname emission
+#' @aliases emission<-,HmmParam-method emission<-,HMM-method
 #' @export
 setGeneric("emission<-", function(object, value) standardGeneric("emission<-"))
 
+#' Constructor for TransitionParam class
+#'
+#' Contains parameters for computing transition probabilities
+#'
+#' @examples
+#' TransitionParam()
+#' ## higher values of taup make transitions between states less likely
+#' TransitionParam(taup=1e12)
+#' @param taup length-one numeric vector
+#' @param taumax The maximum probability that the current state is the
+#' same as the preceding state. See details
+#'
+#' @details Diagonal elements of the transition probability matrix are
+#' computed as e^{-2*d/taup}, where d is the distance between markers
+#' i and i-1 and \code{taup} is typically in the range of 1xe10.  This
+#' probability is constrained to be no larger than \code{taumax}. The
+#' probabilities on the off-diagonal elements are the same and are
+#' subject to the constraint that the rows of the transition
+#' probability matrix sum to 1.
+#' @aliases TransitionParam TransitionParam,missing-method TransitionParam,numeric-method
 #' @export
 setGeneric("TransitionParam",
            function(taup=1e10,
                     taumax=1-5e6)
            standardGeneric("TransitionParam"))
 
+#' Constructor for HmmParam class
+#'
+#' Contains emission probabilities, parameters for emission
+#' probabilities, and transition probabilities required for computing
+#' the most likely state path via the Viterbi algorithm
+#'
+#' @param emission A matrix of emission probabilities
+#' @param emission_param an object of class \code{EmissionParam}
+#' @param transition vector of transition probabilities whose length
+#' is N-1, where N is the number of markers.  User should provide the
+#' probability that the state at marker j is the same as the state at
+#' marker j-1.  It is assumed that the probability of transitioning to
+#' state_j from state_j-1 is the same for all states != state_j-1.
+#' @param chromosome character vector
+#' @param loglik an object of class \code{LogLik}
+#' @param viterbi an object of class \code{Viterbi}
+#' @param compute_posteriors logical
+#' @param verbose logical
+#' @examples
+#' HmmParam()
+#' @aliases HmmParam HmmParam,missing-method HmmParam,matrix-method
+#' @rdname HmmParam
 #' @export
 setGeneric("HmmParam",
            function(emission=matrix(0.0, 0, 0),
@@ -101,28 +276,46 @@ setGeneric("HmmParam",
                     chromosome=character(nrow(emission)),
                     loglik=LogLik(),
                     viterbi=Viterbi(),
+                    compute_posteriors=TRUE,
                     verbose=FALSE)
            standardGeneric("HmmParam"))
 
-#' @export
 setGeneric("calculateTransitionProbability",
            function(x, param=TransitionParam())
            standardGeneric("calculateTransitionProbability"))
 
-#' @export
 setGeneric("modev", function(x) standardGeneric("modev"))
 
-
-
+#' Constructor for SnpGRanges class
+#'
+#' @param object A \code{GRanges} object
+#' @param isSnp A logical vector.  Each genomic interval in the
+#' \code{GRanges} container corresponds to a marker on the genotyping
+#' array.  \code{isSnp} is FALSE for nonpolymorphic markers such as
+#' those included on the Affymetrix 6.0 chips.
+#' @param ... ignored
+#' @examples
+#' SnpGRanges()
 #' @export
+#' @rdname SnpGRanges
+#' @aliases SnpGRanges SnpGRanges,GRanges-method SnpGRanges,missing-method
 setGeneric("SnpGRanges", function(object=GRanges(),
                                   isSnp, ...)
            standardGeneric("SnpGRanges"))
 
+
+#' @param x
+#' @rdname BeadStudioSet
 #' @export
 setGeneric("BeadStudioSetList", function(x, ...)
            standardGeneric("BeadStudioSetList"))
 
+#' Remove SNPs with NAs in any of the low-level estimates
+#'
+#' @return An object of the same class
+#' @param x a container for SNP data (\code{\link{SnpArrayExperiment}})
+#' @param i integer vector to subset
+#' @aliases NA_filter NA_filter,SnpArrayExperiment-method NA_filter,character-method NA_filter,list-method NA_filter,numeric-method NA_filter,oligoSnpSet-method
 #' @export
 setGeneric("NA_filter", function(x, i)
            standardGeneric("NA_filter"))
@@ -139,7 +332,7 @@ setGeneric("distance", function(x) standardGeneric("distance"))
 #' @param rowData GRanges object for SNPs/nonpolymorphic markers
 #' @param colData DataFrame containing sample-level covariates
 #' @param isSnp  logical vector indicating whether marker is a SNP
-#' @aliases SnpArrayExperiment
+#' @param ... additional arguments passed to initialization method for \code{SummarizedExperiment}
 #' @docType methods
 #' @rdname SnpArrayExperiment-class
 #' @export
@@ -150,10 +343,26 @@ setGeneric("SnpArrayExperiment", function(cn,
                                           isSnp=logical(), ...)
            standardGeneric("SnpArrayExperiment"))
 
+#' Sweep the modal log R ratio (row-wise) from a matrix of log R ratios
+#'
+#' This function is most useful when a large number of samples (more
+#' than 10) are available and the dataset is a collection of germline
+#' samples.  We assume that the samples are from a single batch and
+#' that the modal value will be a robust estimate of the mean log R
+#' ratio for diploid copy number.  Variation in the modal estimates
+#' between markers is presumed to be attributable to probe effects
+#' (e.g., differences hybridization efficiency/PCR do to sequence
+#' composition). For sex chromosomes, one should apply this function
+#' separately to men and women and then recenter the resulting matrix
+#' according to the expected copy number.
+#'
+#' @param x an object containing log R ratios
+#' @param MARGIN integer indicating which margin (1=rows, 2=columns)
+#' to sweep the mode
+#' @aliases sweepMode sweepMode,SnpArrayExperiment-method
 #' @export
 setGeneric("sweepMode", function(x, MARGIN) standardGeneric("sweepMode"))
 
-#' @export
 setGeneric("NA_index", function(x) standardGeneric("NA_index"))
 
 #' HmmGRanges container
@@ -162,42 +371,54 @@ setGeneric("NA_index", function(x) standardGeneric("NA_index"))
 #' @param feature_starts start location in reference genome [basepairs]
 #' @param feature_chrom  end location in reference genome [basepairs]
 #' @param loglik  the log likelihood
-#' @aliases HmmGRanges
+#' @param emission_param an instance of \code{EmissionParam} class
+#' @aliases HmmGRanges HmmGRanges,Rle-method HmmGRanges,integer-method HmmGRanges,missing-method
 #' @rdname HmmGRanges-class
 #' @export
 setGeneric("HmmGRanges", function(states, feature_starts,
-                                  feature_chrom, loglik)
+                                  feature_chrom, loglik, emission_param=EmissionParam())
            standardGeneric("HmmGRanges"))
 
-setGeneric("isSnp", function(object) standardGeneric("isSnp"))
+##setGeneric("isSnp", function(object) standardGeneric("isSnp"))
 
-#' @export
 setGeneric("loglikRatio", function(object) standardGeneric("loglikRatio"))
 
-#' @export
 setGeneric("tolerance", function(object) standardGeneric("tolerance"))
 
-#' @export
 setGeneric("loglik", function(object) standardGeneric("loglik"))
 setGeneric("loglikLast", function(object) standardGeneric("loglikLast"))
 
-#' @export
 setGeneric("loglik<-", function(object,value) standardGeneric("loglik<-"))
 
-#' @export
 setGeneric("exceedsTolerance", function(object) standardGeneric("exceedsTolerance"))
 
+#' Accessor for parameters used to compute emission probabilities
+#'
+#' Parameters for computing emission probabilities include the
+#' starting values for the Baum Welch update and initial state
+#' probabilities.
+#' @examples
+#' hparam <- HmmParam()
+#' emissionParam(hparam)
+#' ep <- EmissionParam()
+#' cn_means(ep) <- log2(c(.1/2, 1/2, 2/2, 2/2, 3/2, 4/2))
+#' emissionParam(hparam) <- ep
+#' @param object an object of class \code{EmissionParam}
+#' @return \code{\link{EmissionParam}} instance
+#' @rdname emissionParam
+#' @aliases emissionParam,HmmGRanges-method emissionParam,HmmParam-method emissionParam<-,HmmGRanges,EmissionParam-method emissionParam<-,HmmParam,EmissionParam-method emissionParam,HMM-method
 #' @export
 setGeneric("emissionParam", function(object) standardGeneric("emissionParam"))
 
+#' @param value an object of class \code{EmissionParam}
+#' @rdname emissionParam
 #' @export
 setGeneric("emissionParam<-", function(object,value) standardGeneric("emissionParam<-"))
 
-#' @export
 setGeneric("viterbi", function(object) standardGeneric("viterbi"))
-#' @export
+
 setGeneric("viterbi<-", function(object,value) standardGeneric("viterbi<-"))
-#' @export
+
 setGeneric("verbose", function(object) standardGeneric("verbose"))
 
 setGeneric("CN_range", function(object) standardGeneric("CN_range"))
@@ -208,34 +429,201 @@ setGeneric("temper", function(object) standardGeneric("temper"))
 setGeneric("gstudioPaths", function(object) standardGeneric("gstudioPaths"))
 setGeneric("indexGenome", function(object) standardGeneric("indexGenome"))
 setGeneric("read", function(object) standardGeneric("read"))
+
+#' Accessor for SNP genotypes
+#'
+#' Extract SNP genotypes. Genotypes are assumed to be represented as
+#' integers: 1=AA, 2=AB, 3=BB.
+#' @rdname LowLevelSummaries
+#' @param object see \code{showMethods("genotypes")}
 setGeneric("genotypes", function(object) standardGeneric("genotypes"))
+
+#' Constructor for SnpArrayExperiment
+#'
+#' A single-argument generic function to construct a SnpArrayExperiment.
+#'
+#' @param object see \code{showMethods('SnpExperiment')} for a list of supported objects
+#' @export
 setGeneric("SnpExperiment", function(object) standardGeneric("SnpExperiment"))
 setGeneric("scaleBy", function(x, by) standardGeneric("scaleBy"))
 setGeneric("scaleRead", function(x, params) standardGeneric("scaleRead"))
 setGeneric("selectCols", function(object) standardGeneric("selectCols"))
-setGeneric("datadir", function(object) standardGeneric("datadir"))
-#' @export
-setGeneric("fileName", function(object, label) standardGeneric("fileName"))
-#' @export
-setGeneric("filePaths", function(object) standardGeneric("filePaths"))
 
+#' Complete path to directory for keeping parsed files
+#'
+#' A character string indicating the complete path for storing parsed
+#' files.
+#' @seealso \code{\link{parseSourceFile}} \code{\linkS4class{ArrayViews}}
+#' @export
+#' @param object a \code{ArrayViews} object
+#' @seealso \code{\linkS4class{ArrayViews}}
+setGeneric("parsedPath", function(object) standardGeneric("parsedPath"))
+
+#' Accessor for parsed file(s) containing low level summaries for copy number analysis
+#'
+#' These accessors are not meant to be called directly by the user.  They
+#' are exported in the package NAMESPACE for internal use by other BioC
+#' packages.
+#'
+#'
+#' @param object An array views-type container
+#' @param label character string to be incorporated as part of the file name for parsed BAFs
+#' @rdname IO
+#' @export
+#' @aliases fileName,ArrayViews-method
+setGeneric("fileName", function(object, label) standardGeneric("fileName"))
+
+#' Accessor for file paths containing SNP-level summaries
+#'
+#'  Files containing SNP-level summaries for log R ratios, B allele
+#' frequencies, and genotypes -- one sample per subject -- are
+#' required.
+#'
+#' @examples
+#' sourcePaths(ArrayViews())
+#' @param object an \code{ArrayViews} object
+#' @export
+#' @aliases sourcePaths,ArrayViews-method
+setGeneric("sourcePaths", function(object) standardGeneric("sourcePaths"))
+
+#' @rdname IO
 #' @export
 setGeneric("lrrFile", function(object, label="lrr") standardGeneric("lrrFile"))
+
+
+#' @rdname IO
+#' @aliases bafFile,ArrayViews-method
 #' @export
 setGeneric("bafFile", function(object, label="baf") standardGeneric("bafFile"))
 
+#' @rdname IO
 #' @export
+#' @aliases gtFile,ArrayViews-method
 setGeneric("gtFile", function(object, label="gt") standardGeneric("gtFile"))
 
-setGeneric("parseGStudio", function(object, param) standardGeneric("parseGStudio"))
-
+#' Function for parsing GenomeStudio files
+#'
+#' This function parses genome studio files, writing the low-level
+#' data for log R ratios, B allele frequencies, and genotypes to disk
+#' as integers (1 file per subject per data type).
+#' @param object An \code{\linkS4class{ArrayViews}} object
+#' @param param  An object of class \code{\link{CopyNumScanParams}}
+#' @seealso \code{\link{ArrayViews}} \code{\link{ArrayViews}} \code{\link{CopyNumScanParams}}
+#' @return  NULL
 #' @export
+setGeneric("parseSourceFile", function(object, param) standardGeneric("parseSourceFile"))
+
 setGeneric("SnpDataFrame",
            function(x, row.names=NULL, check.names=TRUE,
                     isSnp)
            standardGeneric("SnpDataFrame"))
 
-##setGeneric("SummarizedHMM", function(forward_backward,
-##                                      loglik,
-##                                      rowData=HmmGRanges())
-##           standardGeneric("SummarizedHMM"))
+setGeneric("doPosterior", function(object) standardGeneric("doPosterior"))
+
+
+setGeneric("posterior", function(object) standardGeneric("posterior"))
+
+#' Accessor for HMM model parameters
+#'
+#' @param object see \code{showMethods(HmmParam)}
+#' @aliases getHmmParams,HmmParam-method getHmmParams,HMM-method
+#' @export
+#' @examples
+#' hmm_object <- HMM()
+#' getHmmParams(hmm_object)
+setGeneric("getHmmParams", function(object) standardGeneric("getHmmParams"))
+
+setGeneric("granges<-", function(x, value) standardGeneric("granges<-"))
+
+#' Filter the HMM-derived genomic ranges for copy number variants
+#'
+#' The HMM-derived genomic ranges are represented as a
+#' \code{GRanges}-derived object.  \code{cnvFilter} returns a
+#' \code{GRanges} object using the filters stipulated in the
+#' \code{filters} argument.
+#' @examples
+#' data(snp_exp)
+#' fit <- hmm2(snp_exp)
+#' cnvSegs(fit)
+#' filter_param <- FilterParam(probability=0.95, numberFeatures=10, state=c("1", "2"))
+#' cnvSegs(fit, filter_param)
+#' filter_param <- FilterParam(probability=0.5, numberFeatures=2, state=c("1", "2"))
+#' cnvSegs(fit, filter_param)
+#' @param object see \code{showMethods(cnvFilter)}
+#' @param filters a \code{\link{FilterParam}} object
+#' @seealso \code{\link{FilterParam}}
+#' @rdname cnvFilter
+#' @export
+#' @aliases cnvFilter,HMM-method cnvFilter,GRanges-method
+setGeneric("cnvFilter", function(object, filters=FilterParam()) standardGeneric("cnvFilter"))
+
+#' Accessor for the HMM segments
+#'
+#' Accessor to obtain all segments from the HMM.
+#'
+#' @return a \code{GRanges}-derived object
+#' @aliases segs segs,HMM-method
+#' @param object see \code{showMethods(segs)}
+#' @export
+setGeneric("segs", function(object) standardGeneric("segs"))
+
+
+#' @rdname cnvFilter
+#' @export
+setGeneric("cnvSegs", function(object, filters=FilterParam(state=c("1", "2", "5", "6"))) standardGeneric("cnvSegs"))
+
+#' @export
+#' @rdname cnvFilter
+#' @aliases duplication,HMM-method
+setGeneric("duplication", function(object, filters=FilterParam(state=c("5","6"))) standardGeneric("duplication"))
+
+#' @export
+#' @rdname cnvFilter
+#' @aliases deletion,HMM-method
+setGeneric("deletion", function(object, filters=FilterParam(state=c("1","2"))) standardGeneric("deletion"))
+
+#' @aliases hemizygous,HMM-method
+#' @export
+#' @rdname cnvFilter
+setGeneric("hemizygous", function(object, filters=FilterParam(state="2")) standardGeneric("hemizygous"))
+
+#' @export
+#' @aliases homozygous,HMM-method
+#' @rdname cnvFilter
+setGeneric("homozygous", function(object, filters=FilterParam(state="1")) standardGeneric("homozygous"))
+
+#' The number of SNP/nonpolymorphic probes contained in a genomic interval
+#'
+#' @param object see \code{showMethods(numberFeatures)}
+#' @aliases numberFeatures,FilterParam-method numberFeatures,HMM-method numberFeatures,HmmGRanges-method
+#' @export
+setGeneric("numberFeatures", function(object) standardGeneric("numberFeatures"))
+
+#' Accessor for HMM filter parameters
+#'
+#' @param object see \code{showMethods(filters)}
+#' @aliases filters,HmmParam-method filters,HMM-method
+#' @export
+setGeneric("filters", function(object) standardGeneric("filters"))
+
+#' Accessor for probability filter
+#'
+#' @param object a \code{FilterParam} object
+#' @export
+setGeneric("probability", function(object) standardGeneric("probability"))
+
+setGeneric("state")
+setGeneric("lrr")
+setGeneric("baf")
+setGeneric("copyNumber")
+
+
+#' Lattice-style plots for granges and SnpArrayExperiment objects
+#'
+#' Data for the graphic is generated by a call to \code{grangesData}.
+#' @param granges a \code{HmmGRanges} object
+#' @param se a \code{SnpArrayExperiment}
+#' @param param trellis parameters for plotting HMM
+#' @rdname plotting
+#' @export
+setGeneric("xyplotList", function(granges, se, param=HmmTrellisParam()) standardGeneric("xyplotList"))

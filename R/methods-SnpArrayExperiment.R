@@ -1,3 +1,7 @@
+#' @examples
+#' SnpArrayExperiment()
+#' @aliases   SnpArrayExperiment,missing-method
+#' @rdname SnpArrayExperiment-class
 setMethod(SnpArrayExperiment, "missing",
           function(cn, baf, rowData=GRanges(),
                    colData=DataFrame(), isSnp=logical(), ...){
@@ -6,6 +10,9 @@ setMethod(SnpArrayExperiment, "missing",
             se
           })
 
+
+#' @aliases SnpArrayExperiment,matrix-method
+#' @rdname SnpArrayExperiment-class
 setMethod(SnpArrayExperiment, "matrix",
           function(cn, baf, rowData=GRanges(),
                    colData=DataFrame(row.names=colnames(cn)),
@@ -22,28 +29,71 @@ setMethod(SnpArrayExperiment, "matrix",
             se
           })
 
+
+setAs("CNSet", "SnpArrayExperiment",
+      function(from){
+        b.r <- crlmm:::calculateRBaf(from)
+        baflist <- b.r[["baf"]]
+        lrrlist <- b.r[["lrr"]]
+        bafs <- do.call(rbind, baflist)
+        lrrs <- do.call(rbind, lrrlist)
+        nms <- rownames(lrrs)
+        i <- match(nms, featureNames(from))
+        rowdat <- GRanges(paste0("chr", integer2chromosome(chromosome(from)[i])),
+                          IRanges(position(from)[i], width=1),
+                          isSnp=isSnp(from)[i])
+        names(rowdat) <- nms
+        SnpArrayExperiment(cn=lrrs/100, baf=bafs/1000,
+                           rowData=rowdat,
+                           colData=DataFrame(pData(from)))
+      })
+
+setAs("oligoSnpSet", "SnpArrayExperiment",
+      function(from){
+        rowdata <- as(featureData(from), "SnpGRanges")
+        coldata <- as(as(phenoData(from), "data.frame"), "DataFrame")
+        cn_assays <- snpArrayAssays(cn=copyNumber(from),
+                                    baf=baf(from),
+                                    gt=calls(from))
+        new("SnpArrayExperiment", assays=cn_assays, rowData=rowdata, colData=coldata)
+      })
+
+
+
 setValidity("SnpArrayExperiment", function(object){
   msg <- validObject(rowData(object))
   msg <- msg && (requiredAssays() %in% names(assays(object)))
   msg
 })
 
-
-setMethod(baf, "SnpArrayExperiment",
+#' @export
+#' @aliases baf,SnpArrayExperiment-method
+#' @rdname LowLevelSummaries
+setMethod("baf", "SnpArrayExperiment",
           function(object) assays(object)[["baf"]])
 
-setMethod(chromosome, "SnpArrayExperiment",
+setMethod("chromosome", "SnpArrayExperiment",
           function(object) as.character(seqnames(object)))
 
-setMethod(copyNumber, "SnpArrayExperiment",
+#' @export
+#' @aliases copyNumber,SnpArrayExperiment-method
+#' @rdname LowLevelSummaries
+setMethod("copyNumber", "SnpArrayExperiment",
           function(object) assays(object)[["cn"]])
 
-setMethod(isSnp, "SnpArrayExperiment",
+setMethod("isSnp", "SnpArrayExperiment",
           function(object) rowData(object)$isSnp)
 
-setMethod(lrr, "SnpArrayExperiment",
+#' @export
+#' @aliases lrr,SnpArrayExperiment-method
+#' @rdname LowLevelSummaries
+#' @seealso \code{copyNumber}
+setMethod("lrr", "SnpArrayExperiment",
           function(object) assays(object)[["cn"]])
 
+#' @export
+#' @aliases genotypes,SnpArrayExperiment-method
+#' @rdname LowLevelSummaries
 setMethod(genotypes, "SnpArrayExperiment",
           function(object) assays(object)[["genotypes"]])
 
@@ -79,8 +129,15 @@ setMethod(NA_filter, "SnpArrayExperiment", function(x, i){
 
 assayNames <- function(x) names(assays(x))
 requiredAssays <- function() c("cn", "baf")
-isCnAssays <- function(x) all(requiredAssays() %in% assayNames(object))
+isCnAssays <- function(x) all(requiredAssays() %in% assayNames(x))
 
+#' Create an assays object from log R ratios and B allele frequencies
+#'
+#'
+#' @param cn matrix of log R ratios
+#' @param baf matrix of B allele frequencies
+#' @param ... one can pass additional matrices to the SnpExperiment
+#' constructor, such as the SNP genotypes.
 #' @export
 snpArrayAssays <- function(cn=new("matrix"),
                            baf=new("matrix"), ...){
@@ -97,7 +154,7 @@ snpArrayAssays <- function(cn=new("matrix"),
   ## transition probabilities between chromosomes
   chrom <- as.integer(as.factor(chromosome(x)))
   index <- which(diff(chrom)!=0)
-  p[index] <- 0.801 ## lowest value possible
+  p[index] <- 1/6 ## any of states equally likely
   p
 }
 
@@ -111,19 +168,7 @@ setMethod(calculateTransitionProbability, "oligoSnpSet",
             .calculateTransitionProbs(x, param)
           })
 
-##
-## setMethod(SnpArrayExperiment, "ShallowSimpleListAssays",
-##           function(cn, baf, assays, rowData=GRanges(),
-##                    colData=DataFrame(rownames=colnames(assays$data[[1]])),
-##                    isSnp, ...){
-##             if("isSnp" %in% colnames(mcols(rowData))){
-##               rowData <- SnpGRanges(rowData)
-##             } else rowData <- SnpGRanges(rowData, isSnp)
-##             new("SnpArrayExperiment",
-##                 assays=assays,
-##                 rowData=rowData,
-##                 colData=colData, ...)
-##           })
+
 
 setMethod(isSnp, "SnpArrayExperiment",
           function(object) rowData(object)$isSnp)
@@ -143,6 +188,8 @@ setReplaceMethod("baf", c("SnpArrayExperiment", "matrix"),
                  object
                })
 
+##  @describeIn SnpArrayExperiment-class
+##  @aliases sweepMode,SnpArrayExperiment-method
 setMethod("sweepMode", "SnpArrayExperiment",
           function(x, MARGIN){
             se <- x[chromosome(x) %in% autosomes(chromosome(x)), ]
@@ -158,3 +205,17 @@ setMethod("sweepMode", "SnpArrayExperiment",
             copyNumber(x) <- cn
             x
           })
+
+
+##setMethod(SnpArrayExperiment, "ShallowSimpleListAssays",
+##          function(cn, baf, assays, rowData=GRanges(),
+##                   colData=DataFrame(rownames=colnames(assays$data[[1]])),
+##                   isSnp, ...){
+##            if("isSnp" %in% colnames(mcols(rowData))){
+##              rowData <- SnpGRanges(rowData)
+##            } else rowData <- SnpGRanges(rowData, isSnp)
+##            new("SnpArrayExperiment",
+##                assays=assays,
+##                rowData=rowData,
+##                colData=colData, ...)
+##          })

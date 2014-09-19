@@ -1,6 +1,6 @@
-test_hmm_oligoSnpSetWithBAFs <- function(){
+.test_hmm_oligoSnpSetWithBAFs <- function(){
   ## Results are sensitive to the seed, and differs between the unit test and my
-  library(oligoClasses);library(VanillaICE);library(RUnit)
+  library(oligoClasses)
   states <- as.integer(c(3, 4, 3, 5, 3, 2, 3, 3, 2, 3, 2, 3))
   nmarkers <- as.integer(c(996, 102, 902, 50, 2467, 102, 76, 1822,
                            99, 900, 20, 160))
@@ -57,25 +57,39 @@ test_hmm_cnset <- function(){
   library(GenomicRanges)
   library(Biobase)
   library(foreach);registerDoSEQ()
-  library2(crlmm)
+  require(crlmm)
   data(cnSetExample, package="crlmm")
   if(FALSE){
     cnSetExample@genome <- "hg19"
     save(cnSetExample, file="~/Software/crlmm/data/cnSetExample.rda")
   }
-  brList <- BafLrrSetList(cnSetExample)
+  ##brList <- BafLrrSetList(cnSetExample)
+  se <- as(cnSetExample, "SnpArrayExperiment")
+  se <- sort(se)
   ##trace(hmmBafLrrSetList2, browser)
-  res <- hmm(brList, p.hom=0, TAUP=1e10)
-  res <- res[[1]]
-  rd <- res[state(res)!=3 & numberProbes(res) >= 5, ]
+  ##res <- hmm(brList, p.hom=0, TAUP=1e10)
+  param <- EmissionParam(temper=1/2, p_outlier=1/100)
+  res <- hmm2(se[, 1], param)
+  ##g <- unlist(res)
+  ##res <- res[[1]]
+  ##rd <- res[state(res)!=3 & numberProbes(res) >= 5, ]
+  g <- cnvFilter(res, FilterParam(state=c("1", "2", "5", "6"), numberFeatures = 5))
+  g <- reduce(g, min.gapwidth=500e3)
   query <- GRanges("chr8", IRanges(3.7e6,3.8e6))
-  j <- subjectHits(findOverlaps(query, rd))
-  checkTrue(state(rd)[j]==5)
-  checkEquals(coverage2(rd)[j], 776L, tolerance=5)
+  i <- subjectHits(findOverlaps(query, se, maxgap=500e3))
+  j <- subjectHits(findOverlaps(query, g))
+  if(FALSE){
+    plot(start(se)[i], lrr(se)[i, 1], pch=20, ylim=c(-1,1))
+    abline(v=c(start(query), end(query)))
+    plot(start(se)[i], lrr(se)[i, 2], pch=20, ylim=c(-1,1))
+    abline(v=c(start(query), end(query)))
+  }
+  checkTrue(state(g)[j]==5)
+  checkEquals(as.integer(numberFeatures(g)[j]), 776L, tolerance=5)
 }
 
 
-test_hmm_genotypesOnly <- function(){
+.test_hmm_genotypesOnly <- function(){
   library(IRanges)
   states <- as.integer(c(3, 4, 3, 5, 3, 2, 3, 3, 2, 3, 2, 3))
   nmarkers <- as.integer(c(996, 102, 902, 50, 2467, 102, 76, 1822,
@@ -92,11 +106,12 @@ test_hmm_genotypesOnly <- function(){
 
   ## test ICE hmm
   ## annotation package not supported
-  library(Biobase)
-  checkException(hmm(snpSet, S=2L, ICE=TRUE, normalIndex=1L, TAUP=1e10))
-  annotation(snpSet) <- "genomewidesnp6Crlmm"
-  snpCallProbability(snpSet)[c(1049,1050)] <- p2i(0.5)
-  fit <- hmm(snpSet, S=2L, ICE=TRUE, normalIndex=1L, TAUP=1e10)[[1]]
+  ##  library(Biobase)
+  ##  checkException(hmm(snpSet, S=2L, ICE=TRUE, normalIndex=1L, TAUP=1e10))
+  ##  annotation(snpSet) <- "genomewidesnp6Crlmm"
+  ##  snpCallProbability(snpSet)[c(1049,1050)] <- p2i(0.5)
+  ##  fit <- hmm(snpSet, S=2L, ICE=TRUE, normalIndex=1L, TAUP=1e10)[[1]]
+  ##  stop(" what is the expectation ")
 }
 
 

@@ -1,5 +1,5 @@
 test_oligoSetList <- function(){
-  library(crlmm)
+  require(crlmm)
   foreach::registerDoSEQ()
   data(cnSetExample,package="crlmm")
   oligoList <- OligoSetList(cnSetExample)

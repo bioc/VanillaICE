@@ -62,72 +62,62 @@ registerDoSEQ()
 @
 
 The data \Robject{cnSetExample} is an object of class \Rclass{CNSet}.
-We coerce the \Rclass{CNSet} object to a list class that contains
-information on copy number (log R ratios), genotypes, genotype
-probabilities, and B allele frequencies.  If the \Rclass{CNSet} object
-contained assay data for multiple chromosomes, each element in the
-following list container would contain the assay data for one
-chromosome.
+We coerce the \Rclass{CNSet} object to a \Rclass{SnpArrayExperiment}
+that contains information on copy number (log R ratios) and B allele
+frequencies.
 
-<<coerce2OligoSnpSet>>=
-oligoList <- BafLrrSetList(cnSetExample)
-oligoList[[1]]
+<<parse_cnSet>>=
+se <- as(cnSetExample, "SnpArrayExperiment")
 @
 
 \section*{Wave correction}
 
 To correct for genomic waves that correlate with GC content [refs], we
-use the \R{} package \Rpackage{ArrayTV}.  Currently, the
-\Rpackage{ArrayTV} is available from github
-(\texttt{https://github.com/rscharpf/ArrayTV}). As this package is not
-yet available from Bioconductor, the code chunks in this section are
-not evaluated.
+use the \R{} package \Rpackage{ArrayTV} -- an approach adapted from
+the wave correction methods proposed by Benjamini and Speed for next
+generation sequencing platforms \cite{Benjamini2012}.  In the
+following code-chunk, we select a subset of the samples in the study
+to evaluate the genomic window for wave correction.  See the ArrayTV
+vignette for details.  For large datasets, one could randomly select
+20 or 25 samples to compute the window, and then use a pre-selected
+window for wave correction on the remaining samples.
 
-In the following code-chunk, we first select a subset of the samples
-in the study to evaluate the genomic window for wave correction.  See
-the ArrayTV vignette for details.  For large datasets, one could
-randomly select 20 or 25 samples to compute the window, and then use a
-pre-selected window for wave correction on the remaining samples. We
-illustrate this process, even though our dataset only contains two
-samples.  We process the dataset 20 samples at a time by setting
-\texttt{ocSamples()} to 20, thereby controlling the amount of RAM
-required (use smaller batch sizes for systems with less RAM).
-
-
-
-<<windowselection, eval=FALSE>>=
+<<windowselection>>=
 library(ArrayTV)
-i <- seq_len(ncol(oligoList))
-ocSamples(20)
+i <- seq_len(ncol(se))
 increms <- c(10,1000,100e3)
 wins <- c(100,10e3,1e6)
-tvScores <- gcCorrect(oligoList[, 1],
-		      increms=increms,
-		      maxwins=wins,
-		      returnOnlyTV=TRUE,
-		      verbose=TRUE)
-order(tvScores[[1]][,2], decreasing=TRUE)
+res <- gcCorrect(lrr(se),
+                 increms=increms,
+                 maxwins=wins,
+                 returnOnlyTV=FALSE,
+                 verbose=TRUE,
+                 build="hg18",
+                 chr=chromosome(se),
+                 starts=start(se))
+se2 <- se
+assays(se2)[["cn"]] <- res$correctedVals
 @
-
-Next, we select a small window of 10 bp and a larger window of 10,000
-bp and pre-compute the gc composition:
-
-<<gccontent,eval=FALSE>>=
-gc.matrix <- computeGC(oligoList, c(10, 10e3), c(10,10e3))
-@
-
-We use the gc content for the two windows in \texttt{gc.matrix} to
-correct the log R ratios for all samples in the dataset.  If the assay
-data elements in the \texttt{oligoList} object were \texttt{ff}
-objects, NULL is returned and the log R ratios are updated on disk.
-If the assay data elements are matrices, a \Rclass{BafLrrSetList}
-object is returned with the correct log R ratios.
-
-<<gccorrect, eval=FALSE>>=
-oligoList2 <- gcCorrect(oligoList, increms=c(10,10e3), maxwins=c(10,10e3),
-			providedGC=gc.matrix)
-@
-
+%
+%Pre-compute the gc composition for a window of size 6500bp:
+%
+%<<gccontent,eval=FALSE>>=
+%##gc.matrix <- computeGC(oligoList, c(10, 10e3), c(10,10e3))
+%##gc.matrix <- computeGC(oligoList, c(10, 10e3), c(10,10e3))
+%@
+%
+%We use the gc content for the two windows in \texttt{gc.matrix} to
+%correct the log R ratios for all samples in the dataset.  If the assay
+%data elements in the \texttt{oligoList} object were \texttt{ff}
+%objects, NULL is returned and the log R ratios are updated on disk.
+%If the assay data elements are matrices, a \Rclass{BafLrrSetList}
+%object is returned with the correct log R ratios.
+%
+%<<gccorrect, eval=FALSE>>=
+%oligoList2 <- gcCorrect(oligoList, increms=c(10,10e3), maxwins=c(10,10e3),
+%			providedGC=gc.matrix)
+%@
+%
 \section*{HMM}
 
 To identify CNVs, we fit a 6-state hidden markov model from estimates
@@ -140,144 +130,138 @@ makes it more expensive to transition from the normal copy number
 state to states with altered copy number.
 
 <<hmm>>=
-res <- hmm(oligoList, p.hom=0.1, nupdates=5, TAUP=1e10)
+res <- hmm2(se2)
 @
 
-\section*{Commonly used accessors for the BafLrrSetList class}
-
-The \verb+[[+ method can be used to extract a \Rclass{BafLrrSet} object
-for one chromosome. This object is similar to an \Rclass{ExpressionSet}
-in the Biobase package, but with assay data elements for the log R
-ratios and B allele frequencies.
-
-<<subset>>=
-oligoSet <- oligoList[[1]]
-@
-
-Accessors for the log R ratios and B allele frequencies are given by
-\Rfunction{lrr} and \Rfunction{baf}, respectively.
-
-<<accessors>>=
-r <- lrr(oligoSet)
-b <- baf(oligoSet)
-@
-
-Note that the above objects are stored as integers.
-
-<<integerscale>>=
-range(r, na.rm=TRUE)
-range(b, na.rm=TRUE)
-@
-
-The log R ratios and B allele frequencies can be transformed back to
-the original scale by dividing by 100 and 1000, respectively.
-
-<<originalscale>>=
-r <- r/100
-b <- b/1000
-@
-
-
-\section*{Visualization of genomic intervals (e.g., CNVs) with log R
-  ratios and B allele frequencies}
-
-In this section, we use lattice-style plots to visualize the genomic
-intevals of the altered copy number states.  We begin by subsetting
-the \Robject{GRanges} object from the HMM to contain only the altered
-copy number states.
-
-<<gr.altered>>=
-gr <- unlist(res)
-gr <- gr[state(gr) %in% c(1,2,5,6) & sampleNames(gr) == "NA19007",]
-@
-
-Next, we create a \Robject{SummarizedExperiment} object containing the
-log R ratios, B allele frequencies, and physical position (in Mb) that
-are within \texttt{maxgap} basepairs of the CNV intervals stored in
-the \texttt{gr} object.  Because creation of a
-\Robject{SummarizedExperiment} will read in all of the relevant low
-level data from disk, it is useful to first select only the relevant
-chromosome and samples.  While these steps are not really necessary in
-our toy example with only one chromosome and 2 samples, it can
-increase computational speed substantially in large studies. Finally,
-we create coerce the \Robject{brList} object to a
-\Robject{SummarizedExperiment}.
-
-<<gr.altered>>=
-chr <- paste("chr", chromosome(oligoList), sep="")
-brList <- oligoList[chr %in% chromosome(gr)]
-brList <- brList[, match(sampleNames(gr)[1], sampleNames(brList))]
-se <- as(brList, "SummarizedExperiment")
-@
-
-Next, we use the lattice function \texttt{xyplot} to plot the log R
-ratios and B allele frequencies for each genomic interval in the
-\Robject{gr} object.  Lattice plots require a \Robject{data.frame}, and
-so we create a \Robject{data.frame} object using the method
-\Rfunction{dataFrame}.  Additional arguments such as \texttt{maxgap}
-are passed to the \Rfunction{findOverlaps} function in the
-\Rpackage{GenomicRanges} package. Here, we frame each alteration by a
-genomic interval of 200kb by specifying \texttt{maxgap=200e3}.
-
-<<data.frame>>=
-df <- dataFrame(gr, se, maxgap=500e3)
-head(df)
-@
-
-Finally, we create separate \Rclass{trellis} objects for the log R
-ratios and B allele frequencies using the wrapper function
-\Rfunction{latticeFigs}.
-
-<<latticefigs>>=
-colors <- c("red", "orange", "white", "white",
-	    "lightblue", "blue")[state(gr)]
-figs <- latticeFigs(gr, df, colors=colors)
-@
-
-We can arrange the two trellis objects using the function
-\Rfunction{arrangeFigs} defined in the \Rpackage{SNPchip} package.
-
-%<<fig, fig=TRUE,include=FALSE, width=8, height=6>>=
-%print(fig)
+%\section*{Commonly used accessors for the BafLrrSetList class}
+%
+%The \verb+[[+ method can be used to extract a \Rclass{BafLrrSet} object
+%for one chromosome. This object is similar to an \Rclass{ExpressionSet}
+%in the Biobase package, but with assay data elements for the log R
+%ratios and B allele frequencies.
+%
+%<<subset>>=
+%oligoSet <- oligoList[[1]]
 %@
 %
-% <<echo=FALSE>>= pdf("crlmmDownstream-latticeFig.pdf", width=10,
-% height=7) @
+%Accessors for the log R ratios and B allele frequencies are given by
+%\Rfunction{lrr} and \Rfunction{baf}, respectively.
 %
-<<arrangeFig, fig=TRUE,include=FALSE, width=12, height=6>>=
-library(grid)
-library(lattice)
-arrangeFigs(figs)
-@
-%
-%<<echo=FALSE>>=
-%dev.off()
+%<<accessors>>=
+%r <- lrr(oligoSet)
+%b <- baf(oligoSet)
 %@
-
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\textwidth]{crlmmDownstream-arrangeFig}
-  \caption{\label{fig:chr8} Plot of log R ratios for altered copy
-    number states. Each panel displays one region with a copy number
-    alteration predicted from the 6-state HMM with padding on each
-    side. The light blue and orange shaded rectangles indicate
-    duplications and hemizygous deletions, respectively, identified by
-    the HMM.}
-\end{figure}
-
+%
+%Note that the above objects are stored as integers.
+%
+%<<integerscale>>=
+%range(r, na.rm=TRUE)
+%range(b, na.rm=TRUE)
+%@
+%
+%The log R ratios and B allele frequencies can be transformed back to
+%the original scale by dividing by 100 and 1000, respectively.
+%
+%<<originalscale>>=
+%r <- r/100
+%b <- b/1000
+%@
+%
+%
+%\section*{Visualization of genomic intervals (e.g., CNVs) with log R
+%  ratios and B allele frequencies}
+%
+%In this section, we use lattice-style plots to visualize the genomic
+%intevals of the altered copy number states.  We begin by subsetting
+%the \Robject{GRanges} object from the HMM to contain only the altered
+%copy number states.
+%
+%<<gr.altered>>=
+%gr <- unlist(res)
+%gr <- gr[state(gr) %in% c(1,2,5,6) & sampleNames(gr) == "NA19007",]
+%@
+%
+%Next, we create a \Robject{SummarizedExperiment} object containing the
+%log R ratios, B allele frequencies, and physical position (in Mb) that
+%are within \texttt{maxgap} basepairs of the CNV intervals stored in
+%the \texttt{gr} object.  Because creation of a
+%\Robject{SummarizedExperiment} will read in all of the relevant low
+%level data from disk, it is useful to first select only the relevant
+%chromosome and samples.  While these steps are not really necessary in
+%our toy example with only one chromosome and 2 samples, it can
+%increase computational speed substantially in large studies. Finally,
+%we create coerce the \Robject{brList} object to a
+%\Robject{SummarizedExperiment}.
+%
+%<<gr.altered>>=
+%chr <- paste("chr", chromosome(oligoList), sep="")
+%brList <- oligoList[chr %in% chromosome(gr)]
+%brList <- brList[, match(sampleNames(gr)[1], sampleNames(brList))]
+%se <- as(brList, "SummarizedExperiment")
+%@
+%
+%Next, we use the lattice function \texttt{xyplot} to plot the log R
+%ratios and B allele frequencies for each genomic interval in the
+%\Robject{gr} object.  Lattice plots require a \Robject{data.frame}, and
+%so we create a \Robject{data.frame} object using the method
+%\Rfunction{dataFrame}.  Additional arguments such as \texttt{maxgap}
+%are passed to the \Rfunction{findOverlaps} function in the
+%\Rpackage{GenomicRanges} package. Here, we frame each alteration by a
+%genomic interval of 200kb by specifying \texttt{maxgap=200e3}.
+%
+%<<data.frame>>=
+%df <- dataFrame(gr, se, maxgap=500e3)
+%head(df)
+%@
+%
+%Finally, we create separate \Rclass{trellis} objects for the log R
+%ratios and B allele frequencies using the wrapper function
+%\Rfunction{latticeFigs}.
+%
+%<<latticefigs>>=
+%colors <- c("red", "orange", "white", "white",
+%	    "lightblue", "blue")[state(gr)]
+%figs <- latticeFigs(gr, df, colors=colors)
+%@
+%
+%We can arrange the two trellis objects using the function
+%\Rfunction{arrangeFigs} defined in the \Rpackage{SNPchip} package.
+%
+%%<<fig, fig=TRUE,include=FALSE, width=8, height=6>>=
+%%print(fig)
+%%@
+%%
+%% <<echo=FALSE>>= pdf("crlmmDownstream-latticeFig.pdf", width=10,
+%% height=7) @
+%%
+%<<arrangeFig, fig=TRUE,include=FALSE, width=12, height=6>>=
+%library(grid)
+%library(lattice)
+%arrangeFigs(figs)
+%@
+%%
+%%<<echo=FALSE>>=
+%%dev.off()
+%%@
+%
+%
+%\begin{figure}[t]
+%  \centering
+%  \includegraphics[width=\textwidth]{crlmmDownstream-arrangeFig}
+%  \caption{\label{fig:chr8} Plot of log R ratios for altered copy
+%    number states. Each panel displays one region with a copy number
+%    alteration predicted from the 6-state HMM with padding on each
+%    side. The light blue and orange shaded rectangles indicate
+%    duplications and hemizygous deletions, respectively, identified by
+%    the HMM.}
+%\end{figure}
+%
 \section*{Parallelization}
 
 As the HMM is fit independently to each sample, parallelization is
-straightforward and will be performed automatically when multiple CPUs
-are available.  For large datasets in which the assay data elements of
-the \Rclass{BafLrrSetList} object are stored as \Rclass{ff} objects on
-disk, only \texttt{ocSamples()} will be processed at a time.  In the
-following unevaluated code chunk, we set up a parallel environment
-using the \R{} packages \Rpackage{snow} and \Rpackage{foreach} and
-specify that we want to process the samples one at a
-time. Automatically, the two samples in the \Robject{oligoList} object
-are processed on separate CPUs.
+straightforward.  In the following unevaluated code chunk, we set up a
+parallel environment using the \R{} packages \Rpackage{snow} and
+\Rpackage{foreach}.
 
 <<parallelEnvironment,eval=FALSE>>=
 library(foreach)
@@ -285,11 +269,10 @@ library(snow)
 library(doSNOW)
 cl <- makeCluster(2, type="SOCK")
 registerDoSNOW(cl)
-ocSamples(2)
 @
 
 <<fitParallel, eval=FALSE>>=
-res2 <- hmm(oligoList, p.hom=0, TAUP=1e10, nupdates=5)
+res2 <- hmm2(se)
 @
 
 <<stopcl,eval=FALSE>>=
@@ -305,5 +288,8 @@ were:
 <<echo=FALSE, results=tex>>=
 toLatex(sessionInfo())
 @
+
+\bibliography{ice}{}
+\bibliographystyle{plain}
 
 \end{document}

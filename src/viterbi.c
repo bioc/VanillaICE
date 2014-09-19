@@ -6,7 +6,7 @@
 #include <Rinternals.h>
 #include <R.h>
 
-static void updateTransitionMatrix(double *pAA, const int t, const int nCols, const int NS, double *tau, double *c1, double *c2, double *c3)
+static void updateTransitionMatrix(double *pAA, const int t, const int nCols, const int NS, double *tau)
 {
   int i, j;
       for (i=0; i<nCols; ++i)
@@ -15,43 +15,17 @@ static void updateTransitionMatrix(double *pAA, const int t, const int nCols, co
 	    {
 	      int offset;
 	      offset = j * nCols + i;
-	      /* if (i == j)*/
-	      if(i == NS)
+	      if(i == j)
 		{
-		  if(i == j)  /* probability of staying in the normal state */
-		    {
-		      *(pAA + offset) = 1 - ((1-tau[t-1]) * (nCols - 1) * *c1);
-		      /* printf(i, j); */
-		      /* probability of staying in the same state */
-		    }
-		  else /* probability of leaving normal state */
-		    {
-		      *(pAA + offset) = *c1 * (1-tau[t-1]);
-		    }
+		  *(pAA + offset) = tau[t-1];
 		}
-	      else   /* transitioning from an altered state */
+	      else
 		{
-		  if(i == j)  /* staying in the same altered state */
-		    {
-		      /* c2 = scalar for transitioning from normal to altered state */
-		      *(pAA + offset) = 1 - (1 - tau[t-1]) * (*c2 + (nCols - 2) * *c3);
-		    }
-		  else /* leaving altered state */
-		    {
-		      if(j == NS) /* going back to normal state */
-			{
-			  *(pAA + offset) = *c2 * (1 - tau[t-1]);
-			}
-		      else  /* going to another altered state */
-			{
-			  *(pAA + offset) = *c3 * (1 - tau[t-1]);
-			}
-		    }
+		  *(pAA + offset) = (1-tau[t-1])/(nCols-1);
 		}
 	    }
 	}
 }
-
 
 static void getIndexAndMaxVal(const double *pVec, const int len, double *pMaxVal, int *pMaxIdx)
 {
@@ -105,7 +79,7 @@ void viterbi(double *pBeta, double *initialP, double *tau,
 {
   /**  RS double *pDelta, *pAA, *pDeltaTempSum, Pstar; */
   /** double *pAA, *pDeltaTempSum, Pstar, *tp; */
-  double *pDeltaTempSum, Pstar, *tp;
+  double *pDeltaTempSum, Pstar;
   int i,j,t;
   int nRows, nCols, *pPsi;
   int NS;
@@ -241,31 +215,26 @@ void viterbi2(double *pBeta, /* emission prob */
 	      int *S,  /* number states */
 	      int *T,  /* number markers */
 	      int *pQHat, /* state path */
-	      /* double *pDelta, /* for viterbi */
 	      double *pAlpha, /* forward variable */
 	      double *pBack, /* backward variable */
-	      double *c1,
-	      double *c2,
-	      double *c3,
 	      int *normalState,
 	      double *scalingFactor)
 {
   /* *************************************************************************** */
   /*  : ASSUME pBeta is on probability scale (not log scale) */
   /*  :  changes to pDelta throughout */
-  /*  : need probability scale for reestimation formulas
+  /*  : need probability scale for reestimation formulas */
   /* *************************************************************************** */
   /**  RS double *pDelta, *pAA, *pDeltaTempSum, Pstar; */
   /** double *pAA, *pDeltaTempSum, Pstar, *tp; */
-  double *pDeltaTempSum, Pstar, *tp;
+  double *pDeltaTempSum, Pstar;
   double *pBackTempSum;
-  int i,j,t,tt;
+  int i,j,t;
   int nRows, nCols, *pPsi;
   int NS;
   double *pAA2, *pAA;
   double *scalingFactorB;
   double *pDelta;
-
   NS = *normalState - 1;
   nRows = *T;
   nCols = *S;
@@ -304,7 +273,7 @@ void viterbi2(double *pBeta, /* emission prob */
   for (t=1; t<nRows; ++t)
     {
       k = nRows-t-1;  /* when t=T-1, k= T-(T-1)-1=0 */
-      updateTransitionMatrix(pAA, t, nCols, NS, tau, c1, c2, c3);
+      updateTransitionMatrix(pAA, t, nCols, NS, tau);
       scalingFactorSum=0.0;
       for (j=0; j<nCols; ++j)
 	{
@@ -313,7 +282,7 @@ void viterbi2(double *pBeta, /* emission prob */
 	  double alphaSum = 0;
 	  for (i=0; i<nCols; ++i)
 	    { /* eq 92a */
-	      /* want to integrate out column j: sum_i aij */
+	      /* want to integrate out column j: sum_j aij */
 	      /* we later assign this prob to element j+1 of the t+1 row of the forward variable */
 	      pDeltaTempSum[i] = pAA[j * nCols + i] * pAlpha[(t-1) + i * nRows];
 	      alphaSum=alphaSum+pDeltaTempSum[i];
@@ -337,7 +306,7 @@ void viterbi2(double *pBeta, /* emission prob */
 	}
       /* backwards variable */
       /* if k is zero, this is undefined */
-      updateTransitionMatrix(pAA2, k+1, nCols, NS, tau, c1, c2, c3);
+      updateTransitionMatrix(pAA2, k+1, nCols, NS, tau);
       scalingFactorSumB=0.0;
       for(i=0;i<nCols;++i)
 	{

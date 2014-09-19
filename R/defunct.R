@@ -1,3 +1,32 @@
+setValidity("BeadStudioSetList", function(object){
+	nms <- ls(assayData(object))
+	if(!all(c("baf", "lrr") %in% nms)){
+		msg <- "baf and lrr are required elements of the assayData"
+		return(msg)
+	}
+	if(length(object) > 0){
+		msg <- validAssayDataDims(assayData(object))
+		if(!all(msg == TRUE)) return(msg)
+		elt <- (ls(assayDataList(object)))[[1]]
+		b <- assayDataList(object)[[elt]]
+		if(length(chromosome(object)) != length(b)){
+			return("chromosome slot must be the same length as the length of the list for each assayData element")
+		}
+	}
+	if(!identical(sampleNames(object), sampleNames(phenoData(object)))){
+		stop("sampleNames of 'BeadStudioSetList' object must be the same as the sampleNames of the phenoData")
+	}
+	if(length(featureDataList(object)) != length(chromosome(object))){
+		return("each chromosome should have an element in the featureDataList")
+	}
+	if(length(featureDataList(object)) > 0){
+		featureDataClasses <- sapply(featureDataList(object), class)
+		if(!unique(featureDataClasses) == "GenomeAnnotatedDataFrame"){
+			return("featureDataList must be comprised of GenomeAnnotatedDataFrame(s)")
+		}
+	}
+})
+
 #' Defunct functions/classes/methods in the VanillaICE package
 #'
 #' The function, class, or data object you asked is defunct.
@@ -17,9 +46,11 @@ hmm.setup <- function(...) .Defunct("hmm.setup function is defunct.")
 
 
 
-## TODO:  deprecate the following
 
+#' @param object see \code{showMethods(hmm)} for a listing of classes for which this method is defined
+#' @rdname Deprecated
 #' @export
+#' @aliases hmm,BafLrrSetList-method hmm,BeadStudioSet-method hmm,BeadStudioSetList-method hmm,SnpSet2-method hmm,oligoSetList-method hmm,oligoSnpSet-method
 setGeneric("hmm", function(object, ...) standardGeneric("hmm"))
 
 
@@ -80,19 +111,22 @@ constrainSd2 <- function(sigma){
   return(sigma)
 }
 
-#' Wrapper for reading GenomeStudio files
+#' Deprecated function in VanillaICE
 #'
-#' @param ... arguments passed to fread
-#' @examples
-#' path <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
-#' file <- list.files(path, pattern="genome_studio", full.names=TRUE)
-#' ## get the headers
-#' headers <- names(read_bsfiles(file, nrows=0))
-#' select <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB", "Log R Ratio", "B Allele Freq"), headers)
-#' dat <- read.bsfiles(file, select=select)
-#' @importFrom data.table fread
+#' The function read.bsfiles  has been deprecated.  This function
+#' is provided only for compatability with older versions and will be
+#' defunct at the next release.
+#'
+#' Use the replacement function fread instead.
+#'
+#' @aliases read.bsfiles
+#' @keywords internal
+#' @rdname read.bsfiles
 #' @export
-read.bsfiles <- function(...) fread(...)
+read.bsfiles <- function(...) {
+  .Deprecated("fread")
+  fread(...)
+}
 
 format_genotypes <- function(allele1, allele2){
   gt <- paste(allele1, allele2, sep="")
@@ -376,7 +410,7 @@ generatorFunG <- function(r, gt, is.snp, cnStates,
 		res <- .C("viterbi2", emit=emit, pi=initialProb,
 			  tau=tau,
 			  arm=arm, S=S, nr=nr, statePath=statePath,
-			  fv=fv, bv=bv, 1, 1, 1, 3L,
+			  fv=fv, bv=bv, 3L,
 			  scaleFactor=scaleFactor)[c("statePath", "fv", "bv", "scaleFactor")]
 		statePath <- res[["statePath"]]
 		sf <- res[["scaleFactor"]]
@@ -612,7 +646,7 @@ generatorViterbiSnpSetIce <- function(G, GP, chr, isff){
 generatorGRanges <- function(chrom, position, build, ids, TAUP, tauMAX){
   S <- 6
   CHR <- paste("chr", oligoClasses::integer2chromosome(chrom), sep="")
-  chrarm <- oligoClasses:::.getArm(as.integer(chrom), position, build)
+  chrarm <- .getArm(as.integer(chrom), position, build)
   chrarm <- factor(chrarm, unique(chrarm))
   sl <- getSequenceLengths(build)
   sl <- sl[unique(CHR)]
@@ -1106,9 +1140,6 @@ generatorFun <- function(r, b, gt, snp.index, cnStates,
               statePath=statePath,
               fv=fv,
               bv=bv,
-              1,
-              1,
-              1,
               3L,
               scaleFactor=scaleFactor)[c("statePath", "fv", "bv", "scaleFactor")]
     statePath <- res[["statePath"]]
@@ -1329,7 +1360,7 @@ generatorFunG2 <- function(r, cnStates,
 		res <- .C("viterbi2", emit=emit, pi=initialProb,
 			  tau=tau,
 			  arm=arm, S=S, nr=nr, statePath=statePath,
-			  fv=fv, bv=bv, 1, 1, 1, 3L,
+			  fv=fv, bv=bv, 3L,
 			  scaleFactor=scaleFactor)[c("statePath", "fv", "bv", "scaleFactor")]
 		statePath <- res[["statePath"]]
 		sf <- res[["scaleFactor"]]
@@ -1425,7 +1456,7 @@ generatorFunSnpSet <- function(g, normalIndex, tau,
 		res <- .C("viterbi2", emit=emit, pi=initialProb,
 			  tau=tau,
 			  arm=arm, S=S, nr=nr, statePath=statePath,
-			  fv=fv, bv=bv, 1, 1, 1, 3L,
+			  fv=fv, bv=bv, 3L,
 			  scaleFactor=scaleFactor)[c("statePath", "fv", "bv", "scaleFactor")]
 		statePath <- res[["statePath"]]
 		sf <- res[["scaleFactor"]]
@@ -1500,6 +1531,7 @@ generatorFunSnpSet <- function(g, normalIndex, tau,
 
 setMethod("hmm", signature(object="oligoSnpSet"),
 	  function(object, ...){
+            ##.Deprecated("hmm2")
             if("baf" %in% assayDataElementNames(object)){
               return(hmmBafLrrSet2(object, ...))
             } else{
@@ -1511,11 +1543,13 @@ setMethod("hmm", signature(object="oligoSnpSet"),
 
 setMethod("hmm", signature(object="BeadStudioSet"),
 	  function(object, ...){
+            ##.Deprecated("hmm2")
             hmmBafLrrSet2(object, ...)
 	  })
 
 setMethod("hmm", signature(object="SnpSet2"),
 	  function(object, ICE=FALSE, ...){
+            ##.Deprecated("hmm2")
 		  if(!ICE){
 			  hmmSnpSet2(object, ...)
 		  } else hmmSnpSetIce(object, ...)
@@ -1523,26 +1557,28 @@ setMethod("hmm", signature(object="SnpSet2"),
 
 setMethod("hmm", signature(object="BeadStudioSetList"),
 	  function(object, ...){
-		  ##hmmBeadStudioSetList(object, ...)
-		  hmmBafLrrSetList2(object, ...)
+            ##.Deprecated("hmm2")
+            ##hmmBeadStudioSetList(object, ...)
+            hmmBafLrrSetList2(object, ...)
 	  })
 
 setMethod("hmm", signature(object="BafLrrSetList"),
 	  function(object, ...){
-		  hmmBafLrrSetList2(object, ...)
+            ##.Deprecated("hmm2")
+            hmmBafLrrSetList2(object, ...)
 	  })
 
 setMethod("hmm", signature(object="oligoSetList"),
 	  function(object, ...){
-		  nms <- ls(assayData(object))
-		  if("baf" %in% nms){
-			  hmmBafLrrSetList2(object, ...)
-		  } else {
-			  stop("assay data element 'baf' required")
-		  }##hmmOligoSetList(object, ...)
+            ##.Deprecated("hmm2")
+            nms <- ls(assayData(object))
+            if("baf" %in% nms){
+              hmmBafLrrSetList2(object, ...)
+            } else {
+              stop("assay data element 'baf' required")
+            }##hmmOligoSetList(object, ...)
 	  })
 
-#' @export
 hmmOligoSnpSet2 <- function(object, sampleIds, TAUP=1e10, tauMAX,
 			    cnStates=c(0, 1, 2, 2, 3, 4),
 			    is.log=FALSE,
@@ -1587,7 +1623,6 @@ hmmOligoSnpSet2 <- function(object, sampleIds, TAUP=1e10, tauMAX,
   grl
 }
 
-#' @export
 hmmBafLrrSet2 <- function(object, sampleIds, TAUP=1e10, tauMAX,
 			  cnStates=c(-2, -0.4, 0, 0, 0.4, 1),
 			  is.log=TRUE,
@@ -1631,8 +1666,29 @@ hmmBafLrrSet2 <- function(object, sampleIds, TAUP=1e10, tauMAX,
   grl
 }
 
-
+#' Deprecated functions in the VanillaICE package
+#'
+#' These functions have been deprecated.  The functions are only
+#' provided only for compatability with older versions and will be
+#' defunct at the next release.
+#'
+#' @param x a numeric matrix
+#' @param takeLog whether to first log2 transform the numeric matrix
+#' @param ... additional arguments to \code{mad}
+#' @seealso \code{\link{mad}}
+#' @rdname Deprecated
+#' @return a matrix of the same dimension as the input. Within a column, the entries are identical
 #' @export
+robustSds <- function(x, takeLog=FALSE, ...){
+  .Deprecated("rowMAD")
+  if(takeLog) x <- log2(x)
+  sds <- apply(x, 2, "mad", ...)
+  sds <- matrix(sds, nrow(x), ncol(x), byrow=TRUE)
+  dimnames(sds) <- dimnames(x)
+  return(sds)
+}
+
+
 hmmSnpSet2 <- function(object, sampleIds, TAUP=1e10, tauMAX,
 		       normalIndex=1L,
 		       rohIndex=normalIndex+1L,
@@ -1691,7 +1747,6 @@ hmmSnpSetIce <- function(object, sampleIds, TAUP=1e10, tauMAX,
 }
 
 
-#' @export
 hmmBafLrrSetList2 <- function(object, sampleIds, TAUP=1e10, tauMAX,
 			      cnStates=c(-2, -0.4, 0, 0, 0.4, 1), is.log=TRUE,
 			      ...){
@@ -2299,45 +2354,39 @@ setAs("BeadStudioSet", "data.frame",
 	      return(df)
       })
 
-
-#' Constructor for BeadStudioSet class
+#' Deprecated BeadStudioSet and BeadStudioSetList
 #'
-#'   Constructs an instance of BeadStudioSet from a list of files
-#' containing log R ratios and B allele frequencies.
+#' The BeadStudioSet, BeadStudioSetList classes are deprecated.  The
+#' corresponding constructor and classes are provided only for
+#' compatability with older versions and will be defunct at the next
+#' release.
 #'
-#' @param filenames path to files containing log R ratios / BAFs
-#' @param header_info a list of arguments to pass to \code{read.table}, typically created by \code{\link{headerInfo}}
-#' @param genome  either 'hg18' or 'hg19'
-#' @param annotationPkg  character string providing the name of the annotation package
-#' @param chromosome integer vector indicating which chromosomes to
-#'    include in the BeadStudioSet
-#' @param ... ignored
-#' @seealso  \code{\link{read_beadstudio}}, \code{\linkS4class{BeadStudioSet}}, \code{\link{headerInfo}}
-#' @return \code{\linkS4class{BeadStudioSet}}
-#' @examples
-#' path <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
-#' fname <- list.files(path, pattern="genome_studio", full.names=TRUE)
-#' keep <- c("SNP.Name", "Allele1...AB", "Allele2...AB",
-#'           "Log.R.Ratio", "B.Allele.Freq")
-#' labels <- bead_studio_variables()
-#' labels <- setNames(labels, keep[-1])
-#' classes <- c(rep("character", 3), rep("numeric", 2))
-#' header_info <- headerInfo(fname, skip=10, sep=",",
-#'                           keep=keep, labels=labels,
-#'                           classes=classes)
-#' dat <- read_beadstudio(fname, header_info)
-#' pkg <- "human610quadv1bCrlmm"
-#' bsSet <- BeadStudioSet(fname, header_info, "hg18", pkg)
-#' @keywords IO, classes
+#' Use the replacement function SnpArrayExperiment.  For reading in
+#' plain text source files such as GenomeStudio-processed data
+#' (Illumina platform), see \code{\link{CopyNumScanParams}} and
+#' \code{\link{parseSourceFile}}.
+#'
+#' @name BeadStudioSet
+#' @aliases BeadStudioSet BeadStudioSetList BeadStudioSetList,BeadStudioSet-method BeadStudioSetList,character-method
+#' @keywords internal
+#' @param filenames full path to input files
+#' @param header_info header information
+#' @param genome character string indicating genome build
+#' @param annotationPkg name of annotation package
+#' @param chromosome which chromosomes to process
+#' @param ...
+#' @rdname BeadStudioSet
+#' @seealso \code{link{CopyNumScanParams}} \code{\link{parseSourceFile}}
 #' @export
 BeadStudioSet <- function(filenames,
                           header_info,
 			  genome=c("hg19", "hg18"),
 			  annotationPkg, chromosome=1:22, ...){
   .Deprecated("SnpArrayExperiment")
+
   genome <- match.arg(genome)
   ## get the feature data
-  tmp <- fread(filenames[1], nrow=1)
+  tmp <- fread(filenames[1], nrows=1)
   select <- match(header_info, colnames(tmp))
   dat <- fread(filenames[1], select=select)
   R <- setRownames(as.matrix(dat[, "LRR"]), rownames(dat))
@@ -2346,8 +2395,7 @@ BeadStudioSet <- function(filenames,
                                                genome=genome)
   id <- make.unique(basename(filenames))
   if(length(filenames) > 1){
-    datalist <- lapply(filenames[-1], read_beadstudio,
-                       header_info=header_info)
+    datalist <- lapply(filenames[-1], fread, select=select)
     datalist[[length(datalist)+1]] <- dat
     names(datalist) <- c(id[-1], id[1])
     datalist <- datalist[id]
@@ -2419,6 +2467,7 @@ setMethod(BeadStudioSetList, "BeadStudioSet",
                 genome=x@genome, ...)
           })
 
+
 setMethod(BeadStudioSetList, "character",
           function(x, header_info,
                    genome=c("hg19", "hg18"),
@@ -2479,32 +2528,7 @@ stackFeatureDataList <- function(x){
                      row.names=fns)
 }
 
-#' @importMethodsFrom Biobase pData
-#' @importFrom IRanges IRanges
-#' @export
-setAs("GenomeAnnotatedDataFrame", "SnpGRanges",
-      function(from, to){
-        chr <- paste0("chr", integer2chromosome(chromosome(from)))
-        gr <- GRanges(chr,
-                      IRanges(position(from)-12L,
-                              width=25L),
-                      isSnp=from$isSnp)
-        gr
-      })
 
-
-setAs("oligoSnpSet", "SnpArrayExperiment",
-      function(from){
-        rowdata <- as(featureData(from), "SnpGRanges")
-        coldata <- as(phenoData(from), "DataFrame")
-        cn_assays <- snpArrayAssays(cn=copyNumber(from),
-                                    baf=baf(from),
-                                    gt=calls(from))
-        SnpArrayExperiment(cn_assays, rowData=rowdata,
-                           colData=coldata)
-      })
-
-#' @importMethodsFrom IRanges split
 setMethod("split", c("GenomeAnnotatedDataFrame", "ANY"),
           function(x, f, drop=FALSE, ...){
             .splitGenomeAnnotatedDataFrame(x, f, drop=drop, ...)
@@ -2530,6 +2554,8 @@ setMethod("split", c("GenomeAnnotatedDataFrame", "ANY"),
   fdlist
 }
 
+#' @aliases baf,SnpSet2-method
+#' @rdname Defunct
 setMethod("baf", signature(object="SnpSet2"), function(object) assayDataElement(object, "baf"))
 
 ##setMethod("SummarizedHMM", "missing", function(forward_backward,
@@ -2570,6 +2596,18 @@ setAs("oligoSnpSet", "SnpArrayExperiment",
 
 setMethod("chromosome", "oligoSnpSet", function(object) as.character(chromosome(featureData(object))))
 
+#' Subset method for deprecated \code{oligoSetList}
+#'
+#' The \code{oligoSetList} class is deprecated.  Use
+#' \code{\link{SnpArrayExperiment}} instead.
+#'
+#' @aliases [[,oligoSetList,ANY,ANY-method
+#' @rdname oligoSetList
+#' @param x a \code{oligoSetList} object
+#' @param i A length-one numeric vector specifying which chromosome to extract
+#' @param j A numeric vector specifying samples to extract (optional)
+#' @param ... Ignored
+#' @param exact Ignored
 #' @export
 setMethod("[[", signature(x="oligoSetList"),
 	  function(x, i, j, ..., exact=TRUE){

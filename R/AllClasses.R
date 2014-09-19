@@ -6,34 +6,6 @@ setClass("Viterbi",
                         loglik="numeric",
                         forward_backward="matrix"))
 
-setValidity("BeadStudioSetList", function(object){
-	nms <- ls(assayData(object))
-	if(!all(c("baf", "lrr") %in% nms)){
-		msg <- "baf and lrr are required elements of the assayData"
-		return(msg)
-	}
-	if(length(object) > 0){
-		msg <- validAssayDataDims(assayData(object))
-		if(!all(msg == TRUE)) return(msg)
-		elt <- (ls(assayDataList(object)))[[1]]
-		b <- assayDataList(object)[[elt]]
-		if(length(chromosome(object)) != length(b)){
-			return("chromosome slot must be the same length as the length of the list for each assayData element")
-		}
-	}
-	if(!identical(sampleNames(object), sampleNames(phenoData(object)))){
-		stop("sampleNames of 'BeadStudioSetList' object must be the same as the sampleNames of the phenoData")
-	}
-	if(length(featureDataList(object)) != length(chromosome(object))){
-		return("each chromosome should have an element in the featureDataList")
-	}
-	if(length(featureDataList(object)) > 0){
-		featureDataClasses <- sapply(featureDataList(object), class)
-		if(!unique(featureDataClasses) == "GenomeAnnotatedDataFrame"){
-			return("featureDataList must be comprised of GenomeAnnotatedDataFrame(s)")
-		}
-	}
-})
 
 setClass("EmissionParam",
          representation=representation(
@@ -45,30 +17,58 @@ setClass("EmissionParam",
            EMupdates="integer",
            CN_range="numeric",
            proportionOutlier="numeric",
-           temper="numeric"))
+           temper="numeric",
+           p_outlier="numeric"))
+
+
 
 setClass("TransitionParam",
          representation(
            taup="numeric",
            taumax="numeric"))
 
-## should change the name to ViterbiLogLik
+#' Classes and methods for storing/getting log-likelihoods from Viterbi algorithm
+#'
+#' Exported for internal use by other BioC packages
+#' @slot loglik a numeric vector
+#' @slot tolerance a numeric vector
+#' @docType class
+#' @rdname LogLik-class
+#' @seealso \code{\link{LogLik}}
+#' @export
 setClass("LogLik", representation(loglik="numeric", tolerance="numeric"))
+
+
+#' A class allowing matrix or NULL objects
+#'
+#' Exported for internal use by other BioC packages
+#'
+#' @rdname matrixOrNULL-class
+#' @aliases matrixOrNULL-class
+#' @name matrixOrNULL
+#' @docType class
+NULL
+#' @export
+setClassUnion("matrixOrNULL", c("matrix", "NULL"))
 
 setClass("HmmParam",
          representation(
-           emission="matrix",
+           emission="matrixOrNULL",
            emission_param="EmissionParam",
            transition="numeric",
            chromosome="character",
            loglik="LogLik",
            viterbi="Viterbi",
+           compute_posteriors="logical",
            verbose="logical"))
 
 
-#' @export
 setClass("SnpDataFrame", contains="DataFrame")
 
+#' An extension to GRanges for representing SNPs
+#'
+#' @slot elementMetadata a \code{SnpDataFrame}
+#' @rdname SnpGRanges
 #' @export
 setClass("SnpGRanges", contains="GRanges",
          representation(elementMetadata="SnpDataFrame"))
@@ -82,30 +82,165 @@ setClass("SnpArrayExperiment", contains = "SummarizedExperiment",
 #' @aliases HmmGRanges-class
 #' @rdname HmmGRanges-class
 #' @export
-setClass("HmmGRanges", contains="GRanges")
+setClass("HmmGRanges", contains="GRanges", representation(emission_param="EmissionParam"))
 
-##setClass("SummarizedHMM",
-##         representation(loglik="numeric",
-##                        rowData="HmmGRanges"))
-##
+#' Container for the common criteria used to  filtering genomic ranges
+#'
+#' The maximum a posteriori estimate of the trio copy number state for
+#' each genomic range is represented in a
+#' \code{\link{GRanges}}-derived class.  Ultimately, these ranges will
+#' be filtered based on the trio copy number state (e.g., denovo
+#' deletions), size, number of features (SNPs), or chromosome.
+#' \code{FilterParam} is a container for the parameters commmonly used
+#' to filter the genomic ranges.
+#' @slot probability a length-one numeric vector indicating the
+#' minimum posterior probability for the called state. Genomic
+#' intervals with posterior probabilities below \code{probability}
+#' will be filtered.
+#' @slot numberFeatures a positive integer indicating the minimum
+#' number of features in a segment
+#' @slot seqnames a character vector of \code{seqnames} to select
+#' (i.e., 'chr1' for only those intervals on chromosome 1)
+#' @slot width positive integer indicating the minimal width of
+#' genomic intervals
+#' @slot state character string indicating which hidden Markov model states to select
+#' @examples
+#' fp <- FilterParam()
+#' width(fp)
+#' numberFeatures(fp)
+#' seqnames(fp)
+#' @rdname FilterParam-class
+#' @export
+setClass("FilterParam", representation(probability="numeric",
+                                       numberFeatures="numeric",
+                                       seqnames="character",
+                                       width="integer",
+                                       state="character"))
 
+#' Container for the segmented data and the 6-state HMM model parameters
+#'
+#' @slot granges a \code{GRanges} object
+#' @slot param a \code{HmmParam} object
+#' @slot posterior a matrix of posterior probabilities
+#' @slot filters a \code{FilterParam} object
+#' @seealso \code{\link{hmm2}}
+#' @rdname HMM
+#' @export
+setClass("HMM", representation(granges="GRanges",
+                               param="HmmParam",
+                               posterior="matrix",
+                               filters="FilterParam"))
+
+#' Class, constructor, and methods for representing HMM results from
+#' multiple samples
+#'
+#' Each element of the HMMList contains the genomic intervals of the
+#' HMM segmentation (GRanges-derived object), parameters from the
+#' Baum-Welch, a matrix of posterior probabilities for the 6-state HMM
+#' (each row corresponds to a segment), and a \code{FilterParam}
+#' object.
+#'
+## @slot granges a \code{GRanges}-derived class
+## @slot param Baum-Welch parameters from the 6-state HMM
+## @slot posterior numeric matrix of posterior probabilties
+## @slot filters parameters for filtering the GRanges object
+#' @slot .Data a list. Each element of the list should be a \code{HMM} object.
+#' @rdname HMMList-class
+#' @seealso \code{\linkS4class{HMM}}
+#' @export
+setClass("HMMList", contains="list")
+
+#' Parameters for parsing source files containing SNP-array processed
+#' data, such as GenomeStudio files for the Illumina platform
+#'
+#' Raw SNP array processed files have headers and variable labels that
+#' may depend the software, how the output files was saved, the
+#' software version, and other factors.  The purpose of this container
+#' is to collect the parameters relevant for reading in the source
+#' files for a particular project in a single container.  This may
+#' require some experimentation as the example illustrates.  The
+#' function \code{\link{fread}} in the \code{data.table} package
+#' greatly simplifies this process.
+#' @slot index_genome
+#' @slot cnvar the column label for the log R ratios
+#' @slot bafvar the column label for the B allele frequencies
+#' @slot gtvar the column label(s) for the genotypes
+#' @slot scale length-one numeric vector indicating how the low-level data should be scaled prior to saving on disk
+#' @slot select numeric vector indicating which columns to read
+#' @slot row.names length-one numeric vector indicating which column
+#' the SNP names are in
+#'
+#' @rdname CopyNumScanParams
+#' @export
+setClass("CopyNumScanParams", representation(index_genome="integer",
+                                             cnvar="character",
+                                             bafvar="character",
+                                             gtvar="character",
+                                             scale="numeric",
+                                             select="integer",
+                                             row.names="integer"))
+
+
+#' ArrayViews class, constructor, and methods
+#'
+#' Description of ArrayViews class and methods.
+#'
+#' ArrayViews provides views to the low-level data -- log R ratios, B
+#' allele frequencies, and genotypes that are stored in parsed files
+#' on disk.  Accessors for the low-level data are provided to
+#' facilitate views of the data.
+#'
+#' @slot colData  A character string
+#' @slot rowData A \code{DataFrame}
+#' @slot index A \code{GRanges} object
+#' @slot sourcePaths A character string providing complete path to source files (one file per sample) containing low-level summaries (Log R ratios, B allele frequencies, genotypes)
+#' @slot scale A length-one numeric vector
+#' @slot parsedPath A character string providing full path to where parsed files should be saved
+#' @aliases '[',ArrayViews,ANY-method baf_means,ArrayViews-method
+#' @rdname ArrayViews-class
 #' @export
 setClass("ArrayViews",
          representation(colData="DataFrame",
                         rowData="GRanges",
                         index="integer",
-                        filePaths="character",
+                        sourcePaths="character",
                         scale="numeric",
-                        datadir="character"))
+                        parsedPath="character"))
 
-#' @export
-setClass("GStudioViews", contains="ArrayViews")
+setClass("HmmTrellisParam", representation(expandfun="function",
+                                           ylimits="list"))
 
+#' Paramater class for plotting idiograms
+#'
+#' @slot seqnames length-one character vector providing chromosome name
+#' @slot seqlengths length-one numeric vector indicating size of chromosome
+#' @slot unit character string indicating unit for genomic position (default is 'kb')
+#' @slot genome character string indicating genome build
+#' @slot box a list of parameters for plotting the box around the part of the idiogram that is plotted.
 #' @export
-setClass("GStudioScanParams", representation(readfun="function",
-                                             index_genome="integer",
-                                             cnvar="character",
-                                             bafvar="character",
-                                             gtvar="character",
-                                             scale="numeric",
-                                             select="integer"))
+#' @rdname IdiogramParams-class
+#' @examples
+#' if(require(BSgenome.Hsapiens.UCSC.hg18) && require(grid)){
+#'    si <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)
+#'    iparam <- IdiogramParams(seqnames="chr1",
+#'                             genome="hg18",
+#'                             seqlengths=seqlengths(si)["chr1"],
+#'                             box=list(xlim=c(20e6L, 25e6L), color="blue", lwd=2))
+#'    iparam
+#'    idiogram <- plot(iparam)
+#'    vp <- viewport(x=0.05, y=0.8, width=unit(0.9, "npc"), height=unit(0.2, "npc"),
+#'                   name="vp1", just=c("left", "bottom"))
+#'    grid.newpage()
+#'    pushViewport(vp)
+#'    print(idiogram, vp=vp, newpage=FALSE)
+#' }
+#'
+setClass("IdiogramParams", representation(seqnames="character",
+                                          seqlengths="numeric",
+                                          unit="character",
+                                          genome="character",
+                                          box="list"))
+
+
+
+setGeneric("plot")

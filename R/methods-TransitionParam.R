@@ -8,6 +8,9 @@ setMethod(TransitionParam, signature(taup="numeric"),
             new("TransitionParam", taup=taup, taumax=taumax)
           })
 
+#' @param object a \code{TransitionParam} object
+#' @aliases show,TransitionParam-method
+#' @rdname TransitionParam
 setMethod(show, "TransitionParam",
           function(object) {
             cat(class(object), ":\n")
@@ -27,7 +30,10 @@ setMethod("calculateTransitionProbability", signature(x="numeric"),
             if(TAUMAX < 1){
               probability[probability > TAUMAX] <- TAUMAX
             }
-            ##if(min(probability) < 0) stop("Invalid transition probabilities. Check that x values are sorted")
-            ##if(max(probability) > 1) stop("Invalid transition probabilities. Check that x values are sorted")
+            ##
+            ## 1/6 would be uniformative. Anything less than 1/6 would
+            ## favor transitioning to an altered state
+            ##
+            probability[probability < 1/6] <- 1/6
             probability
           })

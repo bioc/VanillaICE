@@ -23,6 +23,10 @@ setMethod(Viterbi, signature(state="Rle"),
 
 setMethod(forward_backward, "Viterbi", function(x) x@forward_backward)
 
+#' Show method for objects of class \code{Viterbi}
+#' @param object a \code{Viterbi} object
+#' @aliases show,Viterbi-method
+#' @rdname Viterbi-methods
 setMethod(show, signature(object="Viterbi"),
           function(object){
             cat("class Viterbi\n")
@@ -32,6 +36,25 @@ setMethod(show, signature(object="Viterbi"),
             cat("forward_backward: ", nrow(fv), "x", ncol(fv), "matrix\n")
           })
 
+## # Accessor for the Viterbi state path
+## #
+
+## #
+## @param object an object of class \code{Viterbi}
+## @return an integer vector
+
+
+
+#' Accessor for the Viterbi state path
+#'
+#' The states are represented as integers: 1=homozygous deletion,
+#' 2=hemizygous deletion, 3=diploid normal heterozygosity, 4=diploid
+#' region of homozygosity, 5=single copy gain, 6=two or more copy gain.
+#' @param object a \code{Viterbi} object
+#' @aliases state,Viterbi-method
+#' @rdname state-methods
+#' @name state-methods
+#' @export
 setMethod(state, "Viterbi", function(object) object@state)
 
 
@@ -45,9 +68,14 @@ setValidity("Viterbi", function(object){
 })
 
 
-#' Viterbi algorithm
-#'
-#' @export
+## Viterbi algorithm
+##
+## Compute the most likely state-path via the Viterbi algorithm. This
+## algorithm is exported for internal use by other BioC packages.
+##
+## @param param an object of class \code{HmmParam}
+## @return an objec tof class \code{Viterbi}
+## @export
 calculateViterbi <- function(param=HmmParam()){
   NR <- nrow(param)
   NC <- ncol(param)
@@ -69,14 +97,11 @@ calculateViterbi <- function(param=HmmParam()){
             states,
             forvar,
             backvar,
-            1,
-            1,
-            1,
             3L,
             scale_amount)
-  forvar <- matrix(res[[9]], NR, NC)
-  bakvar <- matrix(res[[10]], NR, NC)
-  loglik <- -sum(log(res[[14]]))
+  forvar <- matrix(res[[8]], NR, NC)
+  bakvar <- matrix(res[[9]], NR, NC)
+  loglik <- -sum(log(res[[11]]))
   FV <- scaleForwardBackward(forvar, bakvar)
   colnames(FV) <- FV_columns()
   Viterbi(state=res[[7]],

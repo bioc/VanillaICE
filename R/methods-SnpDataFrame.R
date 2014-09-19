@@ -47,6 +47,17 @@ setMethod(SnpGRanges, "GRanges",
             as(object, "SnpGRanges")
           })
 
+#' @export
+setAs("GenomeAnnotatedDataFrame", "SnpGRanges",
+      function(from, to){
+        chr <- paste0("chr", integer2chromosome(chromosome(from)))
+        gr <- GRanges(chr,
+                      IRanges(position(from)-12L,
+                              width=25L),
+                      isSnp=from$isSnp)
+        SnpGRanges(gr)
+      })
+
 setMethod(isSnp, "SnpDataFrame", function(object) object$isSnp)
 
 setValidity("SnpDataFrame", function(object){

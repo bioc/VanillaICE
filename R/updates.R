@@ -4,11 +4,14 @@ prC3 <- function(pr) 1/8*pr[, "A"] + 3/8*pr[, "AAB"] + 3/8*pr[, "ABB"] + 1/8*pr[
 prC4 <- function(pr) 1/16*pr[, "A"] + 4/16*pr[, "AAAB"] +
   6/16*pr[, "AB"] + 4/16*pr[, "ABBB"] + 1/16*pr[, "B"]
 
+
+
 isNonDecreasing <- function(x) any(diff(x) < 0)
 
 shrink <- function(means, sds, state_freq,
                    prior_means,
-                   prior_obs, prior_sd=0.1){
+                   prior_obs,
+                   prior_sd){
   ## use the prior if any NaNs
   if(any(is.na(means))) means[is.na(means)] <- prior_means[is.na(means)]
   if(any(is.na(sds))) sds[is.na(sds)] <- prior_sd[is.na(sds)]
@@ -16,7 +19,6 @@ shrink <- function(means, sds, state_freq,
   ## posterior for means
   ##
   prior_prec <- prior_obs/prior_sd^2 ## n0 prior observations
-
   data_prec <- state_freq/sds^2
   posterior_means <- prior_prec/(prior_prec + data_prec) * prior_means + data_prec/(prior_prec + data_prec) * means
   ##
@@ -35,8 +37,16 @@ shrink <- function(means, sds, state_freq,
   sigma2_0 <- prior_sd^2
   nu_0 <- kappa_0 <- prior_obs
   kappa_n <- nu_n <- prior_obs + state_freq
-  nn <- state_freq
+  nn <- pmax(state_freq, 0)
   sigma2_n <- 1/nu_n * (nu_0*sigma2_0 + pmax((nn-1),0)*sds^2 + kappa_0 * nn/kappa_n*(means - prior_means)^2)
+  ##
+  if(length(sigma2_n)==5){
+    pooled <- sum(state_freq[-1]*sigma2_n[-1])/sum(state_freq[-1])
+    sigma2_n[-1] <- pooled
+  } else {
+    pooled <- sum(state_freq[-c(1, 7)]*sigma2_n[-c(1,7)])/sum(state_freq[-c(1,7)])
+    sigma2_n[-c(1,7)] <- pooled
+  }
   posterior_sd <- sqrt(sigma2_n)
   list(means=posterior_means,
        sds=posterior_sd)
@@ -118,7 +128,7 @@ shrinkBafParam <- function(param, model){
   ##  The HMM does not allow us to directly estimate the number of
   ## observations for the different allele frequencies
   nAB <- max(1/2 * sum(nobs["3"]), 1)
-  nB <- nA <- 1/4 * nAB + 1/2*sum(nobs[["4"]])
+  nB <- nA <- 1/2 * nAB + 1/2*sum(nobs[["4"]])
   ## moderate shrinkage
   nABB <- nAAB <- 3/8 * sum(nobs["5"])
   nABBB <- nAAAB <- 4/16 * sum(nobs["6"])
@@ -130,8 +140,8 @@ shrinkBafParam <- function(param, model){
                        sds=sds,
                        state_freq=state_freq,
                        prior_means=BAF_PRIOR_MEANS(),
-                       prior_obs=max(1/100*sum(nobs), 50),
-                       prior_sd=0.1)
+                       prior_obs=max(1/10*sum(nobs), 25),
+                       prior_sd=BAF_SDS())
   baf_means(param) <- posteriors[["means"]]
   baf_sds(param) <- posteriors[["sds"]]
   ##means_new <- makeMusBafNondecreasing(posterior_means)
@@ -144,31 +154,11 @@ updateCnParam <- function(cn, param, model){ ##fv, bv, j) {
   LIMIT_RANGE <- CN_range(param)
   nr <- length(cn)
   S <- 6L
-  ##
-  ## mixture parameters for outliers are assumed to be the same for
-  ## each marker and is not updated.  Can be interpreted as the
-  ## proportion of markers that are outliers.
-  ##
-  ##p <- 0.99; q <- 1-p
-  p <- proportionOutlier(param)
-  q <- 1-p
-  ##
   means <- cn_means(param)
   sds <- cn_sds(param)
-  ##minimum_sd <- sds[3]/2
-
-  ## outlier density.  Is needlessly recomputed for each update.
-  dens_unif <- dunif(cn, LIMIT_RANGE[1], LIMIT_RANGE[2])  ## N x 1
-  dens_unif <- matrix(dens_unif, nr, S, byrow=FALSE)
-  ## q*(pi1 * phi1 + pi2*phi2 + ... + pi6*phi6) + p*Unif
-  ## = q*pi1*phi1 + q*pi2*phi2 + ... + q*phi6*phi6 + p*unif
-  ## Pr(component 1) = (q*pi1*phi1 + p*unif)/(q*pi1+phi1 + ... + q*phi6*phi6 + p*Unif)
-  ## p. 267
-  ## d is N x S
-  d <- q*dnorm(cn, mean=matrix(means, nr, S, byrow=TRUE),
-               sd=matrix(sds, nr, S, byrow=TRUE)) + p*dens_unif
-  ## denominator is p Unif + 1-p * Unif = Unif
-  d1 <- d/(d+dens_unif)
+  d <- dnorm(cn, mean=matrix(means, nr, S, byrow=TRUE),
+             sd=matrix(sds, nr, S, byrow=TRUE))
+  d1 <- d
   FV <- forward_backward(model)
   g1 <- FV * d1
   g2 <- FV * (1-d1)
@@ -191,18 +181,28 @@ updateCnParam <- function(cn, param, model){ ##fv, bv, j) {
                        state_freq=stats[["n"]],
                        prior_means=CN_PRIOR_MEANS(),
                        prior_sd=CN_PRIOR_SDS(),
-                       prior_obs=max(1/100*sum(nobs), 50))
+                       prior_obs=max(1/4*sum(nobs), 50))
   ## a few constraints
-  if(means[1] > -0.5) means[1] <- -0.5
-  if(means[5] < 0.1) means[5] <- 0.1
+  ## if(means[1] > -0.5) means[1] <- -0.5
+  ## if(means[5] < 0.1) means[5] <- 0.1
   means <- setNames(posteriors[["means"]], names(means))
   cn_means(param) <- expandCnTwo(means)
   sds <- setNames(posteriors[["sds"]], names(means))
   cn_sds(param) <- expandCnTwo(sds)
+  if(FALSE){
+    r <- lrr(object)[chromosome(object) %in% paste0("chr", 1:22),1]
+    hist(r, breaks=1000, col="gray", border="gray", freq=FALSE)
+    mu <- modev(r)
+    s <- cn_sds(param)[2]
+    quants <- seq(0, 1, 0.001)
+    x <- qnorm(quants, mu, s)
+    probs <- dnorm(x, mu, s)
+    points(x, probs, pch=20, cex=0.2)
+    ac <- acf2(r)
+  }
   param
 }
 
-#' @export
 updateParam <- function(assay_list, param, model){
   param <- updateBafParam(assay_list[[2]], param, model)
   updateCnParam(assay_list[[1]], param, model)

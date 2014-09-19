@@ -14,6 +14,7 @@ setMethod(HmmParam, signature(emission="missing"),
                    chromosome=character(nrow(emission)),
                    loglik=LogLik(),
                    viterbi=Viterbi(),
+                   compute_posteriors=TRUE,
                    verbose=FALSE){
             new("HmmParam",
                 emission=emission,
@@ -22,6 +23,7 @@ setMethod(HmmParam, signature(emission="missing"),
                 chromosome=chromosome,
                 loglik=loglik,
                 viterbi=viterbi,
+                compute_posteriors=compute_posteriors,
                 verbose=verbose)
           })
 
@@ -32,6 +34,7 @@ setMethod(HmmParam, signature(emission="matrix"),
                    chromosome=character(nrow(emission)),
                    loglik=LogLik(),
                    viterbi=Viterbi(),
+                   compute_posteriors=TRUE,
                    verbose=FALSE){
             new("HmmParam",
                 emission=emission,
@@ -40,6 +43,7 @@ setMethod(HmmParam, signature(emission="matrix"),
                 chromosome=chromosome,
                 loglik=loglik,
                 viterbi=viterbi,
+                compute_posteriors=compute_posteriors,
                 verbose=verbose)
           })
 
@@ -62,18 +66,30 @@ setReplaceMethod("emissionParam", c("HmmParam", "EmissionParam"), function(objec
   object
 })
 
+
+setMethod("doPosterior", "HmmParam", function(object) object@compute_posteriors)
+
+#' @param object a \code{HmmParam} object
+#' @aliases show,HmmParam-method
+#' @rdname HmmParam
 setMethod(show, signature(object="HmmParam"),
           function(object){
             cat(class(object), ":\n")
             emissions <- emission(object)
-            cat("emission:", nrow(emissions), "rows,", ncol(emissions), "states \n")
-            transitions <- transition(object)
-            cat("transition:  min=", min(transitions), ", max=", max(transitions), "\n")
+            if(!is.null(emissions)){
+              cat("  emission:", nrow(emissions), "rows,", ncol(emissions), "states \n")
+            }
+            if(nrow(object) > 0){
+              transitions <- transition(object)
+              cat("  transition:  min=", min(transitions), ", max=", max(transitions), "\n")
+            } else cat("  transition: NA\n")
             init <- initial(object)
-            cat("initial state probabilities: ", paste(round(init, 2), collapse=", "), "\n")
-            cat("Log likelihood: \n")
+            cat("  initial state probabilities: ", paste(round(init, 2), collapse=", "), "\n")
+            cat("  Log likelihood: \n")
             show(loglik(object))
           })
+
+setMethod("temper", "HmmParam", function(object) temper(emissionParam(object)))
 
 setMethod("loglik", "HmmParam", function(object) object@loglik)
 
@@ -99,19 +115,28 @@ setMethod("emission", signature(object="HmmParam"), function(object) object@emis
 
 setMethod("chromosome", signature(object="HmmParam"), function(object) object@chromosome)
 
-#' @export
 setReplaceMethod("emission", signature(object="HmmParam"),
                  function(object,value){
                    object@emission <- value
                    object
                  })
 
+#' @param x a \code{HmmParam} object
+#' @aliases nrow,HmmParam-method
+#' @rdname HmmParam
+#' @export
 setMethod("nrow", signature(x="HmmParam"), function(x){
-  nrow(emission(x))
+  ##nrow(emission(x))
+  as.integer(length(chromosome(x)))
 })
 
+
+#' @aliases ncol,HmmParam-method
+#' @rdname HmmParam
+#' @export
 setMethod("ncol", signature(x="HmmParam"), function(x){
-  ncol(emission(x))
+  ##ncol(emission(x))
+  length(initial(emissionParam(x)))
 })
 
 setMethod("transition", signature(object="HmmParam"), function(object) {
@@ -124,13 +149,17 @@ setMethod("initial", signature(object="HmmParam"), function(object) {
 
 setValidity("HmmParam", function(object){
   emit <- emission(object)
-  if(any(emit < 0, na.rm=TRUE)){
-    msg <- "emissions must be non-negative"
-  } else msg <- TRUE
-  msg
+  if(!is.null(emit)){
+    if(any(emit < 0, na.rm=TRUE)){
+      msg <- "emissions must be non-negative"
+    } else msg <- TRUE
+    msg
+  }
 })
 
 setMethod("cn_means", "HmmParam", function(object) cn_means(emissionParam(object)))
 setMethod("cn_sds", "HmmParam", function(object) cn_sds(emissionParam(object)))
 setMethod("baf_means", "HmmParam", function(object) baf_means(emissionParam(object)))
 setMethod("baf_sds", "HmmParam", function(object) baf_sds(emissionParam(object)))
+
+numberStates <- function(object) length(cn_means(object))
