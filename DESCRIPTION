@@ -1,5 +1,5 @@
 Package: VanillaICE
-Version: 1.27.29
+Version: 1.27.30
 Title: A Hidden Markov Model for high throughput genotyping arrays
 Author: Robert Scharpf <rscharpf@jhsph.edu>, Kevin Scharpf, and Ingo Ruczinski
     <ingo@jhsph.edu>
@@ -26,7 +26,8 @@ Suggests:
     SNPchip,
     crlmm,
     human610quadv1bCrlmm,
-    BSgenome.Hsapiens.UCSC.hg18
+    BSgenome.Hsapiens.UCSC.hg18,
+    ArrayTV
 Enhances: doMC, doMPI, doSNOW, doParallel, doRedis
 License: LGPL-2
 LazyLoad: yes
