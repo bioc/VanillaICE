@@ -307,7 +307,8 @@ lrr(views)[1:2, 2:4]
 lrr(views[1:2, 2:4])
 ## B allele frequencies
 baf(views[1:2, 2:4])
-genotypes(views)[1:2, 2:4]
+## potentially masked by function of the same name in crlmm
+VanillaICE::genotypes(views)[1:2, 2:4]
 @
 
 More often, it is useful to extract the low-level data in a
