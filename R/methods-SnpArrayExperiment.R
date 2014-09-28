@@ -34,18 +34,25 @@ setAs("CNSet", "SnpArrayExperiment",
       function(from){
         b.r <- crlmm:::calculateRBaf(from)
         baflist <- b.r[["baf"]]
+        not_matrix <- !is.matrix(baflist[[1]])
+        if(not_matrix) baflist <- lapply(baflist, "[")
         lrrlist <- b.r[["lrr"]]
+        if(not_matrix) lrrlist <- lapply(lrrlist, "[")
         bafs <- do.call(rbind, baflist)
         lrrs <- do.call(rbind, lrrlist)
         nms <- rownames(lrrs)
         i <- match(nms, featureNames(from))
-        rowdat <- GRanges(paste0("chr", integer2chromosome(chromosome(from)[i])),
-                          IRanges(position(from)[i], width=1),
-                          isSnp=isSnp(from)[i])
+        g <- GRanges(paste0("chr", integer2chromosome(chromosome(from)[i])),
+                     IRanges(position(from)[i], width=1))
+        rowdat <- SnpGRanges(g, isSnp=isSnp(from)[i])
+        rowdat <- SnpGRanges(rowdat)
         names(rowdat) <- nms
-        SnpArrayExperiment(cn=lrrs/100, baf=bafs/1000,
-                           rowData=rowdat,
-                           colData=DataFrame(pData(from)))
+        ##tmp=snpArrayAssays(cn=lrrs/100, baf=bafs/100)
+        ##new("SnpArrayExperiment", assays=tmp, rowData=rowdat, colData=DataFrame(pData(from)))
+        se <- SnpArrayExperiment(cn=lrrs/100, baf=bafs/1000,
+                                 rowData=SnpGRanges(rowdat),
+                                 colData=DataFrame(pData(from)))
+        sort(se)
       })
 
 setAs("oligoSnpSet", "SnpArrayExperiment",

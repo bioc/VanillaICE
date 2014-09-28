@@ -11,7 +11,7 @@
 #' @export
 IdiogramParams <- function(seqnames=character(),
                            seqlengths=numeric(), unit="kb", genome="hg19",
-                           box=list(xlim=ILimit(), color="blue", lwd=1)){
+                           box=list(color="blue", lwd=1)){
   new("IdiogramParams", seqnames=seqnames, seqlengths=seqlengths, unit=unit,
       genome=genome, box=box)
 }

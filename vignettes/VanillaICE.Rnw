@@ -67,19 +67,19 @@ options(width=70)
 
 \section{From processed SNP summaries}
 
-The starting point for this vignette are B allele frequencies and log
-R ratios that are available from software such as GenomeStudio and the
-\R{} package \Rpackage{crlmm} for preprocessing SNP array data.  In
-this vignette, we assume that the low-level summaries are available in
-a plain text file -- one file per sample.  For users of the
-\Rpackage{crlmm} package for preprocessing, please refer to the
+The starting point for this section of the vignette are B allele
+frequencies and log R ratios that are available from software such as
+GenomeStudio and the \R{} package \Rpackage{crlmm}.  In this section,
+we assume that the low-level summaries are available in a plain text
+file -- one file per sample.  For users of the \Rpackage{crlmm}
+package for preprocessing, please refer to the
 \textit{crlmmDownstream} vignette.
 
 To illustrate the workflow for copy number analysis, this package
 provides Illumina 610k array data for one Hapmap trio and one oral
-cleft trio [ref] preprocessed by GenomeStudio.  To keep the size of
-this package small, the GenomeStudio-processed files for these 6
-samples have been parsed to include only columns relevant to copy
+cleft trio preprocessed by GenomeStudio \cite{Beaty2010}.  To keep the
+size of this package small, the GenomeStudio-processed files for these
+6 samples have been parsed to include only columns relevant to copy
 number analyses and $\approx$ 11k markers that are spanned by or
 border putative CNVs.  The code chunks provided below would be the
 same if the full files were included.
@@ -111,7 +111,6 @@ cnvi0005127,-,-,0.0081,-0.8589
 cnvi0005128,-,-,0.0063,-0.164
 \end{verbatim}
 }
-
 
 %\noindent The minimal necessary information for proceeding with a SNP
 %array copy number analysis in this vignette is the name of the marker
@@ -286,7 +285,7 @@ files are provided through the \Robject{views} object.
 head(list.files(parsedPath(views)), n=3)
 @
 
-\subsection{Accessing parsed data}
+\subsection{Accessors for the parsed data}
 
 The preference for writing the parsed data to disk rather than keeping
 the data in RAM is simply that the latter does not scale to projects
@@ -331,6 +330,14 @@ show(snp_exp)
 
 \subsection{HMM Parameters and fitting the HMM}
 
+The hidden Markov model for inference of germline copy number from SNP
+array data was originally described in Scharpf {\it et al.}
+\cite{Scharpf2008} but has evolved to focus more on B allele
+frequencies than genotype call probabilities [the latter requires a
+  dependency on the \Rpackage{crlmm} package].  Many of the the
+updates for computing emission probabilities have been described more
+recently \cite{Scharpf2012}.
+
 Fitting the hidden Markov model to the marker-level summaries requires
 extracting the relevant data from a \Robject{views} object using the
 \Rfunction{SnpExperiment} function illustrated in the previous
@@ -365,7 +372,7 @@ if(!exists("fit"))
 show(fit)
 @
 
-\subsection{Inspecting, Filtering, and plotting HMM results}
+\section{Inspecting, Filtering, and plotting HMM results}
 
 The \R{} object \Robject{fit} is an object of class
 \Rclass{HMMList}. Several methods are defined for this class to
@@ -437,9 +444,9 @@ cnvs
 @
 
 
-\section{Visualization}
+\subsection{Visualization}
 
-\subsection{Trellis graphics for low-level summaries}
+\subsubsection{Trellis graphics for low-level summaries}
 
 Visualization of the CNVs in the context of the lower-level summaries
 is acheived through a combination of grid and the grid-derived
@@ -464,7 +471,7 @@ class(figList[["FinalReport6841.csv"]][[1]])
 @
 
 
-\subsection{Layout using grid}
+\subsubsection{Layout using grid}
 
 <<viewports>>=
 fig1 <- figList[["FinalReport6841.csv"]][[1]]
@@ -502,7 +509,6 @@ fig2 <- xyplotList(cnvs_sample2r, snp_exp)
 invisible(print(fig2[[1]]))
 @
 
-
 \begin{figure}[t]
   \begin{center}
   \includegraphics[width=0.8\textwidth]{VanillaICE-fig_reduced}
@@ -511,379 +517,28 @@ invisible(print(fig2[[1]]))
   \end{center}
 \end{figure}
 
+\section*{Parallelization}
 
-%
-%\section{Other options}
-%
-%\subsection{HMM for Regions of homozygosity}
-%%\subsection{Region of homozygosity (ROH) HMM}
-%
-%A HMM for genotype-only data can be used to find long stretches of
-%homozygosity.  Note that hemizygous deletions are also identified as
-%'ROH' when copy number is ignored (as the biallelic genotypte call in a
-%hemizygous deletions tends to be all homozygous calls).
-%
-%<<genotypesOnly>>=
-%snpSet <- as(oligoSet, "SnpSet2")
-%fit.gt <- hmm(snpSet, prGtHom=c(0.7, 0.99), normalIndex=1L, S=2L)
-%fit.gt <- fit.gt[[1]]
-%@
-%
-%\noindent A suggested visualization:
-%
-%<<fig5, fig=TRUE, width=8, echo=FALSE>>=
-%fit.chr1 <- fit.gt[chromosome(fit.gt)=="chr1", ]
-%widths <- width(fit.chr1)
-%fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
-%gt <- ifelse(snpCall(chr1) == 1 | snpCall(chr1) == 3, 1, 0)
-%par(las=1)
-%plot(position(chr1), jitter(gt, amount=0.05), pch=".", ylab="", xlab="physical position",
-%     ylim=c(-3, 1.2), yaxt="n")
-%##points(position(chr1)[isHet], copyNumber(chr1)[isHet,], pch=".", ylab="log2 copy number", xlab="physical position", cex=2, col="red")
-%axis(side=2, at=c(0,1), labels=c("AB", "AA or BB"), cex.axis=0.7)
-%sts <- start(fit.chr1); ends <- end(fit.chr1)
-%xx <- range(c(sts,ends))
-%y <- c(-1,-1,-0.5,-0.5)
-%polygon(x=c(xx, rev(xx)), y=y, col="white")
-%cols <- cols[c(1, length(cols))]
-%for(i in seq_len(length(fit.chr1))){
-%	polygon(x=c(sts[i], ends[i], ends[i], sts[i]),
-%		y=y, col=cols[state(fit.chr1)[i]],
-%		border=cols[state(fit.chr1)][i])
-%}
-%legend("bottomleft", fill=cols, legend=rev(c("region of homozygosity", "Normal")), bty="n")
-%@
-%
+As the HMM is fit independently to each sample, parallelization is
+straightforward.  In the following unevaluated code chunk, we set up a
+parallel environment using the \R{} packages \Rpackage{snow} and
+\Rpackage{foreach}.
 
+<<parallelEnvironment,eval=FALSE>>=
+library(foreach)
+library(snow)
+library(doSNOW)
+cl <- makeCluster(2, type="SOCK")
+registerDoSNOW(cl)
+@
 
-%\section{The ArrayViews container}
+<<fitParallel, eval=FALSE>>=
+results <- hmm2(snp_exp)
+@
 
-%\section{Overview}
-%
-%This vignette requires that you have
-%
-%\begin{itemize}
-%
-%\item an absolute estimate of the \emph{total} copy number organized
-%  such that rows correspond to loci and columns correspond to samples
-%
-%  and / or
-%
-%\item a matrix of B allele frequencies or genotype calls (1=AA, 2 =
-%  AB, 3= BB): rows correspond to loci and columns correspond to
-%  samples
-%
-%\end{itemize}
-%
-%If Affymetrix CEL files or Illumina Idat files were processed with the
-%\R{} package \Rpackage{crlmm}, see the vignette
-%\texttt{crlmmDownstream} included with this package.
-%
-%\noindent Other HMM implementations for the joint analysis of copy
-%number and genotype include QuantiSNP \citep{Colella2007} and PennCNV
-%\citep{Wang2007a}.
-%
-%\paragraph{Data considerations.}  The HMM implemented in this package
-%is most relevant for heritable diseases for which integer copy numbers
-%are expected. For somatic cell diseases such as cancer, we suggest
-%circular binary segmentation, as implemented in the \R{} package
-%DNAcopy \citep{Olshen2004}.
-
-
-%\section{Deprecated classes and methods}
-%\label{sec:simpleUsage}
-%
-%
-%<<data>>=
-%library(oligoClasses)
-%library(VanillaICE)
-%library(SNPchip)
-%library(Biobase)
-%library(IRanges)
-%@
-%
-%<<createLocusSet>>=
-%fd <- AnnotatedDataFrame(data=data.frame(position=start(views),
-%                           isSnp=rowData(views)$isSnp,
-%                           chromosome=as.integer(gsub("chr", "", as.character(seqnames(views))))))
-%fd <- as(fd, "GenomeAnnotatedDataFrame")
-%rownames(fd) <- rownames(views)
-%oligoSet <- new("oligoSnpSet",
-%                copyNumber=integerMatrix(lrr(views), 100),
-%                call=genotypes(views),
-%                genome="hg18",
-%                featureData=fd)
-%@
-%
-%<<sdMethod>>=
-%sds <- sd(oligoSet)
-%@
-%\noindent The inverse of the \Robject{sds} object can be assigned to the
-%\Robject{cnConfidence} slot.
-%
-%<<assignSds>>=
-%cnConfidence(oligoSet) <- 1/sds
-%@
-%
-%\section{Fitting the HMM}
-%
-%When jointly modeling the copy number and genotypes/allele
-%frequencies, we assume that the genotype and copy number estimates are
-%independent conditional on the underlying hidden state.  The method
-%\Rfunction{hmm} is defined for several classes, including objects of
-%class \Rclass{oligoSnpSet} and \Rclass{BeadStudioSet}.
-%
-%% The emission probabilities for the genotypes are calculated using
-%% either (i) assumptions of the probability of observing a homozygous
-%% genotype call given the underlying state or (ii) incorporating crlmm
-%% confidence estimates of the genotype calls (\texttt{ICE} option).
-%
-%\noindent The viterbi algorithm is used to obtain the most likely
-%sequence of hidden states given the observed data.  The value returned
-%is an object of class \Robject{GRangesList} with genomic coordinates
-%of the normal and altered regions.  We also return the log-likelihood
-%ratio (LLR) of the predicted sequence in an interval versus the
-%likelihood of diploid copy number. For intervals inferred to have
-%diploid copy number, the LLR is zero.
-%
-%<<fit_van>>=
-%fit.van <- hmm(oligoSet)
-%fit.van <- fit.van[[1]]
-%@
-%
-%%The \Rclass{GRangesList} object groups ranges by sample.
-%
-%Figure \ref{fig:chr1} plots the data for chromosome 1 and the
-%predictions from the hidden markov model:
-%
-%<<fig2,fig=TRUE,width=8,echo=FALSE,include=FALSE>>=
-%if(require(RColorBrewer)){
-%	cols <- brewer.pal(6, "YlOrBr")
-%} else cols <- rainbow(n=6)
-%chr1 <- oligoSet[chromosome(oligoSet)==1,]
-%fit.chr1 <- fit.van[chromosome(fit.van) == "chr1", ]
-%isHet <- snpCall(chr1)==2
-%par(las=1)
-%plot(position(chr1), copyNumber(chr1)/100, pch=".", cex=2, col="royalblue",
-%     ylab="log2 copy number")
-%points(position(chr1)[isHet], copyNumber(chr1)[isHet]/100, col="red", pch=".", cex=2)
-%abline(h=log2(1:3), col="grey70")
-%sts <- start(fit.chr1); ends <- end(fit.chr1)
-%xx <- range(c(sts,ends))
-%y <- c(-1,-1,-0.9,-0.9)
-%polygon(x=c(xx, rev(xx)), y=y, col="white")
-%for(i in seq_len(length(fit.chr1))){
-%	polygon(x=c(sts[i], ends[i], ends[i], sts[i]),
-%		y=y, col=cols[elementMetadata(fit.chr1)$state[i]],
-%		border=cols[elementMetadata(fit.chr1)$state[i]])
-%}
-%legend("topleft", fill=cols, legend=c("hom-del", "hem-del", "N", "N-noHets", "sDup", "dDup"), bty="n")
-%@
-%
-%\begin{figure}[t]
-%  \includegraphics[width=0.9\textwidth]{VanillaICE-fig2}
-%  \caption{\label{fig:chr1} Plot of artificial data for one chromosome.}
-%\end{figure}
-%To find which markers are included in each genomic interval returned
-%by the \Rfunction{hmm} method, one can use the
-%\Rfunction{findOverlaps} method in the \Rpackage{oligoClasses}. For
-%example, the second interval in the \Robject{RangedDataHMM} object
-%\Robject{fit.van} contains 102 markers.
-%<<range2>>=
-%fit.van[2, ]
-%@
-%To find the names of the 102 markers that are included in
-%this genomic interval, one could do the following
-%<<findOverlaps>>=
-%frange <- makeFeatureGRanges(oligoSet)
-%markersInterval2 <- subsetByOverlaps(frange, fit.van[2, ])
-%markersInterval2
-%@
-%Multipanel displays can be useful for visualizing the low-level data
-%for copy number alterations.  We extend the \Rfunction{xyplot} method
-%in the \R{} package lattice for two common use-cases: by-locus and
-%by-sample.
-%
-%\paragraph{By locus.} To plot the genomic data for a set of ranges at
-%a given locus, we provide an unevaluated code chunk below (our example
-%contains only a single sample):
-%<<multipanelSingleLocus,eval=FALSE>>=
-%xyplot2(cn ~ x | id, oligoSet, range=RangedDataObject, ylim=c(-0.5,4), panel=xypanel)
-%@
-%
-%\noindent Note that the default in the above command is to use a
-%common x- and y-scale for each panel.  To allow the x-axes to change
-%for each panel, one could set the x-scales to 'free':
-%<<multipanelSingleLocus,eval=FALSE>>=
-%xyplot2(cn ~ x | id, oligoSet, range=RangedDataObject, ylim=c(-0.5,4), scales=list(x="free"),
-%       panel=xypanel)
-%@
-%\noindent The function \Rfunction{xypanel} provides default colors for
-%annotating the plotting symbols by genotype and by whether the markers
-%are polymorphic. The \Robject{GenomicRanges} must be passed by the
-%name \emph{range} to the \Rfunction{xyplot2} method.
-%
-%\paragraph{By sample.}
-%To plot the low-level data for multiple alterations occurring in a
-%single sample, one can again pass a \Rclass{GenomicRanges} object with
-%name \emph{range} to the \Rfunction{xyplot2}. For example, see Figure
-%\ref{fig:xy}. The code for producing Figure \ref{fig:xy} is in the
-%following code chunk.  Note that the formula in the example below
-%conditions on \emph{range} instead of \emph{id}.  The conditioning
-%variable for displaying multiple panels of a single sample must be
-%called 'range'. We plot a 2 Mb window surrounding each of the
-%alterations in the simulated data by specifying \texttt{frame=2e6}.
-%<<xyplotExample,fig=TRUE,include=FALSE, width=9, height=6,results=hide>>=
-%ranges.altered <- fit.van[!state(fit.van) %in% c(3,4) & numberProbes(fit.van) > 5, ]
-%##elementMetadata(ranges.altered)$sampleId <- sampleNames(oligoSet)
-%xy.example <- xyplot2(cn ~ x | range, oligoSet, range=ranges.altered, frame=2e6,
-%		      scales=list(x="free"), ylim=c(-1,3),
-%		      panel=xypanel, cex.pch=0.4, pch=21, border="grey",
-%		      ylab=expression(log[2]("copy number")))
-%@
-%\noindent See \texttt{?xyplot} for additional details.
-%
-%<<xyplotPrint,echo=FALSE,results=hide>>=
-%pdf("VanillaICE-xyplot.pdf", width=8, height=7)
-%print(xy.example)
-%dev.off()
-%@
-%\begin{figure}[t]
-%  \includegraphics[width=\textwidth]{VanillaICE-xyplot}
-%  \caption{\label{fig:xy} The method \Rfunction{xyplot} is used to
-%    create a multi-panel display of alterations in a single
-%    sample. Each panel displays a single copy number alteration
-%    detected by the HMM that is boxed by a rectangle. The alteration
-%    is framed by specifying the number of basepairs to plot upstream
-%    and downstream of the alteration.  Here, we used a frame of 2 Mb.
-%    Homozygous SNPs with diallelic geotypes `AA' and `BB' are shaded
-%    blue; SNPs with diallelic genotype call `AB' are shaded in red.}
-%\end{figure}
-%Note also that \texttt{scales} must be set to \emph{free} in the above
-%call to \Rfunction{xyplot}.
-%
-%\subsection{ICE HMM}
-%
-%This will likely be phased out in favor of using B allele frequencies
-%instead of genotype calls / call probabilities.
-%
-%To compute emission probabilities that incorporate the
-%\Rpackage{crlmm} genotype confidence scores, we set \Robject{ICE} to
-%\texttt{TRUE}.  This option is limited too a few platforms and the
-%Affy 100k platforms is not one of them.
-%
-%<<ice>>=
-%VanillaICE:::icePlatforms()
-%@
-%
-%For illustration, we assign 'genomewidesnp6' to the annotation slot
-%since this platform is supported.
-%
-%<<iceIllustration>>=
-%ann <- annotation(oligoSet)
-%annotation(oligoSet) <- "genomewidesnp6"
-%fit.ice <- hmm(oligoSet, ICE=TRUE)
-%fit.ice <- fit.ice[[1]]
-%annotation(oligoSet) <- ann
-%@
-%
-%
-%<<fig3, fig=TRUE, width=8, echo=FALSE, eval=FALSE>>=
-%fit.chr1 <- fit.ice[chromosome(fit.ice)=="chr1", ]
-%widths <- width(fit.chr1)
-%fit.chr1 <- fit.chr1[order(widths,decreasing=TRUE),]
-%par(las=1)
-%plot(position(chr1)/1e6, copyNumber(chr1)/100, pch=".", ylab="log2 copy number", xlab="physical position", cex=2, col="royalblue")
-%points(position(chr1)[isHet]/1e6, copyNumber(chr1)[isHet]/100, col="red", pch=".", cex=2)
-%abline(h=log2(1:3), col="grey70")
-%sts <- start(fit.chr1); ends <- end(fit.chr1)
-%xx <- range(c(sts,ends))
-%y <- c(-1,-1,-0.9,-0.9)
-%polygon(x=c(xx, rev(xx)), y=y, col="white")
-%for(i in seq_len(length(fit.chr1))){
-%	polygon(x=c(sts[i], ends[i], ends[i], sts[i]),
-%		y=y, col=cols[state(fit.chr1)[i]],
-%		border=cols[state(fit.chr1)[i]])
-%}
-%legend("topleft", fill=cols, legend=c("hom-del","hem-del", "N", "N/no hets", "s-dup", "d-dup"), bty="n")
-%@
-%
-%
-%\subsection{Other options}
-
-%
-% really no reason for this with genotyping arrays
-%
-%\paragraph{Copy number.} A HMM for copy number only (e.g., if
-%genotypes are ignored or are unavailable) can be fit as follows.
-%
-%<<copyNumberOnly>>=
-%cnSet <- new("CopyNumberSet",
-%	     copyNumber=log2(locusLevelData[["copynumber"]]/100),
-%	     annotation=locusLevelData[["platform"]])
-%cnSet <- cnSet[chromosome(cnSet) <= 2 & !is.na(chromosome(cnSet)), ]
-%fit.cn <- hmm(cnSet, hmmOpts)
-%@
-%
-%
-%\section{Trouble shooting}
-%
-%Read in previously saved data for chromosome 1:
-%
-%<<readdata>>=
-%bset <- readRDS(file.path(system.file("extdata", package="VanillaICE"), "bset.rds"))
-%@
-%
-%The hmm is fit independently to each arm.  We can determine the arm
-%for each marker in the \Robject{bset} object using the function \Rfunction{getArm}.
-%
-%<<arm>>=
-%library(oligoClasses)
-%arm <- getArm(bset)
-%table(arm)
-%@
-%
-%We will fit the hmm to arm `chr1p' and monitor the updates to the mean
-%parameters for the copy number states by setting
-%\texttt{verbose=TRUE}:
-%
-%<<fit1p>>=
-%b1p <- bset[arm=="chr1p", ]
-%fit1p <- hmm(b1p, verbose=TRUE)
-%@
-%
-%Each line beginning with the header ``A   AAAB `` is one iteration of
-%the Viterbi algorithm. The numeric vector below the header is the mean
-%for the different genotype states.  Note that we use the same mean for
-%homozygous genotypes (mean of A = mean of AA = mean of AAA). The next
-%line is the mean of the log R ratios for copy number states homozygous
-%deletion, hemizygous deletion, diploid, copy-neutral homozygosity,
-%single copy gain, and two-copy gain, respectively. We can plot the
-%data and see whether the means in the last iteration are consistent
-%with what we observe.
-%
-%<<fig1p,fig=TRUE>>=
-%par(mfrow=c(2,1), las=1)
-%x <- position(b1p)/1e6
-%plot(x, lrr(b1p)/100, pch=".", col="grey")
-%abline(h=-0.07547)
-%plot(x, baf(b1p)/1000, pch=".", col="grey")
-%abline(h=0.542)
-%@
-%
-%<<fit1q>>=
-%b1q <- bset[arm=="chr1q", ]
-%fit1q <- hmm(b1q, verbose=TRUE)
-%@
-%
-%<<fig1q,fig=TRUE>>=
-%par(mfrow=c(2,1), las=1)
-%x <- position(b1q)/1e6
-%plot(x, lrr(b1q)/100, pch=".", col="grey")
-%abline(h=c(0, .359778))
-%plot(x, baf(b1q)/1000, pch=".", col="grey")
-%abline(h=c(0.235, 0.790))
-%@
+<<stopcl,eval=FALSE>>=
+stopCluster(cl)
+@
 
 \section*{Citing this software}
 % \bibitem{Scharpf2008}
@@ -901,9 +556,9 @@ were:
 <<echo=FALSE, results=tex>>=
 toLatex(sessionInfo())
 @
-%
-%\bibliography{ice}{}
-%\bibliographystyle{plain}
+
+\bibliography{ice}{}
+\bibliographystyle{plain}
 
 
 \end{document}

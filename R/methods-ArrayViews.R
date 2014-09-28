@@ -56,6 +56,31 @@ ArrayViews <- function(class="ArrayViews",
       parsedPath=parsedPath)
 }
 
+##ArrayViews <- function(class="CNSet",
+##                       colData,
+##                       rowData=GRanges(),
+##                       sourcePaths=character(),
+##                       ##index=seq_along(rowData),
+##                       scale=1000,
+##                       sample_ids,
+##                       parsedPath){
+##  if(missing(colData)){
+##    if(!missing(sample_ids)) {
+##      colData <- DataFrame(row.names=sample_ids)
+##    } else colData <- DataFrame(row.names=basename(sourcePaths))
+##  }
+##  if(missing(parsedPath)){
+##    parsedPath <- if(!missing(sourcePaths)) dirname(sourcePaths)[1] else character()
+##  }
+##  new(class,
+##      colData=colData,
+##      rowData=rowData,
+##      index=seq_len(length(rowData)),
+##      sourcePaths=sourcePaths,
+##      scale=scale,
+##      parsedPath=parsedPath)
+##}
+
 setValidity("ArrayViews", function(object){
   msg <- TRUE
   if(length(sourcePaths(object)) > 0){
@@ -72,11 +97,6 @@ setValidity("ArrayViews", function(object){
   }
   return(msg)
 })
-
-## # @param ... arguments passed to ArrayViews contructor
-## # @rdname ArrayViews-class
-## # @export
-## GStudioViews <- function(...)  ArrayViews(class="GStudioViews", ...)
 
 #' @aliases ArrayViews,numeric,numeric-method "[",ArrayViews,ANY-method
 #' @param i numeric vector or missing
@@ -127,12 +147,6 @@ setMethod("show", "ArrayViews", function(object){
   cat("   No. files  :", ncol(object), "\n")
   cat("   No. markers:", nrow(object), "\n")
 })
-
-### @export
-### @rdname ArrayViews-class
-##setMethod("show", "GStudioViews", function(object){
-##  callNextMethod()
-##})
 
 .snp_id_column <- function(object) object@row.names
 
@@ -395,7 +409,8 @@ setMethod("hmm2", "ArrayViews", function(object, emission_param=EmissionParam(),
 
 
 setMethod("fileName", "ArrayViews", function(object, label){
-  file.path(parsedPath(object), paste0(.colnames(object), "_", label, ".rds"))
+  stable_file_identifiers <- make.unique(basename(sourcePaths(object)))
+  file.path(parsedPath(object), paste0(stable_file_identifiers, "_", label, ".rds"))
 })
 
 

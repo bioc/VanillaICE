@@ -31,7 +31,7 @@ hemizygous(object, filters = FilterParam(state = "2"))
 
 homozygous(object, filters = FilterParam(state = "1"))
 
-\S4method{cnvSegs}{HMM}(object, filters = FilterParam(state =
+\S4method{cnvSegs}{HmmGRanges}(object, filters = FilterParam(state =
   as.character(c(1, 2, 5, 6))))
 
 \S4method{cnvSegs}{HMMList}(object, filters = FilterParam(state =
@@ -39,7 +39,7 @@ homozygous(object, filters = FilterParam(state = "1"))
 
 \S4method{cnvFilter}{HMMList}(object, filters = FilterParam())
 
-\S4method{cnvSegs}{HmmGRanges}(object, filters = FilterParam(state =
+\S4method{cnvSegs}{HMM}(object, filters = FilterParam(state =
   as.character(c(1, 2, 5, 6))))
 }
 \arguments{

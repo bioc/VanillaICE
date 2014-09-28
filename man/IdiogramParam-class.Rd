@@ -7,8 +7,7 @@
 \title{Constructor for IdiogramParam objects}
 \usage{
 IdiogramParams(seqnames = character(), seqlengths = numeric(),
-  unit = "kb", genome = "hg19", box = list(xlim = ILimit(), color =
-  "blue", lwd = 1))
+  unit = "kb", genome = "hg19", box = list(color = "blue", lwd = 1))
 
 \S4method{plot}{IdiogramParams,ANY}(x, y, ...)
 }

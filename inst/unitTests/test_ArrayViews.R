@@ -62,6 +62,14 @@ test_ArrayViews <- function(){
   checkTrue(identical(dim(b), c(6L,6L)))
   checkTrue(identical(rownames(b), rownames(views)[1:6]))
 
+  ## Changing the colnames of the views object should not change the
+  ## way that the parsed files are accessed (i.e., files are accessed
+  ## by a name derived from the source files)
+  colnames(views) <- letters[seq_len(ncol(views))]
+  r2 <- head(lrr(views))
+  colnames(r2) <- colnames(r) <- NULL
+  checkIdentical(r, r2)
+
   ## Fit a 6-state HMM
   se <- SnpExperiment(views)
   if(FALSE){
