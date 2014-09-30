@@ -109,8 +109,8 @@ setMethod("[", signature(x="ArrayViews", i="ANY", j="ANY"), function(x, i, j, ..
     x@index <- indexGenome(x)[i]
   }
   if(!missing(j)){
-    x@colData <- colData(x)[j, ]
     if(is.character(j)) j <- match(j, colnames(x))
+    x@colData <- colData(x)[j, ]
     x@sourcePaths <- x@sourcePaths[j]
   }
   x
