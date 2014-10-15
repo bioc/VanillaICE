@@ -10,7 +10,8 @@ setValidity("HmmGRanges", function(object){
 })
 
 
-
+# @aliases HmmGRanges,missing-method
+# @rdname HmmGRanges-class
 setMethod("HmmGRanges", "missing", function(states, feature_starts,
                                             feature_chrom,
                                             loglik,
@@ -25,6 +26,8 @@ setReplaceMethod("emissionParam", c("HmmGRanges", "EmissionParam"), function(obj
   object
 })
 
+# @aliases HmmGRanges,integer-method
+# @rdname HmmGRanges-class
 setMethod("HmmGRanges", "integer", function(states, feature_starts, feature_chrom, loglik, emission_param=EmissionParam()){
   ## we can't split by states because the same state could span multiple chromosomes
   segfactor <- paste(feature_chrom, states, sep=";")
@@ -47,13 +50,18 @@ setMethod("HmmGRanges", "integer", function(states, feature_starts, feature_chro
   hgr
 })
 
+# @aliases HmmGRanges,Rle-method
+# @rdname HmmGRanges-class
 setMethod("HmmGRanges", "Rle", function(states, feature_starts, feature_chrom, loglik){
   HmmGRanges(as.integer(states), feature_starts, feature_chrom, loglik)
 })
 
+#' Accessor for copy number state
+#'
+#' Extract the copy number state for each genomic interval.
 #' @param object a \code{HmmGRanges} object
 #' @aliases state,HmmGRanges-method
-#' @rdname HmmGRanges-class
+#' @rdname HmmGRanges-methods
 setMethod(state, "HmmGRanges", function(object) object$state)
 
 setMethod(statei, "HmmGRanges", function(object) as.integer(object$state))

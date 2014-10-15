@@ -123,8 +123,7 @@ test_oligoSnpSetGT <- function(){
   library(Biobase)
   data(oligoSetExample, package="oligoClasses")
   oligoSet <- oligoSet[chromosome(oligoSet) == 1, ]
-  hmmResults <- hmm(oligoSet, p.hom=0, TAUP=1e10,
-                    is.log=FALSE)
+  hmmResults <- hmm(oligoSet, p.hom=0, TAUP=1e10, is.log=FALSE)
   if(FALSE){
     library(IRanges)
     library(Biobase)

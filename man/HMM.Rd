@@ -27,6 +27,9 @@ HMM(granges = GRanges(), param = HmmParam(), posterior = matrix(),
 }
 \description{
 Container for the segmented data and the 6-state HMM model parameters
+
+The contructor \code{HMM} creates and object of class
+\code{HMM}. Not typically called directly by the user.
 }
 \section{Slots}{
 
@@ -39,6 +42,13 @@ Container for the segmented data and the 6-state HMM model parameters
 
 \item{\code{filters}}{a \code{FilterParam} object}
 }}
+\examples{
+data(snp_exp)
+hmm_list <- hmm2(snp_exp[,1])
+resultsFirstSample <- hmm_list[[1]]
+resultsFirstSample
+HMM()
+}
 \seealso{
 \code{\link{hmm2}}
 }

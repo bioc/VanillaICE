@@ -54,13 +54,8 @@ options(width=70)
 
 
 \begin{abstract}
-  This package provides an implementation of a hidden Markov Model for
-  high throughput SNP arrays.
-
-%  Users of this package should already have available locus-level
-%  estimates of copy number and B allele frequencies or genotype
-%  calls, such as those provided by the \Rpackage{crlmm} package or
-%  Illumina's GenomeStudio software.
+  This package provides an implementation of a hidden Markov Model to
+  identify copy number alterations from high throughput SNP arrays.
 
 \end{abstract}
 
@@ -86,6 +81,8 @@ same if the full files were included.
 
 <<example_data>>=
 library(VanillaICE)
+library(foreach)
+registerDoSEQ()
 extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
 files <- list.files(extdir, pattern="FinalReport")
 @
@@ -208,11 +205,11 @@ and the genomic marker annnotation created in the preceding section
 
 <<ArrayViews>>=
 ##
-## Where to keep parsed files
+## A directory to keep parsed files
 ##
-parsedDir <- "ParsedFiles"
-if(!file.exists(parsedDir)) dir.create(parsedDir)
+parsedDir <- tempdir()
 views <- ArrayViews(rowData=fgr, sourcePaths=files, parsedPath=parsedDir)
+colnames(views) <- gsub(".csv", "", colnames(views))
 show(views)
 @
 
@@ -275,7 +272,9 @@ To apply the function \Rfunction{parseSourceFile} to all arrays in the
 \Robject{views} object, one can use the functional \Rfunction{sapply}.
 
 <<applyParseSourceFile>>=
-invisible(sapply(views, parseSourceFile, param=scan_params))
+##invisible(sapply(views, parseSourceFile, param=scan_params))
+sapply(views, function(x) print(x))
+sapply(views, VanillaICE:::.parseSourceFile, param=scan_params)
 @
 
 Apart from confirming their existance, the user should not have a need
@@ -306,7 +305,7 @@ lrr(views)[1:2, 2:4]
 lrr(views[1:2, 2:4])
 ## B allele frequencies
 baf(views[1:2, 2:4])
-## potentially masked by function of the same name in crlmm
+## Use :: to avoid  masking by function of the same name in crlmm
 VanillaICE::genotypes(views)[1:2, 2:4]
 @
 
@@ -321,14 +320,14 @@ class for the first three samples in the \Robject{views} object.
 
 
 <<SnpArrayExperiment>>=
-snp_exp <- SnpExperiment(views[, 4:6])
+snp_exp <- SnpExperiment(views[, 4:ncol(views)])
 show(snp_exp)
 @
 
 
 \section{Hidden Markov model}
 
-\subsection{HMM Parameters and fitting the HMM}
+\subsection{HMM parameters}
 
 The hidden Markov model for inference of germline copy number from SNP
 array data was originally described in Scharpf {\it et al.}
@@ -366,30 +365,37 @@ be used to specify alternatives to the defaults.  By not specifying an
 \Robject{TransitionParam} object, default values created by the
 constructor are used by the HMM in the following example.
 
+\subsection{Fitting the HMM}
+
+The function \Rfunction{hmm2} fits the 6-state HMM to the
+\Robject{snp\_exp} object, returning a list-derived class (a
+\Rclass{HMMList}) of the same length as the number of samples.
+
+
 <<hmm>>=
-if(!exists("fit"))
-  fit <- hmm2(snp_exp, param)
+fit <- hmm2(snp_exp, param)
 show(fit)
+length(fit)
+## HMM object for the first sample
+fit[[1]]
 @
 
 \section{Inspecting, Filtering, and plotting HMM results}
 
-The \R{} object \Robject{fit} is an object of class
-\Rclass{HMMList}. Several methods are defined for this class to
-facilitate the selection of candidate CNVs, the filtering of false
-positives, and to enable visualization of the HMM calls in the context
+Several methods are defined for the \Rclass{HMMList} class to
+facilitate the selection of candidate CNVs, the filtering of technical
+artifacts, and to enable visualization of the HMM calls in the context
 of the marker-level summaries.
 
-The \Robject{fit} is an \Rclass{HMMList} object of length three, each
-element corresponding to a sample:
+The \Robject{fit} object is an instance of the \Rclass{HMMList} object
+of length three, each element corresponding to a sample:
 
 <<HMMList_names>>=
 names(fit)
 @
 
-The \R{} method %'\[\['
-can be used to access the HMM summary for the
-results for the jth sample. For example, here we extract the HMM
+The \R{} method \verb+\\+ can be used to access the HMM summary for
+the results for the jth sample. For example, here we extract the HMM
 summary for the 2nd sample:
 
 <<HMMList_subset>>=
@@ -459,7 +465,7 @@ segment.
 <<xyplotList>>=
 trellis_param <- HmmTrellisParam()
 cnvList <- split(cnvs, cnvs$id)
-figList <- xyplotList(cnvList, snp_exp)
+figList <- xyplotList(cnvList, snp_exp, trellis_param)
 names(figList)
 @
 
@@ -559,6 +565,5 @@ toLatex(sessionInfo())
 
 \bibliography{ice}{}
 \bibliographystyle{plain}
-
 
 \end{document}

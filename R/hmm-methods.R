@@ -173,6 +173,14 @@ baumWelchUpdate <- function(param, assay_list){
 #' ## - the HMM states are 1 (homozygous deletion) or 2 (hemizygous deletion)
 #' fp <- FilterParam(probability=0.5, numberFeatures=2, state=c("1", "2"))
 #' cnvSegs(fit, fp)
+#' ## for parallelization
+#' \dontrun{
+#'    library(snow)
+#'    library(doSNOW)
+#'    cl <- makeCluster(2, type = "SOCK")
+#'    registerDoSNOW(cl)
+#'    fit <- hmm2(snp_exp, emission_param)
+#' }
 #' @aliases hmm2,SnpArrayExperiment-method
 #' @rdname hmm2
 setMethod(hmm2, "SnpArrayExperiment",
@@ -204,6 +212,7 @@ setMethod(hmm2, "SnpArrayExperiment",
 #' @aliases start,oligoSnpSet-method
 #' @export
 setMethod("start", "oligoSnpSet", function(x) featureData(x)$position)
+
 
 
 #' @aliases hmm2,oligoSnpSet-method

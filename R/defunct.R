@@ -53,8 +53,6 @@ hmm.setup <- function(...) .Defunct("hmm.setup function is defunct.")
 #' @aliases hmm,BafLrrSetList-method hmm,BeadStudioSet-method hmm,BeadStudioSetList-method hmm,SnpSet2-method hmm,oligoSetList-method hmm,oligoSnpSet-method
 setGeneric("hmm", function(object, ...) standardGeneric("hmm"))
 
-
-
 setGeneric("gtEmission", function(object, hmm.params, gt.conf, is.snp, cdfName, ...) standardGeneric("gtEmission"))
 setGeneric("nStates", function(object) standardGeneric("nStates"))
 setGeneric("normalStateIndex", function(object) standardGeneric("normalStateIndex"))

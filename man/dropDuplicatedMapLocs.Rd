@@ -17,4 +17,12 @@ an object of the same class with duplicated genomic positions removed
 If there are multiple markers on the same chromosome with the same
 annotated position, only the first is kept.
 }
+\examples{
+data(snp_exp)
+g <- rowData(snp_exp)
+## duplicate the first row
+g[length(g)] <- g[1]
+ rowData(snp_exp) <- g
+ snp_exp2 <- dropDuplicatedMapLocs(snp_exp)
+}
 

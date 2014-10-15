@@ -1,0 +1,16 @@
+CHANGES IN VERSION 1.28.0
+
+ o Deprecated a large number of classes and methods that extend eSet
+
+ o Use SummarizedExperiment-derived classes for encapsulating
+   genomic data for SNP array copy number estimation
+
+ o Use  ArrayViews class as a means to interrogate a set of files
+   on disk (one file per subject) without bringing all data into RAM
+   at once
+
+ o Defined parameter classes for the Hidden Markov Model.
+
+ o Defined parameter classes for parsing raw SNP files
+
+ o Fixed a number of bugs pertaining to the HMM implementation

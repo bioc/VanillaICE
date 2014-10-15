@@ -26,6 +26,9 @@
 #' @param emission_param A \code{\link{EmissionParam}} object
 #' @param transition_param A \code{\link{TransitionParam}} object
 #' @param ... currently ignored
+#' @examples
+#' tp <- TransitionParam()
+#' TransitionParam(taup=1e12)
 #' @export
 setGeneric("hmm2", function(object, emission_param=EmissionParam(),
                             transition_param=TransitionParam(), ...) standardGeneric("hmm2"))
@@ -296,9 +299,11 @@ setGeneric("modev", function(x) standardGeneric("modev"))
 #' @param ... ignored
 #' @examples
 #' SnpGRanges()
+#' g <- GRanges("chr1", IRanges(15L, 15L))
+#' SnpGRanges(g, isSnp=TRUE)
 #' @export
 #' @rdname SnpGRanges
-#' @aliases SnpGRanges SnpGRanges,GRanges-method SnpGRanges,missing-method
+#' @aliases SnpGRanges
 setGeneric("SnpGRanges", function(object=GRanges(),
                                   isSnp, ...)
            standardGeneric("SnpGRanges"))
@@ -343,9 +348,12 @@ setGeneric("SnpArrayExperiment", function(cn,
                                           isSnp=logical(), ...)
            standardGeneric("SnpArrayExperiment"))
 
-#' Sweep the modal log R ratio (row-wise) from a matrix of log R ratios
+#' Sweep the modal log R ratio (by row or column) from a matrix of log
+#' R ratios
 #'
-#' This function is most useful when a large number of samples (more
+#' This function simplifies the process of sweeping the modal log R
+#' ratio from the rows or columns of a \code{SnpArrayExperiment}
+#' object.  It is most useful when a large number of samples (more
 #' than 10) are available and the dataset is a collection of germline
 #' samples.  We assume that the samples are from a single batch and
 #' that the modal value will be a robust estimate of the mean log R
@@ -356,25 +364,43 @@ setGeneric("SnpArrayExperiment", function(cn,
 #' separately to men and women and then recenter the resulting matrix
 #' according to the expected copy number.
 #'
-#' @param x an object containing log R ratios
+#' @param x see \code{showMethods(sweepMode)}
 #' @param MARGIN integer indicating which margin (1=rows, 2=columns)
 #' to sweep the mode
-#' @aliases sweepMode sweepMode,SnpArrayExperiment-method
+#' @examples
+#' data(snp_exp)
+#' snp_exp_rowcentered <- sweepMode(snp_exp, 1)
+#' snp_exp_colcentered <- sweepMode(snp_exp, 2)
+#' x <- lrr(snp_exp)
+#' x_rowcentered <- sweep(x, 1, rowModes(x))
+#' all.equal(lrr(snp_exp_rowcentered), x_rowcentered)
 #' @export
+#' @return an object of the same class as \code{x}
 setGeneric("sweepMode", function(x, MARGIN) standardGeneric("sweepMode"))
 
 setGeneric("NA_index", function(x) standardGeneric("NA_index"))
 
-#' HmmGRanges container
-#
-#' @param states  copy number number state inferred by HMM
-#' @param feature_starts start location in reference genome [basepairs]
-#' @param feature_chrom  end location in reference genome [basepairs]
-#' @param loglik  the log likelihood
-#' @param emission_param an instance of \code{EmissionParam} class
-#' @aliases HmmGRanges HmmGRanges,Rle-method HmmGRanges,integer-method HmmGRanges,missing-method
-#' @rdname HmmGRanges-class
-#' @export
+## #' HmmGRanges container
+## #
+## #' @param states  copy number number state inferred by HMM
+## #' @param feature_starts start location in reference genome [basepairs]
+## #' @param feature_chrom  end location in reference genome [basepairs]
+## #' @param loglik  the log likelihood
+## #' @param emission_param an instance of \code{EmissionParam} class
+## #' @examples
+## #'  library(oligoClasses)
+## #'  library(IRanges)
+## #'  path <- system.file("extdata", package="VanillaICE")
+## #'  se <- readRDS(file.path(path, "snp_exp.rds"))
+## #'  states <- Rle(factor(c(3, 4, 3, 5, 3, 2, 3, 3, 2, 3, 2, 3)),
+## #'                as.integer(c(996, 102, 902, 50, 2467, 102, 76, 1822,
+## #'                             99, 900, 20, 160)))
+## #'  hgr <- HmmGRanges(states=states, feature_starts=start(se),
+## #'                    feature_chrom=chromosome(se), loglik=15.3)
+## #'
+## # @aliases HmmGRangeso
+## # @rdname HmmGRanges-class
+## # @export
 setGeneric("HmmGRanges", function(states, feature_starts,
                                   feature_chrom, loglik, emission_param=EmissionParam())
            standardGeneric("HmmGRanges"))
@@ -544,11 +570,15 @@ setGeneric("granges<-", function(x, value) standardGeneric("granges<-"))
 #' @examples
 #' data(snp_exp)
 #' fit <- hmm2(snp_exp)
+#' segs(fit) ## all intervals
 #' cnvSegs(fit)
 #' filter_param <- FilterParam(probability=0.95, numberFeatures=10, state=c("1", "2"))
 #' cnvSegs(fit, filter_param)
 #' filter_param <- FilterParam(probability=0.5, numberFeatures=2, state=c("1", "2"))
 #' cnvSegs(fit, filter_param)
+#' hemizygous(fit)
+#' homozygous(fit)
+#' duplication(fit)
 #' @param object see \code{showMethods(cnvFilter)}
 #' @param filters a \code{\link{FilterParam}} object
 #' @seealso \code{\link{FilterParam}}
@@ -624,6 +654,16 @@ setGeneric("copyNumber")
 #' @param granges a \code{HmmGRanges} object
 #' @param se a \code{SnpArrayExperiment}
 #' @param param trellis parameters for plotting HMM
+#' @rdname plotting
+#' @examples
+#' snp_exp <- getExampleSnpExperiment()
+#' seqlevels(snp_exp, force=TRUE) <- "chr22"
+#' fit <- hmm2(snp_exp)
+#' g <- reduce(hemizygous(fit), min.gapwidth=500e3)
+#' trellis_param <- HmmTrellisParam()
+#' fig <- xyplotList(g, snp_exp, trellis_param)
+#' vps <- viewports()
+#' xygrid(fig[[1]], vps, g)
 #' @rdname plotting
 #' @export
 setGeneric("xyplotList", function(granges, se, param=HmmTrellisParam()) standardGeneric("xyplotList"))

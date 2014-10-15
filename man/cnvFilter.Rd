@@ -13,10 +13,14 @@
 \alias{deletion,HMM-method}
 \alias{duplication}
 \alias{duplication,HMM-method}
+\alias{duplication,HMMList-method}
 \alias{hemizygous}
 \alias{hemizygous,HMM-method}
+\alias{hemizygous,HMMList-method}
 \alias{homozygous}
 \alias{homozygous,HMM-method}
+\alias{homozygous,HMMList-method}
+\alias{segs,HMMList-method}
 \title{Filter the HMM-derived genomic ranges for copy number variants}
 \usage{
 cnvFilter(object, filters = FilterParam())
@@ -33,6 +37,14 @@ homozygous(object, filters = FilterParam(state = "1"))
 
 \S4method{cnvSegs}{HmmGRanges}(object, filters = FilterParam(state =
   as.character(c(1, 2, 5, 6))))
+
+\S4method{segs}{HMMList}(object)
+
+\S4method{hemizygous}{HMMList}(object)
+
+\S4method{homozygous}{HMMList}(object)
+
+\S4method{duplication}{HMMList}(object)
 
 \S4method{cnvSegs}{HMMList}(object, filters = FilterParam(state =
   as.character(c(1, 2, 5, 6))))
@@ -56,11 +68,15 @@ The HMM-derived genomic ranges are represented as a
 \examples{
 data(snp_exp)
 fit <- hmm2(snp_exp)
+segs(fit) ## all intervals
 cnvSegs(fit)
 filter_param <- FilterParam(probability=0.95, numberFeatures=10, state=c("1", "2"))
 cnvSegs(fit, filter_param)
 filter_param <- FilterParam(probability=0.5, numberFeatures=2, state=c("1", "2"))
 cnvSegs(fit, filter_param)
+hemizygous(fit)
+homozygous(fit)
+duplication(fit)
 }
 \seealso{
 \code{\link{FilterParam}}

@@ -5,7 +5,8 @@
 \alias{SnpArrayExperiment,matrix-method}
 \alias{SnpArrayExperiment,missing-method}
 \alias{SnpArrayExperiment-class}
-\title{SnpArrayExperiment container for log R ratios and B allele frequencies}
+\title{A SummarizedExperiment-derived class of marker-level SNP array data
+for copy number inference}
 \usage{
 SnpArrayExperiment(cn, baf, rowData = GRanges(), colData = DataFrame(),
   isSnp = logical(), ...)
@@ -30,9 +31,18 @@ SnpArrayExperiment(cn, baf, rowData = GRanges(), colData = DataFrame(),
 \item{...}{additional arguments passed to initialization method for \code{SummarizedExperiment}}
 }
 \description{
+A SummarizedExperiment-derived class of marker-level SNP array data
+for copy number inference
+
 Constructor for SnpArrayExperiment
 }
 \examples{
+## empty container
 SnpArrayExperiment()
+
+data(snp_exp) # example
+
+SnpArrayExperiment(cn=lrr(snp_exp), baf=baf(snp_exp),
+                   rowData=rowData(snp_exp))
 }
 

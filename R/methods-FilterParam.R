@@ -12,6 +12,7 @@
 #' ## - the number of features is at least 10
 #' ## - the HMM states are 1 (homozygous deletion) or 2 (hemizygous deletion)
 #' FilterParam(probability=0.95, numberFeatures=10, state=c("1", "2"))
+#'
 FilterParam <- function(probability=0.99, numberFeatures=10, seqnames=paste0("chr", c(1:22, "X", "Y")),
                         state=as.character(1:6), width=1L){
   new("FilterParam", probability=probability, numberFeatures=numberFeatures,

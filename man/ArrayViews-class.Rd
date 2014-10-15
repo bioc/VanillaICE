@@ -76,13 +76,11 @@ colnames(x) <- value
 \item{USE.NAMES}{whether the output should be a named vector}
 }
 \description{
-Description of ArrayViews class and methods.
-}
-\details{
 ArrayViews provides views to the low-level data -- log R ratios, B
 allele frequencies, and genotypes that are stored in parsed files
-on disk.  Accessors for the low-level data are provided to
-facilitate views of the data.
+on disk, often scaled and coerced to an integer.  Accessors to the
+low-level data are provided that extract the marker-level summaries
+from disk, rescaling when appropriate.
 }
 \section{Slots}{
 
@@ -118,6 +116,8 @@ ArrayViews()
   views <- ArrayViews(rowData=fgr,
                       sourcePaths=files,
                       sample_ids=ids)
+  ## view of first 10 markers and samples 3 and 5
+  views <- views[1:10, c(3,5)]
 }
 \seealso{
 \code{\link{CopyNumScanParams}} \code{\link{parseSourceFile}}

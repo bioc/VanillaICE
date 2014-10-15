@@ -74,14 +74,17 @@ setClass("SnpGRanges", contains="GRanges",
          representation(elementMetadata="SnpDataFrame"))
 
 
+#' A SummarizedExperiment-derived class of marker-level SNP array data
+#' for copy number inference
+#'
 #' @rdname SnpArrayExperiment-class
 #' @export
 setClass("SnpArrayExperiment", contains = "SummarizedExperiment",
          representation(rowData="SnpGRanges"))
 
-#' @aliases HmmGRanges-class
-#' @rdname HmmGRanges-class
-#' @export
+# # @aliases HmmGRanges-class
+# # @rdname HmmGRanges-class
+# # @export
 setClass("HmmGRanges", contains="GRanges", representation(emission_param="EmissionParam"))
 
 #' Container for the common criteria used to  filtering genomic ranges
@@ -125,6 +128,11 @@ setClass("FilterParam", representation(probability="numeric",
 #' @slot filters a \code{FilterParam} object
 #' @seealso \code{\link{hmm2}}
 #' @rdname HMM
+#' @examples
+#' data(snp_exp)
+#' hmm_list <- hmm2(snp_exp[,1])
+#' resultsFirstSample <- hmm_list[[1]]
+#' resultsFirstSample
 #' @export
 setClass("HMM", representation(granges="GRanges",
                                param="HmmParam",
@@ -136,17 +144,17 @@ setClass("HMM", representation(granges="GRanges",
 #'
 #' Each element of the HMMList contains the genomic intervals of the
 #' HMM segmentation (GRanges-derived object), parameters from the
-#' Baum-Welch, a matrix of posterior probabilities for the 6-state HMM
-#' (each row corresponds to a segment), and a \code{FilterParam}
-#' object.
+#' Baum-Welch, and a \code{FilterParam} object.
 #'
-## @slot granges a \code{GRanges}-derived class
-## @slot param Baum-Welch parameters from the 6-state HMM
-## @slot posterior numeric matrix of posterior probabilties
-## @slot filters parameters for filtering the GRanges object
 #' @slot .Data a list. Each element of the list should be a \code{HMM} object.
 #' @rdname HMMList-class
 #' @seealso \code{\linkS4class{HMM}}
+#' @examples
+#' data(snp_exp)
+#' fit <- hmm2(snp_exp)
+#' class(fit)
+#' identical(length(fit), ncol(snp_exp))
+#' unlist(fit)
 #' @export
 setClass("HMMList", contains="list")
 
@@ -183,12 +191,12 @@ setClass("CopyNumScanParams", representation(index_genome="integer",
 
 #' ArrayViews class, constructor, and methods
 #'
-#' Description of ArrayViews class and methods.
 #'
 #' ArrayViews provides views to the low-level data -- log R ratios, B
 #' allele frequencies, and genotypes that are stored in parsed files
-#' on disk.  Accessors for the low-level data are provided to
-#' facilitate views of the data.
+#' on disk, often scaled and coerced to an integer.  Accessors to the
+#' low-level data are provided that extract the marker-level summaries
+#' from disk, rescaling when appropriate.
 #'
 #' @slot colData  A character string
 #' @slot rowData A \code{DataFrame}
