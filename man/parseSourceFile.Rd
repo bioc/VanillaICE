@@ -49,9 +49,7 @@ scan_params <- CopyNumScanParams(index_genome=index_genome, select=select)
 ##
 ## parse the source files
 ##
-parseSourceFile(views[, 1], scan_params)
-## or
-sapply(views, parseSourceFile, param=scan_params)
+parseSourceFile(views, scan_params)
 list.files(parsedPath(views))
 ##
 ##  Inspecting source data through accessors defined on the views object

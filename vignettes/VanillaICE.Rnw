@@ -161,7 +161,7 @@ the following code-chunk ensures that this binary indicator is created
 and can be reliably accessed in downstream processing.
 
 <<FeatureAnnotation>>=
-library(data.table)
+require(data.table)
 features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))
 fgr <- GRanges(paste0("chr", features$Chr), IRanges(features$Position, width=1),
                isSnp=features[["Intensity Only"]]==0)
@@ -192,7 +192,7 @@ listed below.
 
 
 <<sourceFiles>>=
-files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
+files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")[1:5]
 @
 
 We will parse these files into a specific format such that all
@@ -263,18 +263,8 @@ parameters for reading the data in the \Robject{scan\_params} object
 and write the output to the \Rfunction{parsedPath} directory. In
 particular, the \Rfunction{parseSourceFile} returns \Rclass{NULL}.
 
-<<parseSourceFile>>=
-parsedPath(views)
-parseSourceFile(views[, 1], scan_params)
-@
-
-To apply the function \Rfunction{parseSourceFile} to all arrays in the
-\Robject{views} object, one can use the functional \Rfunction{sapply}.
-
 <<applyParseSourceFile>>=
-##invisible(sapply(views, parseSourceFile, param=scan_params))
-sapply(views, function(x) print(x))
-sapply(views, VanillaICE:::.parseSourceFile, param=scan_params)
+parseSourceFile(views, scan_params)
 @
 
 Apart from confirming their existance, the user should not have a need
@@ -297,16 +287,16 @@ ratios, B allele frequencies, and genotypes, respectively.  The user
 has the option of either subsetting the views object or subsetting the
 matrix returned by the accessor to extract the appropriate data
 slice. In the following examples, we access data on the first 2
-markers and sample indices 2-4.
+markers.
 
 <<Views>>=
-lrr(views)[1:2, 2:4]
+lrr(views)[1:2, ]
 ## or
-lrr(views[1:2, 2:4])
+lrr(views[1:2, ])
 ## B allele frequencies
-baf(views[1:2, 2:4])
+baf(views[1:2, ])
 ## Use :: to avoid  masking by function of the same name in crlmm
-VanillaICE::genotypes(views)[1:2, 2:4]
+VanillaICE::genotypes(views)[1:2, ]
 @
 
 More often, it is useful to extract the low-level data in a
@@ -320,7 +310,7 @@ class for the first three samples in the \Robject{views} object.
 
 
 <<SnpArrayExperiment>>=
-snp_exp <- SnpExperiment(views[, 4:ncol(views)])
+snp_exp <- SnpExperiment(views[, 4:5])
 show(snp_exp)
 @
 

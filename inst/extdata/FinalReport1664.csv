@@ -1,12 +1,3 @@
-[Header]
-BSGT Version,3.3.7
-Processing Date,5/2/2009 12:08 AM
-Content,,Human610-Quadv1_B.bpm
-Num SNPs,620901
-Total SNPs,620901
-Num Samples,7599
-Total Samples,7599
-[Data]
 SNP Name,Allele1 - AB,Allele2 - AB,B Allele Freq,Log R Ratio
 cnvi0005126,-,-,0.0085,-0.7214
 cnvi0005127,-,-,0.0081,-0.8589

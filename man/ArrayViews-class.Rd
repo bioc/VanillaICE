@@ -6,7 +6,7 @@
 \alias{ArrayViews}
 \alias{ArrayViews,numeric,numeric-method}
 \alias{ArrayViews-class}
-\alias{[,ArrayViews,ANY-method}
+\alias{[,ArrayViews,ANY,ANY,ANY-method}
 \alias{baf_means,ArrayViews-method}
 \alias{colnames<-}
 \alias{colnames<-,ArrayViews,character-method}
@@ -19,9 +19,10 @@
 \title{ArrayViews class, constructor, and methods}
 \usage{
 ArrayViews(class = "ArrayViews", colData, rowData = GRanges(),
-  sourcePaths = character(), scale = 1000, sample_ids, parsedPath)
+  sourcePaths = character(), scale = 1000, sample_ids,
+  parsedPath = "ParsedFiles")
 
-\S4method{[}{ArrayViews,ANY}(x, i, j, ..., drop = FALSE)
+\S4method{[}{ArrayViews,ANY,ANY,ANY}(x, i, j, ..., drop = FALSE)
 
 colnames(x) <- value
 

@@ -170,12 +170,12 @@ setMethod("show", "ArrayViews", function(object){
     system(paste("gunzip", to))
     file <- gsub(".gz", "", to)
   }
-  ##dat <- fread(to, select=c(1, 10, 11, 18, 19), showProgress=FALSE)
   dat <- fread(file[1], select=selectCols(param), showProgress=FALSE)
   dat <- dat[indexGenome(param), ]
   ##nms <- dat[["SNP Name"]]
   nms <- dat[[.snp_id_column(param)]]
-  if(!identical(nms, .rownames(object))){
+  if(!identical(nms, rownames(object))){
+    rownames(dat) <- nms
     dat <- .resolveIndex(dat, object)
   }
   stopifnot(identical(nms, .rownames(object)))
@@ -233,9 +233,7 @@ setMethod("show", "ArrayViews", function(object){
 #' ##
 #' ## parse the source files
 #' ##
-#' parseSourceFile(views[, 1], scan_params)
-#' ## or
-#' sapply(views, parseSourceFile, param=scan_params)
+#' parseSourceFile(views, scan_params)
 #' list.files(parsedPath(views))
 #' ##
 #' ##  Inspecting source data through accessors defined on the views object
@@ -247,7 +245,10 @@ setMethod("show", "ArrayViews", function(object){
 #' b <- head(baf(views))
 #' g <- head(genotypes(views))
 setMethod("parseSourceFile", c("ArrayViews", "CopyNumScanParams"),
-          function(object, param) .parseSourceFile(object, param))
+          function(object, param) {
+            message("Writing parsed files to ", parsedPath(object))
+            invisible(sapply(object, .parseSourceFile, param))
+          })
 
 #' @export
 #' @aliases sapply,ArrayViews-method

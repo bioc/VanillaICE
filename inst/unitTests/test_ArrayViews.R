@@ -51,9 +51,8 @@ test_ArrayViews <- function(){
 
   checkTrue(identical(c("Allele1 - AB", "Allele2 - AB"), VanillaICE:::gtvar(scan_params)))
 
-  checkException(parseSourceFile(views, scan_params)) ## warning that only first file parsed
-  ##x <- sapply(views, parseSourceFile, param=scan_params)
-  parseSourceFile(views[, 1], scan_params)
+  parseSourceFile(views[, 1:5], scan_params)
+  ##checkTrue(identical(length(list.files(parsedPath(views))), (ncol(views)-1L)*3L))
 
   if(FALSE){
   x <- unlist(x)

@@ -4,6 +4,7 @@
 #' @name VanillaICE
 #' @import oligoClasses
 #' @importFrom oligoClasses baf lrr
+#' @importFrom crlmm calculateRBaf
 #' @importMethodsFrom oligoClasses state baf lrr copyNumber
 #' @import GenomicRanges
 #' @import methods

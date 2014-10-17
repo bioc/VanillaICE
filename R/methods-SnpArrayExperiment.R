@@ -38,7 +38,7 @@ setMethod(SnpArrayExperiment, "matrix",
 
 setAs("CNSet", "SnpArrayExperiment",
       function(from){
-        b.r <- crlmm:::calculateRBaf(from)
+        b.r <- calculateRBaf(from)
         baflist <- b.r[["baf"]]
         not_matrix <- !is.matrix(baflist[[1]])
         if(not_matrix) baflist <- lapply(baflist, "[")
