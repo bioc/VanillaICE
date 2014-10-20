@@ -208,6 +208,7 @@ setReplaceMethod("baf", c("SnpArrayExperiment", "matrix"),
                  object
                })
 
+
 #' @aliases sweepMode sweepMode,SnpArrayExperiment-method
 #' @rdname sweepMode
 setMethod("sweepMode", "SnpArrayExperiment",
@@ -226,19 +227,6 @@ setMethod("sweepMode", "SnpArrayExperiment",
             x
           })
 
-
-##setMethod(SnpArrayExperiment, "ShallowSimpleListAssays",
-##          function(cn, baf, assays, rowData=GRanges(),
-##                   colData=DataFrame(rownames=colnames(assays$data[[1]])),
-##                   isSnp, ...){
-##            if("isSnp" %in% colnames(mcols(rowData))){
-##              rowData <- SnpGRanges(rowData)
-##            } else rowData <- SnpGRanges(rowData, isSnp)
-##            new("SnpArrayExperiment",
-##                assays=assays,
-##                rowData=rowData,
-##                colData=colData, ...)
-##          })
 
 #' Create an example SnpArrayExperiment from source files containing
 #' marker-level genomic data that are provided in this package
