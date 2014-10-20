@@ -51,38 +51,35 @@ test_ArrayViews <- function(){
 
   checkTrue(identical(c("Allele1 - AB", "Allele2 - AB"), VanillaICE:::gtvar(scan_params)))
 
-  parseSourceFile(views[, 1:5], scan_params)
-  ##checkTrue(identical(length(list.files(parsedPath(views))), (ncol(views)-1L)*3L))
-
   if(FALSE){
-  x <- unlist(x)
-  checkTrue(is.null(x))
+    x <- unlist(x)
+    checkTrue(is.null(x))
 
-  r <- head(lrr(views))
-  b <- head(baf(views))
-  checkTrue(identical(dim(r), c(6L,6L)))
-  checkTrue(identical(dim(b), c(6L,6L)))
-  checkTrue(identical(rownames(b), rownames(views)[1:6]))
+    r <- head(lrr(views))
+    b <- head(baf(views))
+    checkTrue(identical(dim(r), c(6L,6L)))
+    checkTrue(identical(dim(b), c(6L,6L)))
+    checkTrue(identical(rownames(b), rownames(views)[1:6]))
 
-  ## Changing the colnames of the views object should not change the
-  ## way that the parsed files are accessed (i.e., files are accessed
-  ## by a name derived from the source files)
-  colnames(views) <- letters[seq_len(ncol(views))]
-  r2 <- head(lrr(views))
-  colnames(r2) <- colnames(r) <- NULL
-  checkIdentical(r, r2)
+    ## Changing the colnames of the views object should not change the
+    ## way that the parsed files are accessed (i.e., files are accessed
+    ## by a name derived from the source files)
+    colnames(views) <- letters[seq_len(ncol(views))]
+    r2 <- head(lrr(views))
+    colnames(r2) <- colnames(r) <- NULL
+    checkIdentical(r, r2)
 
-  ## Fit a 6-state HMM
-  se <- SnpExperiment(views)
-  if(FALSE){
-    snp_exp <- se
-    save(snp_exp, file="~/Software/bridge/VanillaICE/data/snp_exp.rda")
+    ## Fit a 6-state HMM
+    se <- SnpExperiment(views)
+    if(FALSE){
+      snp_exp <- se
+      save(snp_exp, file="~/Software/bridge/VanillaICE/data/snp_exp.rda")
+    }
+    emission_param <- EmissionParam(temper=1/2, p_outlier=1/100)
+    ## to few markers for fitting the HMM
+    fit <- hmm2(se, emission_param=emission_param)
+    checkTrue(validObject(fit))
   }
-  emission_param <- EmissionParam(temper=1/2, p_outlier=1/100)
-  ## to few markers for fitting the HMM
-  fit <- hmm2(se, emission_param=emission_param)
-  checkTrue(validObject(fit))
-}
 }
 
 test_columnSubset <- function(){
@@ -91,7 +88,8 @@ test_columnSubset <- function(){
   require(foreach)
   require(oligoClasses)
   registerDoSEQ()
-  extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
+  ##extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
+  extdir <- "~/Software/bridge/VanillaICE/inst/extdata"
   features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))
   fgr <- GRanges(paste0("chr", features$Chr), IRanges(features$Position, width=1),
                  isSnp=features[["Intensity Only"]]==0)
@@ -114,18 +112,13 @@ test_columnSubset <- function(){
   views <- ArrayViews(rowData=fgr,
                       sourcePaths=files,
                       parsedPath=parse_path)
-  ##sapply(views, parseSourceFile, param=scan_params)
+  parseSourceFile(views, scan_params)
 
-  for(i in seq_along(views)){
-    cat("processing array", i)
-    parseSourceFile(views[, i], scan_params)
-  }
-##
-##  sample_info <- read.csv(file.path(extdir, "sample_data.csv"), stringsAsFactors=FALSE)
-##  ind_id <- setNames(gsub(" ", "", sample_info$IndividualID), sample_info$File)
-##  colnames(views) <- ind_id[gsub(".csv", "", colnames(views))]
-##  views2 <- views[, c("22169_03", "22169_02", "22169_01")]
-##  r1 <- lrr(views)[, "22169_01"]
-##  r2 <- lrr(views2)[, "22169_01"]
-##  checkTrue(identical(r1, r2))
+  sample_info <- read.csv(file.path(extdir, "sample_data.csv"), stringsAsFactors=FALSE)
+  ind_id <- setNames(gsub(" ", "", sample_info$IndividualID), sample_info$File)
+  colnames(views) <- ind_id[gsub(".txt", "", colnames(views))]
+  views2 <- views[, c("22169_03", "22169_02", "22169_01")]
+  r1 <- lrr(views)[, "22169_01"]
+  r2 <- lrr(views2)[, "22169_01"]
+  checkTrue(identical(r1, r2))
 }

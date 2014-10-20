@@ -19,8 +19,7 @@
 \title{ArrayViews class, constructor, and methods}
 \usage{
 ArrayViews(class = "ArrayViews", colData, rowData = GRanges(),
-  sourcePaths = character(), scale = 1000, sample_ids,
-  parsedPath = "ParsedFiles")
+  sourcePaths = character(), scale = 1000, sample_ids, parsedPath = "./")
 
 \S4method{[}{ArrayViews,ANY,ANY,ANY}(x, i, j, ..., drop = FALSE)
 

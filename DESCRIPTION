@@ -1,5 +1,5 @@
 Package: VanillaICE
-Version: 1.29.2
+Version: 1.29.3
 Title: A Hidden Markov Model for high throughput genotyping arrays
 Author: Robert Scharpf <rscharpf@jhu.edu>, Kevin Scharpf, and Ingo Ruczinski
     <ingo@jhsph.edu>
@@ -28,8 +28,7 @@ Suggests:
     SNPchip,
     human610quadv1bCrlmm,
     BSgenome.Hsapiens.UCSC.hg18,
-    ArrayTV,
-    data.table
+    ArrayTV
 Collate:
     'AllClasses.R'
     'AllGenerics.R'

@@ -251,7 +251,6 @@ setMethod("sweepMode", "SnpArrayExperiment",
 #' }
 getExampleSnpExperiment <- function(){
   require("BSgenome.Hsapiens.UCSC.hg18")
-  require("data.table")
   BSgenome <- get("BSgenome.Hsapiens.UCSC.hg18")
   extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
   features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))

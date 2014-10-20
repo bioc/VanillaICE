@@ -192,7 +192,7 @@ listed below.
 
 
 <<sourceFiles>>=
-files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")[1:5]
+files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
 @
 
 We will parse these files into a specific format such that all

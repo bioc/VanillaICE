@@ -39,14 +39,11 @@ ArrayViews <- function(class="ArrayViews",
                        sourcePaths=character(),
                        scale=1000,
                        sample_ids,
-                       parsedPath="ParsedFiles"){
+                       parsedPath="./"){
   if(missing(colData)){
     if(!missing(sample_ids)) {
       colData <- DataFrame(row.names=sample_ids)
     } else colData <- DataFrame(row.names=basename(sourcePaths))
-  }
-  if(missing(parsedPath)){
-    parsedPath <- if(!missing(sourcePaths)) dirname(sourcePaths)[1] else character()
   }
   new(class,
       colData=colData,
