@@ -6,7 +6,6 @@ Num SNPs,620901
 Total SNPs,620901
 Num Samples,7599
 Total Samples,7599
-File ,1664 of 7599
 [Data]
 SNP Name,Allele1 - AB,Allele2 - AB,B Allele Freq,Log R Ratio
 cnvi0005126,-,-,0,0.426

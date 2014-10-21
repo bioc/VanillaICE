@@ -10,10 +10,16 @@ snpArrayAssays(cn = new("matrix"), baf = new("matrix"), ...)
 
 \item{baf}{matrix of B allele frequencies}
 
-\item{...}{one can pass additional matrices to the SnpExperiment
-constructor, such as the SNP genotypes.}
+\item{...}{additional matrices of the same dimension, such as SNP genotypes.}
 }
 \description{
-Create an assays object from log R ratios and B allele frequencies
+This function is exported primarily for internal use by other BioC
+packages.
+}
+\examples{
+data(snp_exp)
+r <- lrr(snp_exp)
+b <- baf(snp_exp)
+sl <- snpArrayAssays(cn=r, baf=b)
 }
 

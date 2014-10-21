@@ -35,17 +35,13 @@ ArrayViews <- function(class="ArrayViews",
                        colData,
                        rowData=GRanges(),
                        sourcePaths=character(),
-                       ##index=seq_along(rowData),
                        scale=1000,
                        sample_ids,
-                       parsedPath){
+                       parsedPath="./"){
   if(missing(colData)){
     if(!missing(sample_ids)) {
       colData <- DataFrame(row.names=sample_ids)
     } else colData <- DataFrame(row.names=basename(sourcePaths))
-  }
-  if(missing(parsedPath)){
-    parsedPath <- if(!missing(sourcePaths)) dirname(sourcePaths)[1] else character()
   }
   new(class,
       colData=colData,
@@ -169,14 +165,13 @@ setMethod("show", "ArrayViews", function(object){
     system(paste("gunzip", to))
     file <- gsub(".gz", "", to)
   }
-  ##dat <- fread(to, select=c(1, 10, 11, 18, 19), showProgress=FALSE)
   dat <- fread(file[1], select=selectCols(param), showProgress=FALSE)
   dat <- dat[indexGenome(param), ]
   ##nms <- dat[["SNP Name"]]
   nms <- dat[[.snp_id_column(param)]]
-  if(!identical(nms, .rownames(object))){
-    dat <- .resolveIndex(dat, object)
-  }
+##  if(!identical(nms, .rownames(object))){
+##    dat <- .resolveIndex(dat, object)
+##  }
   stopifnot(identical(nms, .rownames(object)))
   gtindex <- match(gtvar(param), colnames(dat))
   if(length(gtvar(param))==2){
@@ -232,9 +227,7 @@ setMethod("show", "ArrayViews", function(object){
 #' ##
 #' ## parse the source files
 #' ##
-#' parseSourceFile(views[, 1], scan_params)
-#' ## or
-#' sapply(views, parseSourceFile, param=scan_params)
+#' parseSourceFile(views, scan_params)
 #' list.files(parsedPath(views))
 #' ##
 #' ##  Inspecting source data through accessors defined on the views object
@@ -246,7 +239,10 @@ setMethod("show", "ArrayViews", function(object){
 #' b <- head(baf(views))
 #' g <- head(genotypes(views))
 setMethod("parseSourceFile", c("ArrayViews", "CopyNumScanParams"),
-          function(object, param) .parseSourceFile(object, param))
+          function(object, param) {
+            message("Writing parsed files to ", parsedPath(object))
+            invisible(sapply(object, .parseSourceFile, param))
+          })
 
 #' @export
 #' @aliases sapply,ArrayViews-method
@@ -341,36 +337,6 @@ setMethod("dim", "ArrayViews", function(x) c(ncol(x), nrow(x)))
 #' @examples
 #' view <- ArrayViews()
 #' SnpExperiment(view)
-#'
-#' ## create a views object from GenomeStudio source files
-#'   require(BSgenome.Hsapiens.UCSC.hg18)
-#'   require(data.table)
-#'   require(foreach)
-#'   extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
-#'
-#'   features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))
-#'   fgr <- GRanges(paste0("chr", features$Chr), IRanges(features$Position, width=1),
-#'                  isSnp=features[["Intensity Only"]]==0)
-#'   fgr <- SnpGRanges(fgr)
-#'   names(fgr) <- features[["Name"]]
-#'   seqlevels(fgr) <- seqlevels(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(BSgenome.Hsapiens.UCSC.hg18) %in% seqlevels(fgr)]
-#'   seqinfo(fgr) <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(fgr),]
-#'   fgr <- sort(fgr)
-#'   files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
-#'   ids <- gsub(".rds", "", gsub("FinalReport", "", basename(files)))
-#'   dat <- fread(files[1], nrows=0)
-#'   keep <- c("SNP Name", "Allele1 - AB", "Allele2 - AB", "Log R Ratio", "B Allele Freq")
-#'   select <- which(names(dat)%in%keep)
-#'   dat <- fread(files[1], select=select)
-#'   index_genome <- match(names(fgr), dat[["SNP Name"]])
-#'   scan_params <- CopyNumScanParams(index_genome=index_genome,
-#'                                    select=as.integer(select))
-#'   views <- ArrayViews(rowData=fgr,
-#'                       sourcePaths=files,
-#'                       sample_ids=ids,
-#'                       parsedPath=tempdir())
-#'   sapply(views, parseSourceFile, scan_params)
-#'   se <- SnpExperiment(views)
 setMethod("SnpExperiment", "ArrayViews", function(object){
   if(ncol(object) == 0) return(SnpArrayExperiment())
   view <- object
@@ -489,6 +455,13 @@ setMethod("end", "ArrayViews", function(x) end(rowData(x)))
 #' @param object a container for which the methods seqnames and start
 #' are defined
 #' @return an object of the same class with duplicated genomic positions removed
+#' @examples
+#' data(snp_exp)
+#' g <- rowData(snp_exp)
+#' ## duplicate the first row
+#' g[length(g)] <- g[1]
+#'  rowData(snp_exp) <- g
+#'  snp_exp2 <- dropDuplicatedMapLocs(snp_exp)
 #' @export
 dropDuplicatedMapLocs <- function(object){
   starts <- paste0(as.character(seqnames(object)), start(object), sep="_")

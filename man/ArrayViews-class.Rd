@@ -6,7 +6,7 @@
 \alias{ArrayViews}
 \alias{ArrayViews,numeric,numeric-method}
 \alias{ArrayViews-class}
-\alias{[,ArrayViews,ANY-method}
+\alias{[,ArrayViews,ANY,ANY,ANY-method}
 \alias{baf_means,ArrayViews-method}
 \alias{colnames<-}
 \alias{colnames<-,ArrayViews,character-method}
@@ -19,9 +19,9 @@
 \title{ArrayViews class, constructor, and methods}
 \usage{
 ArrayViews(class = "ArrayViews", colData, rowData = GRanges(),
-  sourcePaths = character(), scale = 1000, sample_ids, parsedPath)
+  sourcePaths = character(), scale = 1000, sample_ids, parsedPath = "./")
 
-\S4method{[}{ArrayViews,ANY}(x, i, j, ..., drop = FALSE)
+\S4method{[}{ArrayViews,ANY,ANY,ANY}(x, i, j, ..., drop = FALSE)
 
 colnames(x) <- value
 
@@ -76,13 +76,11 @@ colnames(x) <- value
 \item{USE.NAMES}{whether the output should be a named vector}
 }
 \description{
-Description of ArrayViews class and methods.
-}
-\details{
 ArrayViews provides views to the low-level data -- log R ratios, B
 allele frequencies, and genotypes that are stored in parsed files
-on disk.  Accessors for the low-level data are provided to
-facilitate views of the data.
+on disk, often scaled and coerced to an integer.  Accessors to the
+low-level data are provided that extract the marker-level summaries
+from disk, rescaling when appropriate.
 }
 \section{Slots}{
 

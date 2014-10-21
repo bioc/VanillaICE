@@ -19,6 +19,8 @@ setMethod(SnpDataFrame, "missing",
             new("SnpDataFrame")
           })
 
+#' @aliases SnpGRanges,missing-method
+#' @rdname SnpGRanges
 setMethod(SnpGRanges, "missing",
           function(object, isSnp){
             new("SnpGRanges")
@@ -35,6 +37,8 @@ setMethod(SnpDataFrame, "DataFrame",
             as(x, "SnpDataFrame")
           })
 
+#' @aliases SnpGRanges,missing-method
+#' @rdname SnpGRanges
 setMethod(SnpGRanges, "GRanges",
           function(object, isSnp){
             if(!"isSnp" %in% colnames(mcols(object))){

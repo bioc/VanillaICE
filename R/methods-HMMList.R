@@ -16,6 +16,16 @@ HMMList <- function(object){
   }
 }
 
+setValidity("HMMList", function(object){
+  msg <- TRUE
+  if(length(object) > 0){
+    cls <- sapply(object, class)
+    all_elements_HMM <- all(cls=="HMM")
+    if(!all_elements_HMM) msg <- "All elements must be an HMM object"
+  }
+  msg
+})
+
 #' @param object a \code{HMMList} object
 #' @export
 #' @rdname HMMList-class
@@ -56,4 +66,39 @@ setMethod("cnvSegs", "HMMList", function(object, filters=FilterParam(state=as.ch
 setMethod("cnvFilter", "HMMList", function(object, filters=FilterParam()){
   x <- unlist(object)
   cnvFilter(x, filters)
+})
+
+
+#' @aliases segs,HMMList-method
+#' @rdname cnvFilter
+setMethod("segs", "HMMList", function(object) unlist(object))
+
+#' @aliases hemizygous,HMMList-method
+#' @rdname cnvFilter
+setMethod("hemizygous", "HMMList", function(object) {
+  x <- GRangesList(lapply(object, hemizygous))
+  id <- rep(names(x), elementLengths(x))
+  x <- unlist(x)
+  x$id <- id
+  x
+})
+
+#' @aliases homozygous,HMMList-method
+#' @rdname cnvFilter
+setMethod("homozygous", "HMMList", function(object) {
+  x <- GRangesList(lapply(object, homozygous))
+  id <- rep(names(x), elementLengths(x))
+  x <- unlist(x)
+  x$id <- id
+  x
+})
+
+#' @aliases duplication,HMMList-method
+#' @rdname cnvFilter
+setMethod("duplication", "HMMList", function(object) {
+  x <- GRangesList(lapply(object, duplication))
+  id <- rep(names(x), elementLengths(x))
+  x <- unlist(x)
+  x$id <- id
+  x
 })

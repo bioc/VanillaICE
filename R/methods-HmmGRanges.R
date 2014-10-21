@@ -9,8 +9,6 @@ setValidity("HmmGRanges", function(object){
   TRUE
 })
 
-
-
 setMethod("HmmGRanges", "missing", function(states, feature_starts,
                                             feature_chrom,
                                             loglik,
@@ -51,9 +49,11 @@ setMethod("HmmGRanges", "Rle", function(states, feature_starts, feature_chrom, l
   HmmGRanges(as.integer(states), feature_starts, feature_chrom, loglik)
 })
 
+#' Accessor for copy number state
+#'
+#' Extract the copy number state for each genomic interval.
 #' @param object a \code{HmmGRanges} object
-#' @aliases state,HmmGRanges-method
-#' @rdname HmmGRanges-class
+#' @rdname HmmGRanges-methods
 setMethod(state, "HmmGRanges", function(object) object$state)
 
 setMethod(statei, "HmmGRanges", function(object) as.integer(object$state))

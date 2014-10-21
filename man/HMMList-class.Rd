@@ -23,15 +23,20 @@ multiple samples}
 \description{
 Each element of the HMMList contains the genomic intervals of the
 HMM segmentation (GRanges-derived object), parameters from the
-Baum-Welch, a matrix of posterior probabilities for the 6-state HMM
-(each row corresponds to a segment), and a \code{FilterParam}
-object.
+Baum-Welch, and a \code{FilterParam} object.
 }
 \section{Slots}{
 
 \describe{
 \item{\code{.Data}}{a list. Each element of the list should be a \code{HMM} object.}
 }}
+\examples{
+data(snp_exp)
+fit <- hmm2(snp_exp)
+class(fit)
+identical(length(fit), ncol(snp_exp))
+unlist(fit)
+}
 \seealso{
 \code{\linkS4class{HMM}}
 }

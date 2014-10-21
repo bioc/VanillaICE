@@ -8,6 +8,10 @@
 \title{An extension to GRanges for representing SNPs}
 \usage{
 SnpGRanges(object = GRanges(), isSnp, ...)
+
+\S4method{SnpGRanges}{missing}(object, isSnp)
+
+\S4method{SnpGRanges}{GRanges}(object, isSnp)
 }
 \arguments{
 \item{object}{A \code{GRanges} object}
@@ -31,5 +35,7 @@ Constructor for SnpGRanges class
 }}
 \examples{
 SnpGRanges()
+g <- GRanges("chr1", IRanges(15L, 15L))
+SnpGRanges(g, isSnp=TRUE)
 }
 

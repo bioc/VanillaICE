@@ -1,13 +1,14 @@
-# Constructor for HMM class
-#
-# The contructor \code{HMM} creates and object of class \code{HMM}.
-
-
+#' Constructor for HMM class
+#'
+#' The contructor \code{HMM} creates and object of class
+#' \code{HMM}. Not typically called directly by the user.
 #' @param granges a \code{GRanges} object
 #' @param param  a \code{HmmParam} object
 #' @param posterior matrix of posterior probabilities
 #' @param filters  an object of class \code{FilterParam}
 #' @export
+#' @examples
+#' HMM()
 #' @rdname HMM
 HMM <- function(granges=GRanges(), param=HmmParam(), posterior=matrix(), filters=FilterParam()){
   new("HMM", granges=granges, param=param, posterior=posterior, filters=filters)
@@ -88,7 +89,7 @@ setMethod("deletion", "HMM", function(object, filters=FilterParam(state=c("1","2
 #' @export
 setMethod("show", "HMM", function(object){
   cat("Object of class 'HMM'\n")
-  cat("  no. segments:", length(granges(object)), "\n")
+  cat("  granges (no. segments)  :", length(granges(object)), "\n")
   dups <- duplication(object)
   hemi <- hemizygous(object)
   homo <- homozygous(object)

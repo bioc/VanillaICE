@@ -44,11 +44,10 @@ viewports <- function(){
   lim
 }
 
-#' Layout the lattice-style plots for the CNV data on a grid
-#'
+
 #' @param trellis_plot  an object of class \code{trellis}
 #' @param viewports a list of viewports as provided by the \code{viewports} function
-#' @param granges a  \code{HmmGRanges} object
+#' @rdname plotting
 #' @seealso \code{\link{viewports}}
 #' @export
 xygrid <- function(trellis_plot, viewports, granges){

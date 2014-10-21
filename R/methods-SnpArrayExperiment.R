@@ -1,6 +1,9 @@
 #' @examples
 #' SnpArrayExperiment()
-#' @aliases   SnpArrayExperiment,missing-method
+#' data(snp_exp) # example
+#' SnpArrayExperiment(cn=lrr(snp_exp), baf=baf(snp_exp),
+#'                    rowData=rowData(snp_exp))
+#' @aliases SnpArrayExperiment,missing-method
 #' @rdname SnpArrayExperiment-class
 setMethod(SnpArrayExperiment, "missing",
           function(cn, baf, rowData=GRanges(),
@@ -32,7 +35,7 @@ setMethod(SnpArrayExperiment, "matrix",
 
 setAs("CNSet", "SnpArrayExperiment",
       function(from){
-        b.r <- crlmm:::calculateRBaf(from)
+        b.r <- crlmm::calculateRBaf(from)
         baflist <- b.r[["baf"]]
         not_matrix <- !is.matrix(baflist[[1]])
         if(not_matrix) baflist <- lapply(baflist, "[")
@@ -59,6 +62,7 @@ setAs("oligoSnpSet", "SnpArrayExperiment",
       function(from){
         rowdata <- as(featureData(from), "SnpGRanges")
         coldata <- as(as(phenoData(from), "data.frame"), "DataFrame")
+        if(!"baf" %in% assayDataElementNames(from)) stop("BAFs not available")
         cn_assays <- snpArrayAssays(cn=copyNumber(from),
                                     baf=baf(from),
                                     gt=calls(from))
@@ -140,11 +144,16 @@ isCnAssays <- function(x) all(requiredAssays() %in% assayNames(x))
 
 #' Create an assays object from log R ratios and B allele frequencies
 #'
-#'
+#' This function is exported primarily for internal use by other BioC
+#' packages.
 #' @param cn matrix of log R ratios
 #' @param baf matrix of B allele frequencies
-#' @param ... one can pass additional matrices to the SnpExperiment
-#' constructor, such as the SNP genotypes.
+#' @param ... additional matrices of the same dimension, such as SNP genotypes.
+#' @examples
+#' data(snp_exp)
+#' r <- lrr(snp_exp)
+#' b <- baf(snp_exp)
+#' sl <- snpArrayAssays(cn=r, baf=b)
 #' @export
 snpArrayAssays <- function(cn=new("matrix"),
                            baf=new("matrix"), ...){
@@ -189,14 +198,15 @@ setReplaceMethod("copyNumber", c("SnpArrayExperiment", "matrix"),
                  object
                })
 
+
 setReplaceMethod("baf", c("SnpArrayExperiment", "matrix"),
                  function(object, value) {
                    assays(object)[["baf"]] <- value
                  object
                })
 
-##  @describeIn SnpArrayExperiment-class
-##  @aliases sweepMode,SnpArrayExperiment-method
+#' @aliases sweepMode sweepMode,SnpArrayExperiment-method
+#' @rdname sweepMode
 setMethod("sweepMode", "SnpArrayExperiment",
           function(x, MARGIN){
             se <- x[chromosome(x) %in% autosomes(chromosome(x)), ]
@@ -213,16 +223,33 @@ setMethod("sweepMode", "SnpArrayExperiment",
             x
           })
 
-
-##setMethod(SnpArrayExperiment, "ShallowSimpleListAssays",
-##          function(cn, baf, assays, rowData=GRanges(),
-##                   colData=DataFrame(rownames=colnames(assays$data[[1]])),
-##                   isSnp, ...){
-##            if("isSnp" %in% colnames(mcols(rowData))){
-##              rowData <- SnpGRanges(rowData)
-##            } else rowData <- SnpGRanges(rowData, isSnp)
-##            new("SnpArrayExperiment",
-##                assays=assays,
-##                rowData=rowData,
-##                colData=colData, ...)
-##          })
+#' Create an example SnpArrayExperiment from source files containing
+#' marker-level genomic data that are provided in this package
+#'
+#' @return A \code{\link{SnpArrayExperiment}}
+#' @export
+#' @examples
+#' \dontrun{
+#'    snp_exp <- getExampleSnpExperiment()
+#' }
+getExampleSnpExperiment <- function(){
+  require("BSgenome.Hsapiens.UCSC.hg18")
+  BSgenome <- get("BSgenome.Hsapiens.UCSC.hg18")
+  extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
+  features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))
+  fgr <- GRanges(paste0("chr", features$Chr), IRanges(features$Position, width=1),
+                 isSnp=features[["Intensity Only"]]==0)
+  fgr <- SnpGRanges(fgr)
+  names(fgr) <- features[["Name"]]
+  seqlevels(fgr) <- seqlevels(BSgenome)[seqlevels(BSgenome) %in% seqlevels(fgr)]
+  seqinfo(fgr) <- seqinfo(BSgenome)[seqlevels(fgr),]
+  fgr <- sort(fgr)
+  file <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")[5]
+  dat <- fread(file)
+  select <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB", "Log R Ratio", "B Allele Freq"), names(dat))
+  index_genome <- match(names(fgr), dat[["SNP Name"]])
+  scan_params <- CopyNumScanParams(index_genome=index_genome, select=select)
+  views <- ArrayViews(rowData=fgr, sourcePaths=file)
+  parseSourceFile(views, param=scan_params)
+  SnpExperiment(views)
+}

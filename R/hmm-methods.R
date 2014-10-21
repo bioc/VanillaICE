@@ -164,15 +164,17 @@ baumWelchUpdate <- function(param, assay_list){
 #' emission_param <- EmissionParam(temper=1/2)
 #' fit <- hmm2(snp_exp, emission_param)
 #' unlist(fit)
-#' cnvSegs(fit)
-#' ## There is too little data to infer cnv reliably in this trivial example.
-#' ## To illustrate filtering options on the results, we select
-#' ## CNVs for which
-#' ## - the CNV call has a posterior probability of at least 0.5
-#' ## - the number of features is 2 or more
 #' ## - the HMM states are 1 (homozygous deletion) or 2 (hemizygous deletion)
 #' fp <- FilterParam(probability=0.5, numberFeatures=2, state=c("1", "2"))
-#' cnvSegs(fit, fp)
+#' cnvSegs(fit,fp)
+#' ## for parallelization
+#' \dontrun{
+#'    library(snow)
+#'    library(doSNOW)
+#'    cl <- makeCluster(2, type = "SOCK")
+#'    registerDoSNOW(cl)
+#'    fit <- hmm2(snp_exp, emission_param)
+#' }
 #' @aliases hmm2,SnpArrayExperiment-method
 #' @rdname hmm2
 setMethod(hmm2, "SnpArrayExperiment",

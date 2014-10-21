@@ -10,6 +10,7 @@
 #' @import IRanges
 #' @import S4Vectors
 #' @import GenomeInfoDb
+#' @importFrom crlmm calculateRBaf
 #' @importMethodsFrom Biobase pData fData phenoData featureData featureNames sampleNames assayData snpCallProbability
 #' @importFrom Biobase rowMax assayDataElement assayDataElementNames assayDataNew
 #' @importFrom data.table fread

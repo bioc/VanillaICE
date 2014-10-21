@@ -51,38 +51,8 @@ test_ArrayViews <- function(){
 
   checkTrue(identical(c("Allele1 - AB", "Allele2 - AB"), VanillaICE:::gtvar(scan_params)))
 
-  checkException(parseSourceFile(views, scan_params)) ## warning that only first file parsed
-  x <- sapply(views, parseSourceFile, param=scan_params)
-  x <- unlist(x)
-  checkTrue(is.null(x))
 
-  r <- head(lrr(views))
-  b <- head(baf(views))
-  checkTrue(identical(dim(r), c(6L,6L)))
-  checkTrue(identical(dim(b), c(6L,6L)))
-  checkTrue(identical(rownames(b), rownames(views)[1:6]))
-
-  ## Changing the colnames of the views object should not change the
-  ## way that the parsed files are accessed (i.e., files are accessed
-  ## by a name derived from the source files)
-  colnames(views) <- letters[seq_len(ncol(views))]
-  r2 <- head(lrr(views))
-  colnames(r2) <- colnames(r) <- NULL
-  checkIdentical(r, r2)
-
-  ## Fit a 6-state HMM
-  se <- SnpExperiment(views)
-  if(FALSE){
-    snp_exp <- se
-    save(snp_exp, file="~/Software/bridge/VanillaICE/data/snp_exp.rda")
-  }
-  emission_param <- EmissionParam(temper=1/2, p_outlier=1/100)
-  ## to few markers for fitting the HMM
-  fit <- hmm2(se, emission_param=emission_param)
-  checkTrue(validObject(fit))
-
-  ##fp <- FilterParam(numberFeatures=2, state=c("1", "2"), probability=0.5)
-  ##checkTrue(validObject(cnvSegs(fit, fp)))
+  parseSourceFile(views, scan_params)
 }
 
 test_columnSubset <- function(){
@@ -113,11 +83,11 @@ test_columnSubset <- function(){
   views <- ArrayViews(rowData=fgr,
                       sourcePaths=files,
                       parsedPath=tempdir())
-  sapply(views, parseSourceFile, param=scan_params)
+  parseSourceFile(views, scan_params)
 
   sample_info <- read.csv(file.path(extdir, "sample_data.csv"), stringsAsFactors=FALSE)
   ind_id <- setNames(gsub(" ", "", sample_info$IndividualID), sample_info$File)
-  colnames(views) <- ind_id[gsub(".csv", "", colnames(views))]
+  colnames(views) <- ind_id[gsub(".txt", "", colnames(views))]
   views2 <- views[, c("22169_03", "22169_02", "22169_01")]
   r1 <- lrr(views)[, "22169_01"]
   r2 <- lrr(views2)[, "22169_01"]
