@@ -88,8 +88,7 @@ test_columnSubset <- function(){
   require(foreach)
   require(oligoClasses)
   registerDoSEQ()
-  ##extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
-  extdir <- "~/Software/bridge/VanillaICE/inst/extdata"
+  extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
   features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))
   fgr <- GRanges(paste0("chr", features$Chr), IRanges(features$Position, width=1),
                  isSnp=features[["Intensity Only"]]==0)

@@ -59,6 +59,6 @@ License: LGPL-2
 LazyLoad: yes
 biocViews: CopyNumberVariation
 Roxygen: list(wrap=FALSE)
-## Local Variables:
+## Local Variables: 
 ## time-stamp-pattern: "8/Date: %3a %3b %2d %02H:%02M:%02S %Z %:y\n"
-## End:
+## End: 
