@@ -39,7 +39,7 @@ ArrayViews <- function(class="ArrayViews",
                        sourcePaths=character(),
                        scale=1000,
                        sample_ids,
-                       parsedPath="./"){
+                       parsedPath=getwd()){
   if(missing(colData)){
     if(!missing(sample_ids)) {
       colData <- DataFrame(row.names=sample_ids)
