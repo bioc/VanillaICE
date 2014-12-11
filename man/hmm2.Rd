@@ -78,4 +78,7 @@ cnvSegs(fit,fp)
    fit <- hmm2(snp_exp, emission_param)
 }
 }
+\seealso{
+\code{\link{EmissionParam}} \code{\link{TransitionParam}}
+}
 

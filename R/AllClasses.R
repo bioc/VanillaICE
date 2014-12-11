@@ -18,7 +18,8 @@ setClass("EmissionParam",
            CN_range="numeric",
            proportionOutlier="numeric",
            temper="numeric",
-           p_outlier="numeric"))
+           p_outlier="numeric",
+           modelHomozygousRegions="logical"))
 
 
 
@@ -203,7 +204,7 @@ setClass("CopyNumScanParams", representation(index_genome="integer",
 #' @slot sourcePaths A character string providing complete path to source files (one file per sample) containing low-level summaries (Log R ratios, B allele frequencies, genotypes)
 #' @slot scale A length-one numeric vector
 #' @slot parsedPath A character string providing full path to where parsed files should be saved
-#' @aliases '[',ArrayViews,ANY-method baf_means,ArrayViews-method
+#' @aliases '[',ArrayViews,ANY-method baf_means,ArrayViews-method '[<-',ArrayViews,ANY-method '$',ArrayViews-method
 #' @rdname ArrayViews-class
 #' @export
 setClass("ArrayViews",

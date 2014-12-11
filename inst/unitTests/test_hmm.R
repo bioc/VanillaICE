@@ -150,3 +150,37 @@ test_oligoSnpSetGT <- function(){
   index <- subjectHits(findOverlaps(GRanges("chr1", IRanges(70.1e6, 73e6)), hmmResults))
   checkTrue(state(hmmResults)[index] >= 5)
 }
+
+
+test_state4 <- function(){
+  library(oligoClasses)
+  library(GenomicRanges)
+  library(Biobase)
+  data(oligoSetExample, package="oligoClasses")
+  oligoSet <- oligoSet[chromosome(oligoSet) == 1, ]
+  rd <- GRanges(paste0("chr", chromosome(featureData(oligoSet))),
+                IRanges(position(oligoSet), width=1))
+  cn <- copyNumber(oligoSet)/100
+  cn <- log2((2^cn)/2)
+  gt <- calls(oligoSet)[,]
+  bf <- rep(NA, length(gt))
+  u <- runif(length(gt))
+  bf[gt==1 & u > 0.5] <- runif(sum(gt==1 & u > 0.5), 0, 0.05)
+  bf[gt==1 & u <= 0.5] <- runif(sum(gt==1 & u <= 0.5), 0.95, 1)
+  bf[gt==2] <- runif(sum(gt==2), 0.45, 0.55)
+  ##bf[1049:1050] <- runif(2, 0, 0.03)
+  bf[900:1200] <- runif(length(900:1200), 0, 0.03)
+  cn <- as.matrix(cn)
+  bf <- as.matrix(bf)
+  dimnames(cn) <- dimnames(bf) <- list(featureNames(oligoSet), sampleNames(oligoSet))
+  se <- SnpArrayExperiment(cn=cn,
+                           baf=bf,
+                           rowData=rd,
+                           isSnp=rep(TRUE, length(rd)))
+  fit <- hmm2(se)
+  checkTrue(!any(state(fit[[1]])==4))
+
+  eparam <- EmissionParam(modelHomozygousRegions=TRUE)
+  fit2 <- hmm2(se, eparam)
+  checkTrue(state(fit2[[1]])[2]==4)
+}

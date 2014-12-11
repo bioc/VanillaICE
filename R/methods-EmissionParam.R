@@ -13,6 +13,7 @@ setMethod(show, "EmissionParam",
             init <- initial(object)
             cat("initial state probabilities: ", paste(round(init, 2), collapse=", "), "\n")
             cat("tempering scalar: ", temper(object), "\n")
+            cat("model homozygous regions: ", modelHomozygousRegions(object), "\n")
             cat("See temper(), cn_means(), cn_sds(),...\n")
           })
 
@@ -29,7 +30,8 @@ setMethod(EmissionParam, signature(cn_means="missing"),
                    EMupdates=5L,
                    CN_range=c(-5, 3),
                    temper=1,  ## flatten the peaks
-                   p_outlier=1/100){
+                   p_outlier=1/100,
+                   modelHomozygousRegions=FALSE){
             b_means <- setNames(baf_means, BAF_ALLELE_NAMES())
             b_sds <- setNames(baf_sds, BAF_ALLELE_NAMES())
             new("EmissionParam", cn_means=cn_means, cn_sds=cn_sds,
@@ -38,7 +40,8 @@ setMethod(EmissionParam, signature(cn_means="missing"),
                 EMupdates=EMupdates,
                 CN_range=CN_range,
                 temper=temper,
-                p_outlier=p_outlier)
+                p_outlier=p_outlier,
+                modelHomozygousRegions=modelHomozygousRegions)
           })
 
 setMethod(EmissionParam, signature(cn_means="numeric"),
@@ -50,7 +53,8 @@ setMethod(EmissionParam, signature(cn_means="numeric"),
                    EMupdates=5L,
                    CN_range=c(-5,3),
                    temper=1,
-                   p_outlier=1/100){
+                   p_outlier=1/100,
+                   modelHomozygousRegions=FALSE){
             b_means <- setNames(baf_means, BAF_ALLELE_NAMES())
             b_sds <- setNames(baf_sds, BAF_ALLELE_NAMES())
             new("EmissionParam", cn_means=cn_means, cn_sds=cn_sds,
@@ -59,8 +63,11 @@ setMethod(EmissionParam, signature(cn_means="numeric"),
                 EMupdates=EMupdates,
                 CN_range=CN_range,
                 temper=temper,
-                p_outlier=p_outlier)
+                p_outlier=p_outlier,
+                modelHomozygousRegions=modelHomozygousRegions)
           })
+
+modelHomozygousRegions <- function(object) object@modelHomozygousRegions
 
 setMethod("probOutlier", "EmissionParam", function(object) object@p_outlier)
 
@@ -159,10 +166,13 @@ setMethod(calculateEmission, signature(x="numeric"),
 
   ## uniform for homozygous deletions
   x <- cbind(1, cn1, cn2, cn1, cn3, cn4)
-  ##
-  ##  Let the emission probabilities give more weight to heterozygous genotypes
-  ##
-  x <- prHet*x + (1-prHet)*1
+  if(!modelHomozygousRegions(param)){
+    ##
+    ##  Let the emission probabilities give more weight to
+    ##  heterozygous genotypes
+    ##
+    x <- prHet*x + (1-prHet)*1
+  }
   colnames(x) <- .hmm_states()
   x
 }
@@ -186,7 +196,6 @@ setMethod(calculateEmission, signature(x="list"),
   sds <- cn_sds(param)
   limits <- CN_range(param)
   x[[1]] <- threshold(x[[1]], limits)
-  ##browser()
   emit_cn <- mapply(dnorm, mean=as.list(means), sd=as.list(sds),
                     MoreArgs=list(x=x[[1]]))
   emit_baf <- .calculateBAFEmission(x[[2]], param)
