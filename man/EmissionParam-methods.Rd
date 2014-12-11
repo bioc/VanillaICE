@@ -132,26 +132,27 @@ emission probability at a SNP is given by
 \deqn{emit = prHet * p + (1-prHet)}
 
 The above has the effect of minimizing the influence of BAFs near 0
-and 1 from influencing the state path estimated by the Viterbi
-algorithm. In particular, the emission probability at homozygous
-SNPs will be virtually the same for states 3 and 4, but at
-heterozygous SNPs the emission probability for state 3 will be
-typically an order of magnitude greater for state 3 (diploid)
-compared to state 4 (diploid region of homozygosity).  The
-advantage of this parameterization are fewer false positive
-hemizygous deletion calls.  [ Log R ratios tend to be more
-sensitive to technical sources of variation than the corresponding
-BAFs/ genotypes.  Regions in which the log R ratios are low due to
-technical sources of variation will be less likely to be
-interpreted as evidence of copy number loss if heterozygous
+and 1 on the state path estimated by the Viterbi algorithm. In
+particular, the emission probability at homozygous SNPs will be
+virtually the same for states 3 and 4, but at heterozygous SNPs the
+emission probability for state 3 will be an order of magnitude
+greater for state 3 (diploid) compared to state 4 (diploid region
+of homozygosity).  The advantage of this parameterization are fewer
+false positive hemizygous deletion calls.  [ Log R ratios tend to
+be more sensitive to technical sources of variation than the
+corresponding BAFs/ genotypes.  Regions in which the log R ratios
+are low due to technical sources of variation will be less likely
+to be interpreted as evidence of copy number loss if heterozygous
 genotypes have more 'weight' in the emission estimates than
 homozgous genotypes.  ]  The trade-off is that only states
-estimated by the HMM are those with copy number alterations
-(copy-neutral regions of homozygosity will not be called).
+estimated by the HMM are those with copy number alterations.  In
+particular, copy-neutral regions of homozygosity will not be
+called.
 
 By setting \code{modelHomozygousRegions = TRUE}, the emission
 probabilities at a SNP are given simply by the \code{p} vector
-described above.
+described above and copy-neutral regions of homozygosity will be
+called.
 }
 \examples{
 ep <- EmissionParam()
