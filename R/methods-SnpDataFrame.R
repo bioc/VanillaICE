@@ -8,7 +8,7 @@ setMethod("initialize", "SnpDataFrame",
 
 setMethod("initialize", "SnpGRanges",
           function(.Object, isSnp=vector("logical", length(.Object))){
-            .Object <- callNextMethod()
+            .Object <- callNextMethod(.Object)
             if(!"isSnp" %in% colnames(mcols(.Object)))
               mcols(.Object)$isSnp <- isSnp
             .Object
