@@ -11,7 +11,7 @@
 \alias{lrrFile,ArrayViews-method}
 \title{Accessor for parsed file(s) containing low level summaries for copy number analysis}
 \usage{
-fileName(object, label)
+fileName(x, label)
 
 lrrFile(object, label = "lrr")
 
@@ -26,7 +26,7 @@ gtFile(object, label = "gt")
 \S4method{gtFile}{ArrayViews}(object, label = "gt")
 }
 \arguments{
-\item{object}{An array views-type container}
+\item{x, object}{An array views-type container}
 
 \item{label}{character string to be incorporated as part of the file name for parsed BAFs}
 }

@@ -485,20 +485,6 @@ setGeneric("selectCols", function(object) standardGeneric("selectCols"))
 #' @seealso \code{\linkS4class{ArrayViews}}
 setGeneric("parsedPath", function(object) standardGeneric("parsedPath"))
 
-#' Accessor for parsed file(s) containing low level summaries for copy number analysis
-#'
-#' These accessors are not meant to be called directly by the user.  They
-#' are exported in the package NAMESPACE for internal use by other BioC
-#' packages.
-#'
-#'
-#' @param object An array views-type container
-#' @param label character string to be incorporated as part of the file name for parsed BAFs
-#' @rdname IO
-#' @export
-#' @aliases fileName,ArrayViews-method
-setGeneric("fileName", function(object, label) standardGeneric("fileName"))
-
 #' Accessor for file paths containing SNP-level summaries
 #'
 #'  Files containing SNP-level summaries for log R ratios, B allele
