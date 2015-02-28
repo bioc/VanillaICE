@@ -11,7 +11,7 @@
 \alias{lrrFile,ArrayViews-method}
 \title{Accessor for parsed file(s) containing low level summaries for copy number analysis}
 \usage{
-fileName(x, label)
+fileName(object, label)
 
 lrrFile(object, label = "lrr")
 

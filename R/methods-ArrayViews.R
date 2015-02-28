@@ -380,9 +380,9 @@ setMethod("hmm2", "ArrayViews", function(object, emission_param=EmissionParam(),
 })
 
 
-setMethod("fileName", "ArrayViews", function(x, label){
-  stable_file_identifiers <- make.unique(basename(sourcePaths(x)))
-  file.path(parsedPath(x), paste0(stable_file_identifiers, "_", label, ".rds"))
+setMethod("fileName", "ArrayViews", function(object, label){
+  stable_file_identifiers <- make.unique(basename(sourcePaths(object)))
+  file.path(parsedPath(object), paste0(stable_file_identifiers, "_", label, ".rds"))
 })
 
 
