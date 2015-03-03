@@ -411,7 +411,7 @@ test_SnpArrayExperiment <- function(){
   g <- as.matrix(datlist[[3]])
   colnames(r) <- colnames(b) <- colnames(g) <- "a"
   ##cn_assays <- snpArrayAssays(cn=r, baf=b)
-  validObject(SnpArrayExperiment(cn=r, baf=b, rowData=rowData(se)))
+  validObject(SnpArrayExperiment(cn=r, baf=b, rowData=rowRanges(se)))
 }
 
 ##test_hmm2 <- function(){
@@ -515,7 +515,7 @@ test_multiple_chromosomes <- function(){
   checkEquals(colModes(copyNumber(se)), 0, tolerance=0.005)
   fit1 <- hmm2(se)
 
-  rd <- rowData(se)
+  rd <- rowRanges(se)
   index <- (length(rd)-100):length(rd)
   chrom <- chromosome(rd)
   chrom[index] <- "chr2"
@@ -529,7 +529,7 @@ test_multiple_chromosomes <- function(){
   end(rd)[index] <- end(rd)[seq_along(index)]
   rd <- GRanges(chrom, IRanges(start(rd), end(rd)), isSnp=rep(TRUE, length(rd)))
   rd2 <- SnpGRanges(rd)
-  rowData(se) <- rd2
+  rowRanges(se) <- rd2
   fit2 <- hmm2(se)
   fit2 <- unlist(fit2)
   fit1 <- unlist(fit1)

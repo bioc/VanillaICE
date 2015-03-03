@@ -5,7 +5,7 @@
 #' data(snp_exp) # example
 #'
 #' SnpArrayExperiment(cn=lrr(snp_exp), baf=baf(snp_exp),
-#'                    rowData=rowData(snp_exp))
+#'                    rowData=rowRanges(snp_exp))
 #' @aliases SnpArrayExperiment,missing-method
 #' @rdname SnpArrayExperiment-class
 setMethod(SnpArrayExperiment, "missing",
@@ -75,7 +75,7 @@ setAs("oligoSnpSet", "SnpArrayExperiment",
 
 
 setValidity("SnpArrayExperiment", function(object){
-  msg <- validObject(rowData(object))
+  msg <- validObject(rowRanges(object))
   msg <- msg && (requiredAssays() %in% names(assays(object)))
   msg
 })
@@ -96,7 +96,7 @@ setMethod("copyNumber", "SnpArrayExperiment",
           function(object) assays(object)[["cn"]])
 
 setMethod("isSnp", "SnpArrayExperiment",
-          function(object) rowData(object)$isSnp)
+          function(object) rowRanges(object)$isSnp)
 
 #' @export
 #' @aliases lrr,SnpArrayExperiment-method
@@ -118,7 +118,7 @@ setMethod(position, "SnpArrayExperiment",
           function(object) start(object))
 
 setMethod(genomeBuild, "SnpArrayExperiment",
-          function(object) metadata(rowData(object))[["genome"]])
+          function(object) metadata(rowRanges(object))[["genome"]])
 
 
 setMethod(distance, "SnpArrayExperiment", function(x) diff(start(x)))
@@ -191,7 +191,7 @@ setMethod(calculateTransitionProbability, "oligoSnpSet",
 
 
 setMethod(isSnp, "SnpArrayExperiment",
-          function(object) rowData(object)$isSnp)
+          function(object) rowRanges(object)$isSnp)
 
 setMethod(copyNumber, "SnpArrayExperiment",
           function(object) assays(object)[["cn"]])

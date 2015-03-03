@@ -43,6 +43,6 @@ SnpArrayExperiment()
 data(snp_exp) # example
 
 SnpArrayExperiment(cn=lrr(snp_exp), baf=baf(snp_exp),
-                   rowData=rowData(snp_exp))
+                   rowData=rowRanges(snp_exp))
 }
 

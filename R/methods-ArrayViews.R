@@ -103,7 +103,7 @@ setValidity("ArrayViews", function(object){
 #' @rdname ArrayViews-class
 setMethod("[", signature(x="ArrayViews", i="ANY", j="ANY"), function(x, i, j, ..., drop=FALSE){
   if(!missing(i)){
-    x@rowData <- rowData(x)[i]
+    x@rowData <- rowRanges(x)[i]
     x@index <- indexGenome(x)[i]
   }
   if(!missing(j)){
@@ -128,7 +128,7 @@ setReplaceMethod("colnames", c("ArrayViews", "character"), function(x, value){
   x
 })
 
-setMethod("rowData", "ArrayViews", function(x, ...) x@rowData)
+setMethod("rowRanges", "ArrayViews", function(x, ...) x@rowData)
 setMethod("colData", "ArrayViews", function(x, ...) x@colData)
 setMethod("scale", "ArrayViews", function(x, center=TRUE, scale=TRUE) x@scale)
 setMethod("rownames", "ArrayViews", function(x, do.NULL=TRUE, prefix="col") .rownames(x))
@@ -332,7 +332,7 @@ setMethod("ncol", "ArrayViews", function(x) nrow(colData(x)))
 
 #' @export
 #' @rdname ArrayViews-class
-setMethod("nrow", "ArrayViews", function(x) length(rowData(x)))
+setMethod("nrow", "ArrayViews", function(x) length(rowRanges(x)))
 
 #' @export
 #' @rdname ArrayViews-class
@@ -349,7 +349,7 @@ setMethod("SnpExperiment", "ArrayViews", function(object){
   r <- as.matrix(lrr(view))
   b <- as.matrix(baf(view))
   g <- as.matrix(genotypes(view))
-  gr <- SnpGRanges(rowData(view), isSnp=rep(TRUE, nrow(view)))
+  gr <- SnpGRanges(rowRanges(view), isSnp=rep(TRUE, nrow(view)))
   SnpArrayExperiment(cn=r, baf=b, rowData=gr, colData=colData(view))
 })
 
@@ -431,25 +431,25 @@ lowlevelFiles <- function(views){
 #'
 #' Removes markers on chromosomes X and Y.
 #'
-#' @param object an object for which the methods \code{seqnames} and \code{rowData} are defined.
+#' @param object an object for which the methods \code{seqnames} and \code{rowRanges} are defined.
 #' @return an object of the same class as the input
 #' @export
 dropSexChrom <- function(object){
-  chrom <- as.character(seqnames(rowData(object)))
+  chrom <- as.character(seqnames(rowRanges(object)))
   is_autosome <- chrom %in% paste0("chr", 1:22)
   if(all(is_autosome))  return(object)
   message("Dropping sex chromosomes...")
   object[is_autosome, ]
 }
 
-setMethod("seqnames", "ArrayViews", function(x) seqnames(rowData(x)))
+setMethod("seqnames", "ArrayViews", function(x) seqnames(rowRanges(x)))
 
 #' @aliases start,ArrayViews-method
 #' @rdname ArrayViews-class
-setMethod("start", "ArrayViews", function(x) start(rowData(x)))
+setMethod("start", "ArrayViews", function(x) start(rowRanges(x)))
 
 #' @aliases end,ArrayViews-method
-setMethod("end", "ArrayViews", function(x) end(rowData(x)))
+setMethod("end", "ArrayViews", function(x) end(rowRanges(x)))
 
 
 #' Drop markers on the same chromosome having the same genomic
@@ -463,10 +463,10 @@ setMethod("end", "ArrayViews", function(x) end(rowData(x)))
 #' @return an object of the same class with duplicated genomic positions removed
 #' @examples
 #' data(snp_exp)
-#' g <- rowData(snp_exp)
+#' g <- rowRanges(snp_exp)
 #' ## duplicate the first row
 #' g[length(g)] <- g[1]
-#'  rowData(snp_exp) <- g
+#'  rowRanges(snp_exp) <- g
 #'  snp_exp2 <- dropDuplicatedMapLocs(snp_exp)
 #' @export
 dropDuplicatedMapLocs <- function(object){
@@ -477,7 +477,7 @@ dropDuplicatedMapLocs <- function(object){
 }
 
 setMethod("sort", "ArrayViews", function(x, decreasing=FALSE, ...){
-  index <- order(rowData(x))
+  index <- order(rowRanges(x))
   if(identical(index, seq_len(nrow(x)))) return(x)
   message("Sorting views object by genomic position...")
   x[index,]
@@ -488,9 +488,9 @@ setMethod("scaleBy", c("numeric", "numeric"), function(x, by) as.integer(x*by))
 setMethod("scaleRead", c("numeric", "numeric"), function(x, params) x/params)
 setMethod("scaleRead", c("matrix", "numeric"), function(x, params) x/params)
 
-.rownames <- function(object) names(rowData(object))
+.rownames <- function(object) names(rowRanges(object))
 .colnames <- function(object) rownames(colData(object))
-##.nrow <- function(x) length(rowData(x))
+##.nrow <- function(x) length(rowRanges(x))
 ## ncol <- function(x) length(sourcePaths(x))
 .path <- function(object) object@path
 
@@ -498,7 +498,7 @@ setAs("ArrayViews", "SnpArrayExperiment", function(from, to){
   r <- lrr(from)
   b <- baf(from)
   g <- genotypes(from)
-  SnpArrayExperiment(cn=r, baf=b, genotypes=g, rowData=SnpGRanges(rowData(from), isSnp=rep(TRUE, nrow(b))),
+  SnpArrayExperiment(cn=r, baf=b, genotypes=g, rowData=SnpGRanges(rowRanges(from), isSnp=rep(TRUE, nrow(b))),
                      colData=colData(from))
 
 })

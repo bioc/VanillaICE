@@ -1,9 +1,9 @@
-test_ArrayViews <- function(){
-  require(BSgenome.Hsapiens.UCSC.hg18)
-  require(data.table)
-  require(foreach)
-  require(oligoClasses)
+require(BSgenome.Hsapiens.UCSC.hg18)
+require(data.table)
+require(foreach)
+require(oligoClasses)
 
+test_ArrayViews <- function(){
   checkTrue(validObject(ArrayViews()))
   registerDoSEQ()
   extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
@@ -83,10 +83,6 @@ test_ArrayViews <- function(){
 }
 
 test_columnSubset <- function(){
-  require(BSgenome.Hsapiens.UCSC.hg18)
-  require(data.table)
-  require(foreach)
-  require(oligoClasses)
   registerDoSEQ()
   extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
   features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))

@@ -109,7 +109,7 @@ grangesData <- function(granges, se, expandFUN, ylim){
   starts <- as.integer(pmax(start(granges)-size, 1))
   ends <- as.integer(pmin(end(granges)+size, seqlengths(granges)[chr]))
   gexpanded <- GRanges(seqnames(granges), IRanges(starts, ends))
-  hits <- findOverlaps(gexpanded, rowData(se))
+  hits <- findOverlaps(gexpanded, rowRanges(se))
   region <- queryHits(hits)
   i <- subjectHits(hits)
   j <- match(granges$id[1], colnames(se))

@@ -6,7 +6,8 @@
 dropSexChrom(object)
 }
 \arguments{
-\item{object}{an object for which the methods \code{seqnames} and \code{rowData} are defined.}
+\item{object}{an object for which the methods \code{seqnames} and
+\code{rowRanges} are defined.}
 }
 \value{
 an object of the same class as the input

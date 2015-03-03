@@ -18,10 +18,10 @@ test_sweepMode.R <- function(){
 
 test_duplicatedMapLocs <- function(){
   data(snp_exp)
-  g <- rowData(snp_exp)
+  g <- rowRanges(snp_exp)
   ## duplicate the first row
   g[length(g)] <- g[1]
-  rowData(snp_exp) <- g
+  rowRanges(snp_exp) <- g
   snp_exp2 <- dropDuplicatedMapLocs(snp_exp)
   checkIdentical(nrow(snp_exp2), nrow(snp_exp)-1L)
 }
