@@ -32,7 +32,7 @@ require(BSgenome.Hsapiens.UCSC.hg18)
   seqinfo(fgr) <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(fgr),]
   fgr <- sort(fgr)
   files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
-  views <- ArrayViews(rowData=fgr, sourcePaths=files, parsedPath=tempdir())
+  views <- ArrayViews(rowRanges=fgr, sourcePaths=files, parsedPath=tempdir())
   show(views)
 
 ## read the first file

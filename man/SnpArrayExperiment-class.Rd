@@ -8,13 +8,13 @@
 \title{A SummarizedExperiment-derived class of marker-level SNP array data
 for copy number inference}
 \usage{
-SnpArrayExperiment(cn, baf, rowData = GRanges(), colData = DataFrame(),
+SnpArrayExperiment(cn, baf, rowRanges = GRanges(), colData = DataFrame(),
   isSnp = logical(), ...)
 
-\S4method{SnpArrayExperiment}{missing}(cn, baf, rowData = GRanges(),
+\S4method{SnpArrayExperiment}{missing}(cn, baf, rowRanges = GRanges(),
   colData = DataFrame(), isSnp = logical(), ...)
 
-\S4method{SnpArrayExperiment}{matrix}(cn, baf, rowData = GRanges(),
+\S4method{SnpArrayExperiment}{matrix}(cn, baf, rowRanges = GRanges(),
   colData = DataFrame(row.names = colnames(cn)), isSnp = logical(), ...)
 }
 \arguments{
@@ -22,7 +22,7 @@ SnpArrayExperiment(cn, baf, rowData = GRanges(), colData = DataFrame(),
 
 \item{baf}{matrix of B allele frequencies}
 
-\item{rowData}{GRanges object for SNPs/nonpolymorphic markers}
+\item{rowRanges}{GRanges object for SNPs/nonpolymorphic markers}
 
 \item{colData}{DataFrame containing sample-level covariates}
 
@@ -43,6 +43,6 @@ SnpArrayExperiment()
 data(snp_exp) # example
 
 SnpArrayExperiment(cn=lrr(snp_exp), baf=baf(snp_exp),
-                   rowData=rowRanges(snp_exp))
+                   rowRanges=rowRanges(snp_exp))
 }
 

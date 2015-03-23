@@ -334,7 +334,7 @@ setGeneric("distance", function(x) standardGeneric("distance"))
 #'
 #' @param cn matrix of copy number estimates (e.g., log R ratios)
 #' @param baf  matrix of B allele frequencies
-#' @param rowData GRanges object for SNPs/nonpolymorphic markers
+#' @param rowRanges GRanges object for SNPs/nonpolymorphic markers
 #' @param colData DataFrame containing sample-level covariates
 #' @param isSnp  logical vector indicating whether marker is a SNP
 #' @param ... additional arguments passed to initialization method for \code{SummarizedExperiment}
@@ -343,7 +343,7 @@ setGeneric("distance", function(x) standardGeneric("distance"))
 #' @export
 setGeneric("SnpArrayExperiment", function(cn,
                                           baf,
-                                          rowData=GRanges(),
+                                          rowRanges=GRanges(),
                                           colData=DataFrame(),
                                           isSnp=logical(), ...)
            standardGeneric("SnpArrayExperiment"))

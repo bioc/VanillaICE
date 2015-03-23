@@ -199,7 +199,7 @@ setClass("CopyNumScanParams", representation(index_genome="integer",
 #' from disk, rescaling when appropriate.
 #'
 #' @slot colData  A character string
-#' @slot rowData A \code{DataFrame}
+#' @slot rowData A \code{DataFrame}. WARNING: The accessor for this slot is \code{rowRanges}, not \code{rowData}!
 #' @slot index A \code{GRanges} object
 #' @slot sourcePaths A character string providing complete path to source files (one file per sample) containing low-level summaries (Log R ratios, B allele frequencies, genotypes)
 #' @slot scale A length-one numeric vector

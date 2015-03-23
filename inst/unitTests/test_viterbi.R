@@ -196,11 +196,11 @@ test_summarized_exp <- function(){
   b <- as.matrix(VanillaICE:::rtrnorm(1000, mus, sds))
   r <- as.matrix(rnorm(1000, 0, 0.2))
   colnames(b) <- colnames(r) <- "a"
-  rowdata <- GRanges(Rle("chr1", 1000),
-                     IRanges(seq(1, 100e6, by=100e6/1000), width=25))
+  rowranges <- GRanges(Rle("chr1", 1000),
+                       IRanges(seq(1, 100e6, by=100e6/1000), width=25))
   se <- SummarizedExperiment(assays=SimpleList(cn=r,
                                baf=b),
-                             rowData=rowdata)
+                             rowRanges=rowranges)
   emit <- calculateEmission(se)
   param <- HmmParam(emission=emit)
   checkIdentical(state(VanillaICE:::calculateViterbi(param)),
@@ -383,20 +383,20 @@ test_SnpArrayExperiment <- function(){
 
   y <- x <- matrix(10, 5, 2)
   colnames(x) <- colnames(y) <- letters[1:2]
-  rowdata <- GRanges(Rle("chr1", 5), IRanges(1:5, width=1))
+  rowranges <- GRanges(Rle("chr1", 5), IRanges(1:5, width=1))
   checkException(validObject(SnpArrayExperiment(x, y)))
-  checkException(validObject(SnpArrayExperiment(x, y, rowData=rowdata)))
-  checkTrue(validObject(SnpArrayExperiment(x, y, rowData=rowdata, isSnp=rep(FALSE,5))))
-  rowdata$isSnp <- rep(FALSE,5)
-  checkTrue(validObject(SnpArrayExperiment(x, y, rowData=rowdata)))
-  se <- SnpArrayExperiment(x, y, rowdata)
+  checkException(validObject(SnpArrayExperiment(x, y, rowRanges=rowranges)))
+  checkTrue(validObject(SnpArrayExperiment(x, y, rowRanges=rowranges, isSnp=rep(FALSE,5))))
+  rowranges$isSnp <- rep(FALSE,5)
+  checkTrue(validObject(SnpArrayExperiment(x, y, rowRanges=rowranges)))
+  se <- SnpArrayExperiment(x, y, rowranges)
   checkIdentical(isSnp(se), rep(FALSE, 5))
 
 
   ##
   ##oligoset <- getOligoset()
-##  rowdata <- GRanges(Rle("chr1", nrow(oligoset)),
-##                     IRanges(position(oligoset), width=25L),
+##  rowranges <- GRanges(Rle("chr1", nrow(oligoset)),
+##                       IRanges(position(oligoset), width=25L),
   ##                     isSnp=isSnp(oligoset))
   se <- getSE()
   answer <- Rle(as.integer(c(3, 4, 3, 5, 3, 2, 3, 3, 2, 3, 2, 3)),
@@ -411,7 +411,7 @@ test_SnpArrayExperiment <- function(){
   g <- as.matrix(datlist[[3]])
   colnames(r) <- colnames(b) <- colnames(g) <- "a"
   ##cn_assays <- snpArrayAssays(cn=r, baf=b)
-  validObject(SnpArrayExperiment(cn=r, baf=b, rowData=rowRanges(se)))
+  validObject(SnpArrayExperiment(cn=r, baf=b, rowRanges=rowRanges(se)))
 }
 
 ##test_hmm2 <- function(){
@@ -452,8 +452,8 @@ test_SnpArrayExperiment <- function(){
   hmm2(se)
   xx <- seq(max(position(oligoset))+10e3, by=50, length.out=50)
   positions <- c(position(oligoset), xx)
-  rowdata <- GRanges(Rle("chr1", length(positions)),
-                     IRanges(positions, width=25L))
+  rowranges <- GRanges(Rle("chr1", length(positions)),
+                       IRanges(positions, width=25L))
   answer <- Rle(as.integer(c(3, 4, 3, 5, 3, 2, 3, 3, 2, 3, 2, 3, 1)),
                 as.integer(c(996, 102, 902, 50, 2467, 102, 76, 1822,
                              99, 900, 20, 160, 50)))
@@ -468,7 +468,7 @@ test_SnpArrayExperiment <- function(){
 ##  se <- CopyNumberExperiment(assays=SimpleList(cn=r,
 ##                               baf=b,
 ##                               gt=g),
-##                             rowData=rowdata)
+##                             rowRanges=rowranges)
   fit <- hmm2(se)
   e_param <- EmissionParam()
   emissions <- calculateEmission(list(r, b), e_param)
@@ -575,10 +575,10 @@ test_cn_NAs <- function(){
   starts[150] <- starts[149]+1
   r <- setNames(as.matrix(r), "a")
   b <- setNames(as.matrix(b), "a")
-  rowdata <- SnpGRanges(GRanges(Rle("chr1", 300),
-                                IRanges(starts, width=1), isSnp=rep(TRUE, 300)))
+  rowranges <- SnpGRanges(GRanges(Rle("chr1", 300),
+                          IRanges(starts, width=1), isSnp=rep(TRUE, 300)))
   coldata <- DataFrame(row.names="a")
-  se <- SnpArrayExperiment(cn=r, baf=b, rowData=rowdata, colData=coldata)
+  se <- SnpArrayExperiment(cn=r, baf=b, rowRanges=rowranges, colData=coldata)
   checkTrue(validObject(se))
   se2 <- NA_filter(se)
   checkIdentical(nrow(se2), 296L)

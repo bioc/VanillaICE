@@ -3,7 +3,7 @@ NULL
 
 #' @param class  character string
 #' @param colData DataFrame
-#' @param rowData GRanges object
+#' @param rowRanges GRanges object
 #' @param sourcePaths character string provide complete path to plain text source files (one file per sample) containing log R ratios and B allele frequencies
 #' @param scale  log R ratios and B allele frequencies can be stored as integers on disk to increase IO speed.   If scale =1, the raw data is not transformed.  If scale = 1000 (default), the log R ratios and BAFs are multipled by 1000 and coerced to an integer.
 #' @param sample_ids character vector indicating how to name samples
@@ -27,7 +27,7 @@ NULL
 #'   fgr <- sort(fgr)
 #'   files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
 #'   ids <- gsub(".rds", "", gsub("FinalReport", "", basename(files)))
-#'   views <- ArrayViews(rowData=fgr,
+#'   views <- ArrayViews(rowRanges=fgr,
 #'                       sourcePaths=files,
 #'                       sample_ids=ids)
 #'   ## view of first 10 markers and samples 3 and 5
@@ -35,20 +35,32 @@ NULL
 #' @export
 ArrayViews <- function(class="ArrayViews",
                        colData,
-                       rowData=GRanges(),
+                       rowRanges=GRanges(),
                        sourcePaths=character(),
                        scale=1000,
                        sample_ids,
-                       parsedPath=getwd()){
+                       parsedPath=getwd(),
+                       rowData=NULL){
   if(missing(colData)){
     if(!missing(sample_ids)) {
       colData <- DataFrame(row.names=sample_ids)
     } else colData <- DataFrame(row.names=basename(sourcePaths))
   }
+  ## Temporary workaround to ensure backward compatibility with code that
+  ## explictely specifies the 'rowData' argument when calling the ArrayViews()
+  ## constructor -- Herv\'e Pag\`es -- March 23, 2015
+  if(!is.null(rowData)){
+    if (!missing(rowRanges))
+      stop("both 'rowRanges' and 'rowData' are specified")
+    msg <- c("The 'rowData' argument is deprecated. ",
+             "Please use 'rowRanges' instead.")
+    .Deprecated(msg=msg)
+    rowRanges <- rowData
+  }
   new(class,
       colData=colData,
-      rowData=rowData,
-      index=seq_len(length(rowData)),
+      rowData=rowRanges,
+      index=seq_len(length(rowRanges)),
       sourcePaths=sourcePaths,
       scale=scale,
       parsedPath=parsedPath)
@@ -213,7 +225,7 @@ setMethod("show", "ArrayViews", function(object){
 #'   seqinfo(fgr) <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(fgr),]
 #'   fgr <- sort(fgr)
 #'   files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
-#'   views <- ArrayViews(rowData=fgr, sourcePaths=files, parsedPath=tempdir())
+#'   views <- ArrayViews(rowRanges=fgr, sourcePaths=files, parsedPath=tempdir())
 #'   show(views)
 #'
 #' ## read the first file
@@ -350,7 +362,7 @@ setMethod("SnpExperiment", "ArrayViews", function(object){
   b <- as.matrix(baf(view))
   g <- as.matrix(genotypes(view))
   gr <- SnpGRanges(rowRanges(view), isSnp=rep(TRUE, nrow(view)))
-  SnpArrayExperiment(cn=r, baf=b, rowData=gr, colData=colData(view))
+  SnpArrayExperiment(cn=r, baf=b, rowRanges=gr, colData=colData(view))
 })
 
 writeHmm <- function(object){
@@ -498,7 +510,7 @@ setAs("ArrayViews", "SnpArrayExperiment", function(from, to){
   r <- lrr(from)
   b <- baf(from)
   g <- genotypes(from)
-  SnpArrayExperiment(cn=r, baf=b, genotypes=g, rowData=SnpGRanges(rowRanges(from), isSnp=rep(TRUE, nrow(b))),
+  SnpArrayExperiment(cn=r, baf=b, genotypes=g, rowRanges=SnpGRanges(rowRanges(from), isSnp=rep(TRUE, nrow(b))),
                      colData=colData(from))
 
 })

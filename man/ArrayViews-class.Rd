@@ -18,7 +18,7 @@
 \alias{start,ArrayViews-method}
 \title{ArrayViews class, constructor, and methods}
 \usage{
-ArrayViews(class = "ArrayViews", colData, rowData = GRanges(),
+ArrayViews(class = "ArrayViews", colData, rowRanges = GRanges(),
   sourcePaths = character(), scale = 1000, sample_ids,
   parsedPath = getwd())
 
@@ -44,7 +44,7 @@ colnames(x) <- value
 
 \item{colData}{DataFrame}
 
-\item{rowData}{GRanges object}
+\item{rowRanges}{GRanges object}
 
 \item{sourcePaths}{character string provide complete path to plain text source files (one file per sample) containing log R ratios and B allele frequencies}
 
@@ -88,7 +88,7 @@ from disk, rescaling when appropriate.
 \describe{
 \item{\code{colData}}{A character string}
 
-\item{\code{rowData}}{A \code{DataFrame}}
+\item{\code{rowData}}{A \code{DataFrame}. WARNING: The accessor for this slot is \code{rowRanges}, not \code{rowData}!}
 
 \item{\code{index}}{A \code{GRanges} object}
 
@@ -114,7 +114,7 @@ ArrayViews()
   fgr <- sort(fgr)
   files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
   ids <- gsub(".rds", "", gsub("FinalReport", "", basename(files)))
-  views <- ArrayViews(rowData=fgr,
+  views <- ArrayViews(rowRanges=fgr,
                       sourcePaths=files,
                       sample_ids=ids)
   ## view of first 10 markers and samples 3 and 5

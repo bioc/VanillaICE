@@ -5,11 +5,11 @@
 #' data(snp_exp) # example
 #'
 #' SnpArrayExperiment(cn=lrr(snp_exp), baf=baf(snp_exp),
-#'                    rowData=rowRanges(snp_exp))
+#'                    rowRanges=rowRanges(snp_exp))
 #' @aliases SnpArrayExperiment,missing-method
 #' @rdname SnpArrayExperiment-class
 setMethod(SnpArrayExperiment, "missing",
-          function(cn, baf, rowData=GRanges(),
+          function(cn, baf, rowRanges=GRanges(),
                    colData=DataFrame(), isSnp=logical(), ...){
             se <- new("SnpArrayExperiment", assays=snpArrayAssays(...),
                       rowData=SnpGRanges(), ...)
@@ -20,18 +20,18 @@ setMethod(SnpArrayExperiment, "missing",
 #' @aliases SnpArrayExperiment,matrix-method
 #' @rdname SnpArrayExperiment-class
 setMethod(SnpArrayExperiment, "matrix",
-          function(cn, baf, rowData=GRanges(),
+          function(cn, baf, rowRanges=GRanges(),
                    colData=DataFrame(row.names=colnames(cn)),
                    isSnp=logical(), ...){
             assays <- snpArrayAssays(cn=cn, baf=baf, ...)
-            if("isSnp" %in% colnames(mcols(rowData))){
-              rowData <- SnpGRanges(rowData)
+            if("isSnp" %in% colnames(mcols(rowRanges))){
+              rowRanges <- SnpGRanges(rowRanges)
             } else {
-              if(length(isSnp) != length(rowData)) stop(" isSnp must be the same length as rowData")
-              rowData <- SnpGRanges(rowData, isSnp)
+              if(length(isSnp) != length(rowRanges)) stop(" isSnp must be the same length as rowRanges")
+              rowRanges <- SnpGRanges(rowRanges, isSnp)
             }
             se <- new("SnpArrayExperiment", assays=assays,
-                      rowData=rowData, colData=colData)
+                      rowData=rowRanges, colData=colData)
             se
           })
 
@@ -50,26 +50,26 @@ setAs("CNSet", "SnpArrayExperiment",
         i <- match(nms, featureNames(from))
         g <- GRanges(paste0("chr", integer2chromosome(chromosome(from)[i])),
                      IRanges(position(from)[i], width=1))
-        rowdat <- SnpGRanges(g, isSnp=isSnp(from)[i])
-        rowdat <- SnpGRanges(rowdat)
-        names(rowdat) <- nms
+        rowranges <- SnpGRanges(g, isSnp=isSnp(from)[i])
+        rowranges <- SnpGRanges(rowranges)
+        names(rowranges) <- nms
         ##tmp=snpArrayAssays(cn=lrrs/100, baf=bafs/100)
-        ##new("SnpArrayExperiment", assays=tmp, rowData=rowdat, colData=DataFrame(pData(from)))
+        ##new("SnpArrayExperiment", assays=tmp, rowData=rowranges, colData=DataFrame(pData(from)))
         se <- SnpArrayExperiment(cn=lrrs/100, baf=bafs/1000,
-                                 rowData=SnpGRanges(rowdat),
+                                 rowRanges=SnpGRanges(rowranges),
                                  colData=DataFrame(pData(from)))
         sort(se)
       })
 
 setAs("oligoSnpSet", "SnpArrayExperiment",
       function(from){
-        rowdata <- as(featureData(from), "SnpGRanges")
+        rowranges <- as(featureData(from), "SnpGRanges")
         coldata <- as(as(phenoData(from), "data.frame"), "DataFrame")
         if(!"baf" %in% assayDataElementNames(from)) stop("BAFs not available")
         cn_assays <- snpArrayAssays(cn=copyNumber(from),
                                     baf=baf(from),
                                     gt=calls(from))
-        new("SnpArrayExperiment", assays=cn_assays, rowData=rowdata, colData=coldata)
+        new("SnpArrayExperiment", assays=cn_assays, rowData=rowranges, colData=coldata)
       })
 
 
@@ -254,7 +254,7 @@ getExampleSnpExperiment <- function(){
   select <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB", "Log R Ratio", "B Allele Freq"), names(dat))
   index_genome <- match(names(fgr), dat[["SNP Name"]])
   scan_params <- CopyNumScanParams(index_genome=index_genome, select=select)
-  views <- ArrayViews(rowData=fgr, sourcePaths=file)
+  views <- ArrayViews(rowRanges=fgr, sourcePaths=file)
   parseSourceFile(views, param=scan_params)
   SnpExperiment(views)
 }

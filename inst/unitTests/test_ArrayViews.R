@@ -30,7 +30,7 @@ test_ArrayViews <- function(){
 
   scan_params <- CopyNumScanParams(index_genome=index_genome,
                                    select=as.integer(select))
-  views <- ArrayViews(rowData=fgr,
+  views <- ArrayViews(rowRanges=fgr,
                       sourcePaths=files,
                       sample_ids=ids,
                       parsedPath=tempdir())
@@ -104,7 +104,7 @@ test_columnSubset <- function(){
   scan_params <- CopyNumScanParams(index_genome=index_genome,
                                    select=as.integer(select))
   parse_path <- tempdir()
-  views <- ArrayViews(rowData=fgr,
+  views <- ArrayViews(rowRanges=fgr,
                       sourcePaths=files,
                       parsedPath=parse_path)
   parseSourceFile(views, scan_params)
