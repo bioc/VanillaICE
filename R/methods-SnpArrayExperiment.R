@@ -258,3 +258,29 @@ getExampleSnpExperiment <- function(){
   parseSourceFile(views, param=scan_params)
   SnpExperiment(views)
 }
+
+
+setMethod("isAutosome", "SnpArrayExperiment", function(object){
+  isAutosome(rowData(object))
+})
+
+
+#' @aliases isHeterozygous,SnpArrayExperiment-method
+#' @rdname isHeterozygous
+setMethod("isHeterozygous", "SnpArrayExperiment", function(object, cutoff){
+  isHeterozygous(baf(object), cutoff)
+})
+
+#' @aliases isHeterozygous,numeric-method
+#' @rdname isHeterozygous
+setMethod("isHeterozygous", "numeric", function(object, cutoff){
+  object > cutoff[1] & object < cutoff[2] & !is.na(object)
+})
+
+#' @aliases isHeterozygous,matrix-method
+#' @rdname isHeterozygous
+setMethod("isHeterozygous", "matrix", function(object, cutoff){
+  x <- as.numeric(object)
+  ishet <- isHeterozygous(x, cutoff)
+  matrix(ishet, nrow(object), ncol(object))
+})

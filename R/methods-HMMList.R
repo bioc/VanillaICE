@@ -32,7 +32,7 @@ HMMList <- function(object){
 setMethod("show", "HMMList", function(object){
   cat("An object of class 'HMMList'\n")
   cat("  Length: ", length(object), "\n")
-  cat("  Use object[[j]] to retrieve results for the jth sample. \n")
+  cat("  Use [[j]] to retrieve results for the jth sample. \n")
   cat("  Use unlist to coerce to a 'GRanges' object. \n")
 })
 
@@ -101,3 +101,45 @@ setMethod("cnvFilter", "HMMList", function(object, filters=FilterParam()){
   x <- unlist(object)
   cnvFilter(x, filters)
 })
+
+computeHeterozygosity <- function(hmmlist, snpexp, filter.param=FilterParam()){
+  if(ncol(snpexp) != length(hmmlist)) stop("Number of elements in the hmmlist must be the same as the number of columns in snpexp ")
+  j <- NULL
+  results <- foreach(x = hmmlist, j=seq_along(hmmlist)) %do% {
+    g <- cnvFilter(x, filter.param)
+    se2 <- snpexp[, j]
+    if(length(g)==0 ){
+      g$percent.het <- numeric()
+      granges(x) <- g
+      return(x)
+    }
+    g$percent.het <- rep(NA, length(g))
+    hits <- findOverlaps(g, se2)
+    hitlist <- split(hits, queryHits(hits))
+    for(i in seq_along(hitlist)){
+      h <- hitlist[[i]]
+      k <- subjectHits(h)
+      m <- unique(queryHits(h))
+      g$percent.het[m] <- round(mean(isHeterozygous(se2[k, ], cutoff=c(0.4, 0.6))), 2)
+    }
+    granges(x) <- g
+    return(x)
+  }
+  HMMList(results)
+}
+
+flagHemDelWithHets <- function(segs, thr=0.01){
+  flag <- rep(0L, length(segs))
+  is_hemizygous <- state(segs) %in% "2"
+  is_het <- segs$percent.het >= thr
+  flag[is_hemizygous & is_het] <- 1L
+  flag
+}
+
+flagHomDelWithHets <- function(segs, thr=0.2){
+  flag <- rep(0L, length(segs))
+  is_hom <- state(segs) %in% "1"
+  is_het <- segs$percent.het >= thr
+  flag[is_hom & is_het] <- 1L
+  flag
+}

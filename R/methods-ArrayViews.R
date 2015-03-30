@@ -6,8 +6,13 @@ NULL
 #' @param rowRanges GRanges object
 #' @param sourcePaths character string provide complete path to plain text source files (one file per sample) containing log R ratios and B allele frequencies
 #' @param scale  log R ratios and B allele frequencies can be stored as integers on disk to increase IO speed.   If scale =1, the raw data is not transformed.  If scale = 1000 (default), the log R ratios and BAFs are multipled by 1000 and coerced to an integer.
-#' @param sample_ids character vector indicating how to name samples
-#' @param parsedPath character vector indicating where parsed files should be saved
+#' @param sample_ids character vector indicating how to name samples.  Ignored if colData is specified.
+#' @param parsedPath character vector indicating where parsed files
+#' should be saved
+#' @param lrrFiles character vector of file names for storing log R ratios
+#' @param bafFiles character vector of file names for storing BAFs
+#' @param gtFiles character vector of file names for storing genotypes
+#' @param rowData deprecated
 #' @seealso \code{\link{CopyNumScanParams}} \code{\link{parseSourceFile}}
 #' @aliases ArrayViews
 #' @rdname ArrayViews-class
@@ -22,14 +27,16 @@ NULL
 #'                  isSnp=features[["Intensity Only"]]==0)
 #'   fgr <- SnpGRanges(fgr)
 #'   names(fgr) <- features[["Name"]]
-#'   seqlevels(fgr) <- seqlevels(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(BSgenome.Hsapiens.UCSC.hg18) %in% seqlevels(fgr)]
-#'   seqinfo(fgr) <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(fgr),]
+#'   bsgenome <- BSgenome.Hsapiens.UCSC.hg18
+#'   seqlevels(fgr) <- seqlevels(bsgenome)[seqlevels(bsgenome) %in% seqlevels(fgr)]
+#'   seqinfo(fgr) <- seqinfo(bsgenome)[seqlevels(fgr),]
 #'   fgr <- sort(fgr)
 #'   files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
 #'   ids <- gsub(".rds", "", gsub("FinalReport", "", basename(files)))
 #'   views <- ArrayViews(rowRanges=fgr,
 #'                       sourcePaths=files,
 #'                       sample_ids=ids)
+#'   lrrFile(views)
 #'   ## view of first 10 markers and samples 3 and 5
 #'   views <- views[1:10, c(3,5)]
 #' @export
@@ -40,11 +47,26 @@ ArrayViews <- function(class="ArrayViews",
                        scale=1000,
                        sample_ids,
                        parsedPath=getwd(),
+                       lrrFiles=character(),
+                       bafFiles=character(),
+                       gtFiles=character(),
                        rowData=NULL){
   if(missing(colData)){
     if(!missing(sample_ids)) {
       colData <- DataFrame(row.names=sample_ids)
     } else colData <- DataFrame(row.names=basename(sourcePaths))
+  }
+  if(length(sourcePaths) > 0 && length(lrrFiles) == 0){
+    stable_file_identifiers <- fileName(sourcePaths, "lrr")
+    lrrFiles = file.path(parsedPath, paste0(stable_file_identifiers, "_lrr.rds"))
+  }
+  if(length(sourcePaths) > 0 && length(bafFiles) == 0){
+    stable_file_identifiers <- fileName(sourcePaths, "baf")
+    bafFiles = file.path(parsedPath, paste0(stable_file_identifiers, "_baf.rds"))
+  }
+  if(length(sourcePaths) > 0 && length(gtFiles) == 0){
+    stable_file_identifiers <- fileName(sourcePaths, "gt")
+    gtFiles = file.path(parsedPath, paste0(stable_file_identifiers, "_gt.rds"))
   }
   ## Temporary workaround to ensure backward compatibility with code that
   ## explictely specifies the 'rowData' argument when calling the ArrayViews()
@@ -63,33 +85,12 @@ ArrayViews <- function(class="ArrayViews",
       index=seq_len(length(rowRanges)),
       sourcePaths=sourcePaths,
       scale=scale,
-      parsedPath=parsedPath)
+      parsedPath=parsedPath,
+      lrrFiles=lrrFiles,
+      bafFiles=bafFiles,
+      gtFiles=gtFiles)
 }
 
-##ArrayViews <- function(class="CNSet",
-##                       colData,
-##                       rowData=GRanges(),
-##                       sourcePaths=character(),
-##                       ##index=seq_along(rowData),
-##                       scale=1000,
-##                       sample_ids,
-##                       parsedPath){
-##  if(missing(colData)){
-##    if(!missing(sample_ids)) {
-##      colData <- DataFrame(row.names=sample_ids)
-##    } else colData <- DataFrame(row.names=basename(sourcePaths))
-##  }
-##  if(missing(parsedPath)){
-##    parsedPath <- if(!missing(sourcePaths)) dirname(sourcePaths)[1] else character()
-##  }
-##  new(class,
-##      colData=colData,
-##      rowData=rowData,
-##      index=seq_len(length(rowData)),
-##      sourcePaths=sourcePaths,
-##      scale=scale,
-##      parsedPath=parsedPath)
-##}
 
 setValidity("ArrayViews", function(object){
   msg <- TRUE
@@ -99,13 +100,54 @@ setValidity("ArrayViews", function(object){
       return(msg)
     }
   }
+  ## should we check that files have .rds extension?
+  if(length(bafFile(object)) != length(lrrFile(object))){
+    msg <- "lrrFiles vector must be the same length as sourcePaths"
+    return(msg)
+  }
+  if(length(bafFile(object)) > 0){
+    if(length(sourcePaths(object)) != length(bafFile(object))){
+      msg <- "bafFiles vector must be the same length as sourcePaths"
+      return(msg)
+    }
+    if(length(sourcePaths(object)) != length(gtFile(object))){
+      msg <- "gtFiles vector must be the same length as sourcePaths"
+      return(msg)
+    }
+  }
   if(length(parsedPath(object)) > 0){
     ddir <- parsedPath(object)
     if(!file.exists(ddir)){
       msg <- "Directory parsedPath(object) does not exist"
+      return(msg)
     }
   }
+  if(length(object@index) != length(rowRanges(object))){
+    msg <- "index slot should have same length as rowData"
+    return(msg)
+  }
   return(msg)
+})
+
+setMethod("seqinfo", "ArrayViews", function(x){
+  seqinfo(rowRanges(x))
+})
+
+setMethod("seqlengths", "ArrayViews", function(x){
+  seqinfo(rowRanges(x))
+})
+
+setMethod("seqlevels", "ArrayViews", function(x){
+  seqlevels(rowRanges(x))
+})
+
+setReplaceMethod("seqlevels", "ArrayViews", function(x, force=FALSE, value){
+  i <- setNames(x@index, names(rowRanges(x)))
+  rd <- rowRanges(x)
+  seqlevels(rd, force=force) <- value
+  rowRanges(x) <- rd
+  x@index <- i[names(rd)]
+  x
 })
 
 #' @aliases ArrayViews,numeric,numeric-method "[",ArrayViews,ANY-method
@@ -122,6 +164,12 @@ setMethod("[", signature(x="ArrayViews", i="ANY", j="ANY"), function(x, i, j, ..
     if(is.character(j)) j <- match(j, colnames(x))
     x@colData <- colData(x)[j, ]
     x@sourcePaths <- x@sourcePaths[j]
+    ##
+    ## We do not want to check whether this slot is a character string
+    ##  -- should enforce character class and length of in the validity method
+    x@lrrFiles <- x@lrrFiles[j]
+    x@bafFiles <- x@bafFiles[j]
+    x@gtFiles <- x@gtFiles[j]
   }
   x
 })
@@ -132,6 +180,7 @@ setMethod("[", signature(x="ArrayViews", i="ANY", j="ANY"), function(x, i, j, ..
 #' @aliases colnames<-,ArrayViews,character-method
 #' @name colnames<-
 #' @usage colnames(x) <- value
+#' @rdname ArrayViews-class
 #' @export
 setReplaceMethod("colnames", c("ArrayViews", "character"), function(x, value){
   coldata <- colData(x)
@@ -140,11 +189,55 @@ setReplaceMethod("colnames", c("ArrayViews", "character"), function(x, value){
   x
 })
 
-setMethod("rowRanges", "ArrayViews", function(x, ...) x@rowData)
-setMethod("colData", "ArrayViews", function(x, ...) x@colData)
-setMethod("scale", "ArrayViews", function(x, center=TRUE, scale=TRUE) x@scale)
-setMethod("rownames", "ArrayViews", function(x, do.NULL=TRUE, prefix="col") .rownames(x))
+#' @aliases colnames colnames,ArrayViews-method
+#' @rdname ArrayViews-class
+#' @param do.NULL ignored
+#' @param prefix ignored
+#' @export
 setMethod("colnames", "ArrayViews", function(x, do.NULL=TRUE, prefix="col") .colnames(x))
+
+setMethod("rowRanges", "ArrayViews", function(x, ...) x@rowData)
+
+setMethod("rowRanges<-", "ArrayViews", function(x, value) {
+  x@rowData <- value
+  x
+})
+
+setMethod("colData", "ArrayViews", function(x, ...) x@colData)
+
+setReplaceMethod("colData", "ArrayViews", function(x, value){
+  x@colData <- value
+  x
+})
+
+
+#' @rdname ArrayViews-class
+#' @aliases $,ArrayViews-method
+#' @param name character string indicating name in colData slot of
+#' ArrayViews object
+#' @export
+setMethod("$", "ArrayViews", function(x, name) {
+  eval(substitute(colData(x)$NAME_ARG, list(NAME_ARG=name)))
+})
+
+#' @rdname ArrayViews-class
+#' @export
+setReplaceMethod("$", "ArrayViews", function(x, name, value) {
+  colData(x)[[name]] <- value
+  x
+})
+
+##setReplaceMethod("$", "ArrayViews", function(x, value){
+##  x@colData <- value
+##  x
+##})
+
+setMethod("scale", "ArrayViews", function(x, center=TRUE, scale=TRUE) x@scale)
+
+setMethod("rownames", "ArrayViews", function(x, do.NULL=TRUE, prefix="col") .rownames(x))
+
+
+
 setMethod("indexGenome", "ArrayViews", function(object) object@index)
 ##setMethod("gstudioPaths", "GStudioViews", function(object) object@sourcePaths)
 setMethod("sourcePaths", "ArrayViews", function(object) object@sourcePaths)
@@ -161,7 +254,7 @@ setMethod("show", "ArrayViews", function(object){
 .snp_id_column <- function(object) object@row.names
 
 .resolveIndex <- function(object, param){
-  browser()
+  stop("not all files have markers in the same order, or some files are from a different platform")
 }
 
 .parseSourceFile <- function(object, param){
@@ -171,7 +264,7 @@ setMethod("show", "ArrayViews", function(object){
   if(all(file.exists(outfiles))) return(NULL)
   file <- sourcePaths(object)
   nms <- .rownames(object)
-  is_gz <- length(grep(".gz", file)) > 0
+  is_gz <- length(grep(".gz$", file)) > 0
   if(is_gz){
     ## unzip in a temporary directory using a system call (platform dependent)
     to <- paste0(tempfile(), ".gz")
@@ -214,6 +307,7 @@ setMethod("show", "ArrayViews", function(object){
 #' @rdname parseSourceFile
 #' @examples
 #'   require(BSgenome.Hsapiens.UCSC.hg18)
+#'   bsgenome <- BSgenome.Hsapiens.UCSC.hg18
 #'   require(data.table)
 #'   extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
 #'   features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))
@@ -221,8 +315,8 @@ setMethod("show", "ArrayViews", function(object){
 #'                  isSnp=features[["Intensity Only"]]==0)
 #'   fgr <- SnpGRanges(fgr)
 #'   names(fgr) <- features[["Name"]]
-#'   seqlevels(fgr) <- seqlevels(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(BSgenome.Hsapiens.UCSC.hg18) %in% seqlevels(fgr)]
-#'   seqinfo(fgr) <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(fgr),]
+#'   seqlevels(fgr) <- seqlevels(bsgenome)[seqlevels(bsgenome) %in% seqlevels(fgr)]
+#'   seqinfo(fgr) <- seqinfo(bsgenome)[seqlevels(fgr),]
 #'   fgr <- sort(fgr)
 #'   files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
 #'   views <- ArrayViews(rowRanges=fgr, sourcePaths=files, parsedPath=tempdir())
@@ -231,7 +325,8 @@ setMethod("show", "ArrayViews", function(object){
 #' ## read the first file
 #' dat <- fread(files[1])
 #' ## information to store on the markers
-#' select <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB", "Log R Ratio", "B Allele Freq"), names(dat))
+#' select <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB",
+#'                   "Log R Ratio", "B Allele Freq"), names(dat))
 #' ##
 #' ## which rows to keep in the MAP file. By matching on the sorted GRanges object
 #' ## containing the feature annotation, the low-level data for the log R ratios/
@@ -391,9 +486,15 @@ setMethod("hmm2", "ArrayViews", function(object, emission_param=EmissionParam(),
        verbose=verbose, ...)
 })
 
+setMethod("fileName", "character", function(object, label){
+  source_paths <- file_path_sans_ext(file_path_sans_ext(basename(object)))
+  stable_file_identifiers <- make.unique(source_paths)
+})
 
 setMethod("fileName", "ArrayViews", function(object, label){
-  stable_file_identifiers <- make.unique(basename(sourcePaths(object)))
+  ## strip ending
+  source_paths <- file_path_sans_ext(file_path_sans_ext(basename(sourcePaths(object))))
+  stable_file_identifiers <- make.unique(source_paths)
   file.path(parsedPath(object), paste0(stable_file_identifiers, "_", label, ".rds"))
 })
 
@@ -411,32 +512,36 @@ setMethod("parsedPath", "ArrayViews", function(object) object@parsedPath)
 #' lrrFile(views)
 #' bafFile(views)
 #' gtFile(views)
-setMethod("lrrFile", "ArrayViews", function(object, label="lrr"){
-  fileName(object, label)
+setMethod("lrrFile", "ArrayViews", function(object) object@lrrFiles)
+
+#' @param value a character vector of filenames for the log R ratios
+#' @aliases lrrFile<-,ArrayViews-method
+#' @rdname IO
+setReplaceMethod("lrrFile", "ArrayViews", function(object, value){
+  object@lrrFiles <- value
+  object
 })
+
 
 #' @aliases bafFile,ArrayViews-method
 #' @rdname IO
-setMethod("bafFile", "ArrayViews", function(object, label="baf"){
-  fileName(object, label)
-})
+setMethod("bafFile", "ArrayViews", function(object) object@bafFiles)
+##  fileName(object, label)
+##})
 
 #' @aliases gtFile,ArrayViews-method
 #' @rdname IO
-setMethod("gtFile", "ArrayViews", function(object, label="gt"){
-  fileName(object, label)
-})
+setMethod("gtFile", "ArrayViews", function(object) object@gtFiles)
+##  fileName(object, label)
+##})
 
-
-
-##lrrFile <- function(object, label="lrr") fileName(object, label)
-##bafFile <- function(object, label="baf") fileName(object, label)
-##gtFile <- function(object, label="gt") fileName(object, label)
 hmmFile <- function(object, label="hmm") fileName(object, label)
 
 ## This creates filenames for storing log R ratios, etc.
 lowlevelFiles <- function(views){
-  c(lrrFile(views), bafFile(views), gtFile(views))
+  files <- c(lrrFile(views), bafFile(views), gtFile(views))
+  if(any(is.na(files))) stop("low level file name is invalid")
+  files
 }
 
 #' Filter sex chromosomes
@@ -510,7 +615,19 @@ setAs("ArrayViews", "SnpArrayExperiment", function(from, to){
   r <- lrr(from)
   b <- baf(from)
   g <- genotypes(from)
-  SnpArrayExperiment(cn=r, baf=b, genotypes=g, rowRanges=SnpGRanges(rowRanges(from), isSnp=rep(TRUE, nrow(b))),
+  SnpArrayExperiment(cn=r, baf=b, genotypes=g, rowData=SnpGRanges(rowRanges(from), isSnp=rep(TRUE, nrow(b))),
                      colData=colData(from))
 
+})
+
+setMethod("isAutosome", "ArrayViews", function(object){
+  isAutosome(rowRanges(object))
+})
+
+setMethod("chromosome", "ArrayViews", function(object) as.character(seqnames(object)))
+
+#' @aliases isHeterozygous,ArrayViews-method
+#' @rdname isHeterozygous
+setMethod("isHeterozygous", "ArrayViews", function(object, cutoff){
+  isHeterozygous(baf(object), cutoff)
 })

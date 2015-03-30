@@ -34,7 +34,6 @@ test_ArrayViews <- function(){
                       sourcePaths=files,
                       sample_ids=ids,
                       parsedPath=tempdir())
-
   checkTrue(validObject(views))
 
   checkTrue(validObject(scan_params))

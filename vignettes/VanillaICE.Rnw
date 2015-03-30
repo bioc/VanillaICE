@@ -201,14 +201,17 @@ specific format of the source files.  At this point, we can
 encapsulate the the names of the source files ('sourcePaths'), the
 location of where we intend to store the parsed data ('parsedPath'),
 and the genomic marker annnotation created in the preceding section
-('rowData') in a single object called an \Rclass{ArrayViews}.
+ in a single object called an \Rclass{ArrayViews}.
 
 <<ArrayViews>>=
 ##
 ## A directory to keep parsed files
 ##
 parsedDir <- tempdir()
-views <- ArrayViews(rowData=fgr, sourcePaths=files, parsedPath=parsedDir)
+views <- ArrayViews(rowRanges=fgr, sourcePaths=files, parsedPath=parsedDir)
+lrrFile(views) <- file.path(parsedDir, basename(fileName(views, "lrr")))
+views@bafFiles <- file.path(parsedDir, basename(fileName(views, "baf")))
+views@gtFiles <- file.path(parsedDir, basename(fileName(views, "gt")))
 colnames(views) <- gsub(".csv", "", colnames(views))
 show(views)
 @

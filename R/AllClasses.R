@@ -18,7 +18,8 @@ setClass("EmissionParam",
            CN_range="numeric",
            proportionOutlier="numeric",
            temper="numeric",
-           p_outlier="numeric"))
+           p_outlier="numeric",
+           modelHomozygousRegions="logical"))
 
 
 
@@ -188,6 +189,7 @@ setClass("CopyNumScanParams", representation(index_genome="integer",
                                              select="integer",
                                              row.names="integer"))
 
+##setClassUnion("characterOrNULL", c("character", "NULL"))
 
 #' ArrayViews class, constructor, and methods
 #'
@@ -203,7 +205,11 @@ setClass("CopyNumScanParams", representation(index_genome="integer",
 #' @slot index A \code{GRanges} object
 #' @slot sourcePaths A character string providing complete path to source files (one file per sample) containing low-level summaries (Log R ratios, B allele frequencies, genotypes)
 #' @slot scale A length-one numeric vector
-#' @slot parsedPath A character string providing full path to where parsed files should be saved
+#' @slot parsedPath A character string providing full path to where
+#' parsed files should be saved
+#' @slot lrrFiles character vector of filenames for log R ratios
+#' @slot bafFiles character vector of filenames for BAFs
+#' @slot gtFiles character vector of filenames for genotypes
 #' @aliases '[',ArrayViews,ANY-method baf_means,ArrayViews-method
 #' @rdname ArrayViews-class
 #' @export
@@ -213,7 +219,10 @@ setClass("ArrayViews",
                         index="integer",
                         sourcePaths="character",
                         scale="numeric",
-                        parsedPath="character"))
+                        parsedPath="character",
+                        lrrFiles="character",
+                        bafFiles="character",
+                        gtFiles="character"))
 
 setClass("HmmTrellisParam", representation(expandfun="function",
                                            ylimits="list"))

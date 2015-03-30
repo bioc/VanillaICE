@@ -11,6 +11,7 @@
 #' @import IRanges
 #' @import S4Vectors
 #' @import GenomeInfoDb
+#' @import BiocGenerics
 #' @importMethodsFrom Biobase pData fData phenoData featureData featureNames sampleNames assayData snpCallProbability
 #' @importFrom Biobase rowMax assayDataElement assayDataElementNames assayDataNew
 #' @importFrom data.table fread
@@ -18,5 +19,6 @@
 #' @import grid
 #' @import lattice
 #' @importFrom matrixStats anyMissing rowMedians colMedians
+#' @importFrom tools file_path_sans_ext
 #' @useDynLib VanillaICE
 NULL

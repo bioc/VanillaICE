@@ -157,7 +157,7 @@ Next release:
 	- add a summary method (maybe based on breakpoints output?)
 	- write a function that calculates empirical estimates for HMM parameters
 
-	Add SCALE or transitionScale ... to class definition of hSet	
+	Add SCALE or transitionScale ... to class definition of hSet
 
 	add more options for par and plotCytoband in plotHmm (height, mar, oma)
 

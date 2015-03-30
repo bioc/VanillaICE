@@ -40,16 +40,12 @@ updateHmmParams <- function(object, emission_param=EmissionParam(), transition_p
   if(doPosterior(hmm_param)){
     probs <- posteriorProb(hmm_param, fit, chromosome(object))
     probs <- round(probs, 4)
-    ##    mc <- mcols(hgr)
-    ##    mc2 <- c(mc, DataFrame(probs))
-    ##    mcols(hgr) <- mc2
     prCall <- mapply(function(state, index, prob) prob[index, state],
                      state=state(hgr),
                      index=seq_len(length(hgr)),
                      MoreArgs=list(prob=probs))
-    ##hgr$prCall <- prCall
+    hgr$prCall <- prCall
   }
-  hgr$prCall <- prCall
   HMM(granges=hgr, param=hmm_param, posterior=probs)
 }
 
@@ -195,7 +191,8 @@ setMethod(hmm2, "SnpArrayExperiment",
               hgr <- .hmm(object[, j],
                           emission_param=emission_param,
                           transition_param=transition_param,  ...)
-              if(J > 1) emission(hgr) <- NULL
+              ##if(J > 1) emission(hgr) <- NULL
+              emission(hgr) <- NULL
               seqinfo(hgr) <- seqinfo(object)
               hgr
             }

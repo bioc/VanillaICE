@@ -135,7 +135,8 @@ grangesData <- function(granges, se, expandFUN, ylim){
     labels <- prettyNum(at/1000, big.mark=",")
     xyplot(y~x | type, dat, pch=20, col="gray40", cex=0.5,
            layout=c(1,2),
-           scales=list(y=list(relation="free",rot=0), x=list(at=at, labels=labels, cex=0.7, axs="i")),
+           scales=list(axs="i", y=list(relation="free",rot=0),
+             x=list(at=at, labels=labels, cex=0.7)),
            panel=function(x, y, starts, ends, type, state, ..., subscripts){
              start <- starts[subscripts]
              end <- ends[subscripts]
@@ -189,4 +190,10 @@ setMethod("reduce", "HmmGRanges", function(x, ...){
   gr$prCall <- prCall
   gr$id <- id
   as(gr, "HmmGRanges")
+})
+
+
+setMethod("isAutosome", "GRanges", function(object){
+  seqlevelsStyle(object) <- "UCSC"
+  oligoClasses::chromosome(object) %in% paste0("chr", 1:22)
 })

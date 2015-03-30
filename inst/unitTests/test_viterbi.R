@@ -357,63 +357,6 @@ test_emission_update <- function(){
 }
 
 
-test_SnpArrayExperiment <- function(){
-  library(oligoClasses)
-  library(GenomicRanges)
-  checkTrue(validObject(VanillaICE:::SnpDataFrame()))
-  checkTrue(validObject(VanillaICE:::SnpDataFrame(DataFrame())))
-  sdf <- VanillaICE:::SnpDataFrame()
-  checkException(VanillaICE:::SnpDataFrame(x=3))
-  checkException(VanillaICE:::SnpDataFrame(DataFrame(x=3)))
-  checkTrue(validObject(VanillaICE:::SnpDataFrame(DataFrame(x=3, isSnp=FALSE))))
-  df <- DataFrame(x=3, isSnp=TRUE)
-  checkTrue(validObject(sdf <- as(df, "SnpDataFrame")))
-  sdf2 <- VanillaICE:::SnpDataFrame(DataFrame(x=3, isSnp=TRUE))
-  checkIdentical(sdf2, sdf)
-  df <- VanillaICE:::SnpDataFrame(DataFrame(x=3, isSnp=FALSE))
-  checkIdentical(isSnp(df), FALSE)
-
-  checkTrue(validObject(SnpGRanges()))
-  checkTrue(validObject(SnpGRanges(GRanges())))
-  x <- GRanges(Rle("chr3", 5), IRanges(1:5, width=1))
-  checkException(SnpGRanges(x))
-  checkTrue(validObject(SnpGRanges(x, isSnp=logical(5))))
-  x$isSnp <- FALSE
-  checkTrue(validObject(SnpGRanges(x)))
-
-  y <- x <- matrix(10, 5, 2)
-  colnames(x) <- colnames(y) <- letters[1:2]
-  rowranges <- GRanges(Rle("chr1", 5), IRanges(1:5, width=1))
-  checkException(validObject(SnpArrayExperiment(x, y)))
-  checkException(validObject(SnpArrayExperiment(x, y, rowRanges=rowranges)))
-  checkTrue(validObject(SnpArrayExperiment(x, y, rowRanges=rowranges, isSnp=rep(FALSE,5))))
-  rowranges$isSnp <- rep(FALSE,5)
-  checkTrue(validObject(SnpArrayExperiment(x, y, rowRanges=rowranges)))
-  se <- SnpArrayExperiment(x, y, rowranges)
-  checkIdentical(isSnp(se), rep(FALSE, 5))
-
-
-  ##
-  ##oligoset <- getOligoset()
-##  rowranges <- GRanges(Rle("chr1", nrow(oligoset)),
-##                       IRanges(position(oligoset), width=25L),
-  ##                     isSnp=isSnp(oligoset))
-  se <- getSE()
-  answer <- Rle(as.integer(c(3, 4, 3, 5, 3, 2, 3, 3, 2, 3, 2, 3)),
-                         as.integer(c(996, 102, 902, 50, 2467, 102, 76, 1822,
-                                      99, 900, 20, 160)))
-  r_means <- c(-2, -0.5, 0, 0, 0.5, 1)
-  b_sd <- 0.05
-  r_sd <- 0.2
-  datlist <- simulateData(answer, r_means, b_sd, r_sd)
-  r <- as.matrix(datlist[[1]])
-  b <- as.matrix(datlist[[2]])
-  g <- as.matrix(datlist[[3]])
-  colnames(r) <- colnames(b) <- colnames(g) <- "a"
-  ##cn_assays <- snpArrayAssays(cn=r, baf=b)
-  validObject(SnpArrayExperiment(cn=r, baf=b, rowRanges=rowRanges(se)))
-}
-
 ##test_hmm2 <- function(){
 ##  library(oligoClasses)
 ##  library(GenomicRanges)

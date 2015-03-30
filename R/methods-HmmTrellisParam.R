@@ -38,7 +38,7 @@ viewports <- function(){
   w <- wd/percent
   d <- (w-wd)*1/2
   st <- max(start(g)[1]-d, 1)
-  en <- min(end(g)[1]+d, seqlengths(g))
+  en <- min(end(g)[1]+d, seqlengths(g)[chromosome(g)])
   lim <- as.integer(c(st, en))
   ##ILimit(start=lim[1], end=lim[2])
   lim

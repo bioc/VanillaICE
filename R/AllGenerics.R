@@ -165,6 +165,58 @@ setGeneric("taumax", function(object) standardGeneric("taumax"))
 #' @param CN_range the allowable range of log R ratios.  Log R ratios outside this range are thresholded.
 #' @param temper Emission probabilities can be tempered by emit^temper. This is highly experimental.
 #' @param p_outlier probability that an observation is an outlier (assumed to be the same for all markers)
+#' @param modelHomozygousRegions logical.   If FALSE (default), the
+#' emission probabilities for BAFs are modeled from a mixture of
+#' truncated normals and a Unif(0,1) where the mixture probabilities
+#' are given by the probability that the SNP is heterozygous. See
+#' Details below for a discussion of the implications.
+#'
+#' @section Details:
+#' When \code{modelHomozygousRegions} is FALSE (the default in
+#' versions >= 1.28.0), emission probabilities for B allele frequences
+#' are calculated from a mixture of a truncated normal densities and a
+#' Unif(0,1) density with the mixture probabilities given by the
+#' probability that a SNP is homozygous.  In particular, let \code{p}
+#' denote a 6 dimensional vector of density estimates from a truncated
+#' normal distribution for the latent genotypes 'A', 'B', 'AB', 'AAB',
+#' 'ABB', 'AAAB', and 'ABBB'.  The probability that a genotype is
+#' homozygous is estimated as
+#'
+#' \deqn{prHom=(p["A"]  + p["B"])/sum(p)}
+#'
+#' and the probability that the genotype is heterozygous (any latent
+#' genotype that is not 'A' or 'B') is given by
+#'
+#' \deqn{prHet = 1-prHom}
+#'
+#' Since the density of a Unif(0,1) is 1, the 6-dimensional vector of
+#' emission probability at a SNP is given by
+#'
+#' \deqn{emit = prHet * p + (1-prHet)}
+#'
+#' The above has the effect of minimizing the influence of BAFs near 0
+#' and 1 on the state path estimated by the Viterbi algorithm. In
+#' particular, the emission probability at homozygous SNPs will be
+#' virtually the same for states 3 and 4, but at heterozygous SNPs the
+#' emission probability for state 3 will be an order of magnitude
+#' greater for state 3 (diploid) compared to state 4 (diploid region
+#' of homozygosity).  The advantage of this parameterization are fewer
+#' false positive hemizygous deletion calls.  [ Log R ratios tend to
+#' be more sensitive to technical sources of variation than the
+#' corresponding BAFs/ genotypes.  Regions in which the log R ratios
+#' are low due to technical sources of variation will be less likely
+#' to be interpreted as evidence of copy number loss if heterozygous
+#' genotypes have more 'weight' in the emission estimates than
+#' homozgous genotypes.  ]  The trade-off is that only states
+#' estimated by the HMM are those with copy number alterations.  In
+#' particular, copy-neutral regions of homozygosity will not be
+#' called.
+#'
+#' By setting \code{modelHomozygousRegions = TRUE}, the emission
+#' probabilities at a SNP are given simply by the \code{p} vector
+#' described above and copy-neutral regions of homozygosity will be
+#' called.#'
+#'
 #' @examples
 #' ep <- EmissionParam()
 #' show(ep)
@@ -184,7 +236,8 @@ setGeneric("EmissionParam", function(cn_means=CN_MEANS(),
                                      EMupdates=5L,
                                      CN_range=c(-5, 3),
                                      temper=1,
-                                     p_outlier=1/100)
+                                     p_outlier=1/100,
+                                     modelHomozygousRegions=FALSE)
            standardGeneric("EmissionParam"))
 
 #' Accessor for the maximum number of Baum-Welch updates
@@ -451,7 +504,8 @@ setGeneric("CN_range", function(object) standardGeneric("CN_range"))
 setGeneric("proportionOutlier", function(object) standardGeneric("proportionOutlier"))
 setGeneric("temper", function(object) standardGeneric("temper"))
 
-##setGeneric("scale")
+setGeneric("scale")
+
 setGeneric("gstudioPaths", function(object) standardGeneric("gstudioPaths"))
 setGeneric("indexGenome", function(object) standardGeneric("indexGenome"))
 setGeneric("read", function(object) standardGeneric("read"))
@@ -498,20 +552,27 @@ setGeneric("parsedPath", function(object) standardGeneric("parsedPath"))
 #' @aliases sourcePaths,ArrayViews-method
 setGeneric("sourcePaths", function(object) standardGeneric("sourcePaths"))
 
+#' Accessors for objects of class ArrayViews
+#'
+#' @param object see showMethods("lrrFile")
 #' @rdname IO
 #' @export
-setGeneric("lrrFile", function(object, label="lrr") standardGeneric("lrrFile"))
+setGeneric("lrrFile", function(object) standardGeneric("lrrFile"))
+
+#' @rdname IO
+#' @export
+setGeneric("lrrFile<-", function(object, value) standardGeneric("lrrFile<-"))
 
 
 #' @rdname IO
 #' @aliases bafFile,ArrayViews-method
 #' @export
-setGeneric("bafFile", function(object, label="baf") standardGeneric("bafFile"))
+setGeneric("bafFile", function(object) standardGeneric("bafFile"))
 
 #' @rdname IO
 #' @export
 #' @aliases gtFile,ArrayViews-method
-setGeneric("gtFile", function(object, label="gt") standardGeneric("gtFile"))
+setGeneric("gtFile", function(object) standardGeneric("gtFile"))
 
 #' Function for parsing GenomeStudio files
 #'
@@ -653,3 +714,22 @@ setGeneric("copyNumber")
 #' @rdname plotting
 #' @export
 setGeneric("xyplotList", function(granges, se, param=HmmTrellisParam()) standardGeneric("xyplotList"))
+
+
+
+setGeneric("isAutosome", function(object) standardGeneric("isAutosome"))
+
+#' Assess whether genotype is heterozygous based on BAFs
+#'
+#' @param object a SnpArrayExperiment or ArrayViews object containing
+#' BAFs, a matrix of BAFs, or a numeric vector of BAFs.
+#' vector of BAFs
+#' @param cutoff a length-two numeric vector providing the range of
+#' BAFs consistent with allelic  heterozygosity
+#' @examples
+#' snp_exp <- getExampleSnpExperiment()
+#' is_het <- isHeterozygous(snp_exp[, 1], c(0.4, 0.6))
+#' table(is_het)
+#' @rdname isHeterozygous
+#' @export
+setGeneric("isHeterozygous", function(object, cutoff) standardGeneric("isHeterozygous"))

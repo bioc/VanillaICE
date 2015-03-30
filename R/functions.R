@@ -23,12 +23,20 @@ threshold <- function(x, lim=c(-Inf,Inf), amount=0){
   return(x)
 }
 
-acf2 <- function(x, lag.max=10, type = c("correlation", "covariance", "partial"),
-                 plot = FALSE, na.action = na.omit, demean = TRUE,
-                 ...){
-  y <- acf(x, lag.max=lag.max, type=type, plot=plot,
-             na.action=na.action, demean=demean, ...)
-  y <- y[[1]][lag.max+1, , 1]
+#' Calculate lag10 autocorrelation
+#'
+#' A wrapper for the function acf that returns the autocorrelation for
+#' the specified lag.  Missing values are removed.
+#'
+#' @param x numeric vector
+#' @param lag integer
+#' @param ... additional arguments to \code{acf}
+#' @seealso \code{\link{acf}}
+#' @export
+acf2 <- function(x, lag=10, ...){
+  x <- x[!is.na(x)]
+  y <- acf(x, lag.max=lag, plot=FALSE, ...)
+  y[[1]][lag+1, , 1]
 }
 
 setMethod(NA_index, "list", function(x){
@@ -117,20 +125,20 @@ rescale <- function(x, l, u){
 getCrlmmReference <- function(x) paste(annotation(x), "Conf", sep="")
 
 isLoaded <- function(dataset, environ=.vanillaIcePkgEnv)
-	exists(dataset, envir=environ)
+        exists(dataset, envir=environ)
 
 getVarInEnv <- function(dataset, environ=.vanillaIcePkgEnv){
-	if (!isLoaded(dataset))
-		stop("Variable ", dataset, " not found in .vanillaIcePkgEnv")
-	environ[[dataset]]
+        if (!isLoaded(dataset))
+                stop("Variable ", dataset, " not found in .vanillaIcePkgEnv")
+        environ[[dataset]]
 }
 
 loader <- function(theFile, envir, pkgname){
-	theFile <- file.path(system.file(package=pkgname),
-			     "extdata", theFile)
-	if (!file.exists(theFile))
-		stop("File ", theFile, "does not exist in ", pkgname)
-	load(theFile, envir=envir)
+        theFile <- file.path(system.file(package=pkgname),
+                             "extdata", theFile)
+        if (!file.exists(theFile))
+                stop("File ", theFile, "does not exist in ", pkgname)
+        load(theFile, envir=envir)
 }
 
 
@@ -190,3 +198,26 @@ colModes <- function(x) apply(x, 2, modev)
 #' @rdname robust-statistics
 #' @export
 rowMAD <- function(x, ...)  1.4826*rowMedians(abs(x-rowMedians(x, ...)), ...)
+
+
+runningAvg <- function(x, k=25){
+  x <- x[!is.na(x)]
+  as.numeric(filter2(x, rep(1/k, k)))
+}
+
+filter2 <- function(x, filter, ...){
+  xx <- filter(x, filter, ...)
+  M <- length(filter)
+  N <- (M- 1)/2
+  L <- length(x)
+  for(i in 1:N){
+    w <- filter[(N-i+2):M]
+    y <- x[1:(M-N+i-1)]
+    xx[i] <- sum(w*y)/sum(w)
+    w <- rev(w)
+    ii <- (L-(i-1))
+    y <- x[(ii-N):L]
+    xx[ii] <- sum(w*y)/sum(w)
+  }
+  xx
+}
