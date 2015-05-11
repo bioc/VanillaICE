@@ -7,6 +7,7 @@
 #' @importFrom crlmm calculateRBaf
 #' @importMethodsFrom oligoClasses state baf lrr copyNumber
 #' @import GenomicRanges
+#' @import SummarizedExperiment
 #' @import methods
 #' @import IRanges
 #' @import S4Vectors

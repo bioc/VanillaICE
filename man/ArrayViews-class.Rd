@@ -26,7 +26,7 @@
 ArrayViews(class = "ArrayViews", colData, rowRanges = GRanges(),
   sourcePaths = character(), scale = 1000, sample_ids,
   parsedPath = getwd(), lrrFiles = character(), bafFiles = character(),
-  gtFiles = character(), rowData = NULL)
+  gtFiles = character())
 
 \S4method{[}{ArrayViews,ANY,ANY,ANY}(x, i, j, ..., drop = FALSE)
 
@@ -73,8 +73,6 @@ should be saved}
 
 \item{gtFiles}{character vector of file names for storing genotypes}
 
-\item{rowData}{deprecated}
-
 \item{x}{a \code{ArrayViews} object}
 
 \item{i}{numeric vector or missing}
@@ -116,7 +114,7 @@ from disk, rescaling when appropriate.
 \describe{
 \item{\code{colData}}{A character string}
 
-\item{\code{rowData}}{A \code{DataFrame}. WARNING: The accessor for this slot is \code{rowRanges}, not \code{rowData}!}
+\item{\code{rowRanges}}{A \code{GRanges} object}
 
 \item{\code{index}}{A \code{GRanges} object}
 

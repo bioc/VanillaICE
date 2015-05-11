@@ -31,8 +31,8 @@ getSE <- function() {
 }
 
 test_SnpArrayExperiment <- function(){
+  library(VanillaICE)
   library(oligoClasses)
-  library(GenomicRanges)
   checkTrue(validObject(VanillaICE:::SnpDataFrame()))
   checkTrue(validObject(VanillaICE:::SnpDataFrame(DataFrame())))
   sdf <- VanillaICE:::SnpDataFrame()

@@ -75,13 +75,13 @@ setClass("SnpGRanges", contains="GRanges",
          representation(elementMetadata="SnpDataFrame"))
 
 
-#' A SummarizedExperiment-derived class of marker-level SNP array data
+#' A RangedSummarizedExperiment-derived class of marker-level SNP array data
 #' for copy number inference
 #'
 #' @rdname SnpArrayExperiment-class
 #' @export
-setClass("SnpArrayExperiment", contains = "SummarizedExperiment",
-         representation(rowData="SnpGRanges"))
+setClass("SnpArrayExperiment", contains = "RangedSummarizedExperiment",
+         representation(rowRanges="SnpGRanges"))
 
 # # @aliases HmmGRanges-class
 # # @rdname HmmGRanges-class
@@ -201,7 +201,7 @@ setClass("CopyNumScanParams", representation(index_genome="integer",
 #' from disk, rescaling when appropriate.
 #'
 #' @slot colData  A character string
-#' @slot rowData A \code{DataFrame}. WARNING: The accessor for this slot is \code{rowRanges}, not \code{rowData}!
+#' @slot rowRanges A \code{DataFrame}. WARNING: The accessor for this slot is \code{rowRanges}, not \code{rowRanges}!
 #' @slot index A \code{GRanges} object
 #' @slot sourcePaths A character string providing complete path to source files (one file per sample) containing low-level summaries (Log R ratios, B allele frequencies, genotypes)
 #' @slot scale A length-one numeric vector
@@ -215,7 +215,7 @@ setClass("CopyNumScanParams", representation(index_genome="integer",
 #' @export
 setClass("ArrayViews",
          representation(colData="DataFrame",
-                        rowData="GRanges",
+                        rowRanges="GRanges",
                         index="integer",
                         sourcePaths="character",
                         scale="numeric",

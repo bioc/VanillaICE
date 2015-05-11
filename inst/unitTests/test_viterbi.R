@@ -49,7 +49,7 @@ lik <- function(r, b, g, answer, r_means, r_sd, b_sd){
 
 test_updating <- function(){
   ## update mean and standard deviation of BAFs
-  library(GenomicRanges)
+  library(VanillaICE)
   ##oligoset <- getOligoset()
   se <- getSE()
   set.seed(123)
@@ -110,9 +110,9 @@ test_Viterbi <- function(){
 }
 
 test_baf_emission <- function(){
-  set.seed(123)
+  library(VanillaICE)
   library(oligoClasses)
-  library(GenomicRanges)
+  set.seed(123)
   param <- EmissionParam()
   genotypes <- sample(1:3, 1000, replace=TRUE)
   mus <- c(0, 0.5, 1)[genotypes]
@@ -188,7 +188,7 @@ test_emission_for_list <- function(){
 }
 
 test_summarized_exp <- function(){
-  library(GenomicRanges)
+  library(VanillaICE)
   library(oligoClasses)
   genotypes <- sample(1:3, 1000, replace=TRUE)
   mus <- c(0, 0.5, 1)[genotypes]
@@ -358,8 +358,8 @@ test_emission_update <- function(){
 
 
 ##test_hmm2 <- function(){
+##  library(VanillaICE)
 ##  library(oligoClasses)
-##  library(GenomicRanges)
 ####  oligoset <- getOligoset()
 ####  fit1 <- hmm(oligoset,
 ####              is.log=FALSE,
@@ -498,7 +498,7 @@ test_cn_NAs <- function(){
   x <- as.numeric(x)
   NArows <- sum(is.na(x)/6)
 
-  library(GenomicRanges)
+  library(VanillaICE)
   ##oligoset <- getOligoset()
   se <- getSE()
   set.seed(123)

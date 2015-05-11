@@ -6,7 +6,7 @@
 \alias{SnpArrayExperiment,matrix-method}
 \alias{SnpArrayExperiment,missing-method}
 \alias{SnpArrayExperiment-class}
-\title{A SummarizedExperiment-derived class of marker-level SNP array data
+\title{A RangedSummarizedExperiment-derived class of marker-level SNP array data
 for copy number inference}
 \usage{
 SnpArrayExperiment(cn, baf, rowRanges = GRanges(), colData = DataFrame(),
@@ -29,10 +29,10 @@ SnpArrayExperiment(cn, baf, rowRanges = GRanges(), colData = DataFrame(),
 
 \item{isSnp}{logical vector indicating whether marker is a SNP}
 
-\item{...}{additional arguments passed to initialization method for \code{SummarizedExperiment}}
+\item{...}{additional arguments passed to \code{SummarizedExperiment()}} constructor function
 }
 \description{
-A SummarizedExperiment-derived class of marker-level SNP array data
+A RangedSummarizedExperiment-derived class of marker-level SNP array data
 for copy number inference
 
 Constructor for SnpArrayExperiment

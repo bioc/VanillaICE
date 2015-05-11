@@ -1,7 +1,6 @@
 .notneedtest_SummarizedExperimentAccessors <- function(){
   library(VanillaICE)
   library(oligoClasses)
-  library(GenomicRanges)
   ##
   ## only test if local
   ## Could probably get rid of this

@@ -303,13 +303,13 @@ VanillaICE::genotypes(views)[1:2, ]
 @
 
 More often, it is useful to extract the low-level data in a
-\Rclass{SummarizedExperiment}-derived class such that meta-data on the
+\Rclass{RangedSummarizedExperiment}-derived object such that meta-data on the
 samples remains bound to the columns of the assay data (log R ratios /
 B allele frequencies) and meta-data on the rows remains bound to the
 rows of the assay data. This is accomplished by applying the
 \Rfunction{SnpExperiment} function to a \Robject{views} object. In the
-following example, we create a \Rclass{SummarizedExperiment}-derived
-class for the first three samples in the \Robject{views} object.
+following example, we create a \Rclass{RangedSummarizedExperiment}-derived
+object for the first three samples in the \Robject{views} object.
 
 
 <<SnpArrayExperiment>>=

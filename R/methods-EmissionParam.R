@@ -222,7 +222,7 @@ setMethod(calculateEmission, signature(x="list"),
   return(emit)
 }
 
-setMethod(calculateEmission, signature(x="SummarizedExperiment"),
+setMethod(calculateEmission, signature(x="RangedSummarizedExperiment"),
           function(x, param=EmissionParam()){
             x <- list(lrr(x)[,1], baf(x)[,1])
             .calculateEmission(x, param)

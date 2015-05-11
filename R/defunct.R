@@ -2558,7 +2558,7 @@ setMethod("baf", signature(object="SnpSet2"), function(object) assayDataElement(
 
 ##setMethod("SummarizedHMM", "missing", function(forward_backward,
 ##                                               loglik,
-##                                               rowData=HmmGRanges()){
+##                                               rowRanges=HmmGRanges()){
 ##  new("SummarizedHMM")
 ##})
 ##
@@ -2570,9 +2570,9 @@ setMethod("baf", signature(object="SnpSet2"), function(object) assayDataElement(
 ##
 ##setMethod("SummarizedHMM", "matrix", function(forward_backward,
 ##                                              loglik,
-##                                              rowData=HmmGRanges()){
+##                                              rowRanges=HmmGRanges()){
 ##  new("SummarizedHMM", assays=forwardBackwardAssays(),
-##      rowData=HmmGRanges(), ...)
+##      rowRanges=HmmGRanges(), ...)
 ##})
 
 setMethod(NA_filter, "oligoSnpSet", function(x){
@@ -2585,10 +2585,10 @@ setMethod(NA_filter, "oligoSnpSet", function(x){
 
 setAs("oligoSnpSet", "SnpArrayExperiment",
       function(from){
-        rowdata <- as(featureData(from), "SnpGRanges")
+        rowranges <- as(featureData(from), "SnpGRanges")
         coldata <- as(phenoData(from), "DataFrame")
         SnpArrayExperiment(cn=copyNumber(from), baf=baf(from),
-                           rowData=rowdata,
+                           rowRanges=rowranges,
                            colData=coldata)
       })
 

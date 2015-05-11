@@ -12,7 +12,6 @@ NULL
 #' @param lrrFiles character vector of file names for storing log R ratios
 #' @param bafFiles character vector of file names for storing BAFs
 #' @param gtFiles character vector of file names for storing genotypes
-#' @param rowData deprecated
 #' @seealso \code{\link{CopyNumScanParams}} \code{\link{parseSourceFile}}
 #' @aliases ArrayViews
 #' @rdname ArrayViews-class
@@ -49,8 +48,7 @@ ArrayViews <- function(class="ArrayViews",
                        parsedPath=getwd(),
                        lrrFiles=character(),
                        bafFiles=character(),
-                       gtFiles=character(),
-                       rowData=NULL){
+                       gtFiles=character()){
   if(missing(colData)){
     if(!missing(sample_ids)) {
       colData <- DataFrame(row.names=sample_ids)
@@ -68,20 +66,9 @@ ArrayViews <- function(class="ArrayViews",
     stable_file_identifiers <- fileName(sourcePaths, "gt")
     gtFiles = file.path(parsedPath, paste0(stable_file_identifiers, "_gt.rds"))
   }
-  ## Temporary workaround to ensure backward compatibility with code that
-  ## explictely specifies the 'rowData' argument when calling the ArrayViews()
-  ## constructor -- Herv\'e Pag\`es -- March 23, 2015
-  if(!is.null(rowData)){
-    if (!missing(rowRanges))
-      stop("both 'rowRanges' and 'rowData' are specified")
-    msg <- c("The 'rowData' argument is deprecated. ",
-             "Please use 'rowRanges' instead.")
-    .Deprecated(msg=msg)
-    rowRanges <- rowData
-  }
   new(class,
       colData=colData,
-      rowData=rowRanges,
+      rowRanges=rowRanges,
       index=seq_len(length(rowRanges)),
       sourcePaths=sourcePaths,
       scale=scale,
@@ -123,7 +110,7 @@ setValidity("ArrayViews", function(object){
     }
   }
   if(length(object@index) != length(rowRanges(object))){
-    msg <- "index slot should have same length as rowData"
+    msg <- "index slot should have same length as rowRanges"
     return(msg)
   }
   return(msg)
@@ -157,7 +144,7 @@ setReplaceMethod("seqlevels", "ArrayViews", function(x, force=FALSE, value){
 #' @rdname ArrayViews-class
 setMethod("[", signature(x="ArrayViews", i="ANY", j="ANY"), function(x, i, j, ..., drop=FALSE){
   if(!missing(i)){
-    x@rowData <- rowRanges(x)[i]
+    x@rowRanges <- rowRanges(x)[i]
     x@index <- indexGenome(x)[i]
   }
   if(!missing(j)){
@@ -196,10 +183,10 @@ setReplaceMethod("colnames", c("ArrayViews", "character"), function(x, value){
 #' @export
 setMethod("colnames", "ArrayViews", function(x, do.NULL=TRUE, prefix="col") .colnames(x))
 
-setMethod("rowRanges", "ArrayViews", function(x, ...) x@rowData)
+setMethod("rowRanges", "ArrayViews", function(x, ...) x@rowRanges)
 
 setMethod("rowRanges<-", "ArrayViews", function(x, value) {
-  x@rowData <- value
+  x@rowRanges <- value
   x
 })
 
@@ -615,7 +602,7 @@ setAs("ArrayViews", "SnpArrayExperiment", function(from, to){
   r <- lrr(from)
   b <- baf(from)
   g <- genotypes(from)
-  SnpArrayExperiment(cn=r, baf=b, genotypes=g, rowData=SnpGRanges(rowRanges(from), isSnp=rep(TRUE, nrow(b))),
+  SnpArrayExperiment(cn=r, baf=b, genotypes=g, rowRanges=SnpGRanges(rowRanges(from), isSnp=rep(TRUE, nrow(b))),
                      colData=colData(from))
 
 })

@@ -50,7 +50,7 @@ setGeneric("loglik", function(object) standardGeneric("loglik"))
 #' @param param  parameters for the 6-state HMM
 #' @seealso baumWelchUpdate
 #' @export
-#' @aliases calculateEmission,SummarizedExperiment-method calculateEmission,list-method calculateEmission,numeric-method
+#' @aliases calculateEmission,RangedSummarizedExperiment-method calculateEmission,list-method calculateEmission,numeric-method
 setGeneric("calculateEmission", function(x, param=EmissionParam()) standardGeneric("calculateEmission"))
 
 setGeneric("forward_backward", function(x) standardGeneric("forward_backward"))
@@ -390,7 +390,7 @@ setGeneric("distance", function(x) standardGeneric("distance"))
 #' @param rowRanges GRanges object for SNPs/nonpolymorphic markers
 #' @param colData DataFrame containing sample-level covariates
 #' @param isSnp  logical vector indicating whether marker is a SNP
-#' @param ... additional arguments passed to initialization method for \code{SummarizedExperiment}
+#' @param ... additional arguments passed to \code{SummarizedExperiment()} constructor function
 #' @docType methods
 #' @rdname SnpArrayExperiment-class
 #' @export

@@ -53,8 +53,8 @@
 }
 
 test_hmm_cnset <- function(){
+  library(VanillaICE)
   library(oligoClasses)
-  library(GenomicRanges)
   library(Biobase)
   library(foreach);registerDoSEQ()
   require(crlmm)
@@ -119,7 +119,6 @@ test_hmm_cnset <- function(){
 test_oligoSnpSetGT <- function(){
   library(VanillaICE);library(RUnit)
   library(oligoClasses)
-  library(GenomicRanges)
   library(Biobase)
   data(oligoSetExample, package="oligoClasses")
   oligoSet <- oligoSet[chromosome(oligoSet) == 1, ]
@@ -151,8 +150,8 @@ test_oligoSnpSetGT <- function(){
 }
 
 test_state4 <- function(){
+  library(VanillaICE)
   library(oligoClasses)
-  library(GenomicRanges)
   library(Biobase)
   data(oligoSetExample, package="oligoClasses")
   oligoSet <- oligoSet[chromosome(oligoSet) == 1, ]

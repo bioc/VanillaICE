@@ -12,7 +12,7 @@ setMethod(SnpArrayExperiment, "missing",
           function(cn, baf, rowRanges=GRanges(),
                    colData=DataFrame(), isSnp=logical(), ...){
             se <- new("SnpArrayExperiment", assays=snpArrayAssays(...),
-                      rowData=SnpGRanges(), ...)
+                      rowRanges=SnpGRanges(), ...)
             se
           })
 
@@ -31,7 +31,7 @@ setMethod(SnpArrayExperiment, "matrix",
               rowRanges <- SnpGRanges(rowRanges, isSnp)
             }
             se <- new("SnpArrayExperiment", assays=assays,
-                      rowData=rowRanges, colData=colData)
+                      rowRanges=rowRanges, colData=colData)
             se
           })
 
@@ -54,7 +54,7 @@ setAs("CNSet", "SnpArrayExperiment",
         rowranges <- SnpGRanges(rowranges)
         names(rowranges) <- nms
         ##tmp=snpArrayAssays(cn=lrrs/100, baf=bafs/100)
-        ##new("SnpArrayExperiment", assays=tmp, rowData=rowranges, colData=DataFrame(pData(from)))
+        ##new("SnpArrayExperiment", assays=tmp, rowRanges=rowranges, colData=DataFrame(pData(from)))
         se <- SnpArrayExperiment(cn=lrrs/100, baf=bafs/1000,
                                  rowRanges=SnpGRanges(rowranges),
                                  colData=DataFrame(pData(from)))
@@ -69,7 +69,7 @@ setAs("oligoSnpSet", "SnpArrayExperiment",
         cn_assays <- snpArrayAssays(cn=copyNumber(from),
                                     baf=baf(from),
                                     gt=calls(from))
-        new("SnpArrayExperiment", assays=cn_assays, rowData=rowranges, colData=coldata)
+        new("SnpArrayExperiment", assays=cn_assays, rowRanges=rowranges, colData=coldata)
       })
 
 
@@ -261,7 +261,7 @@ getExampleSnpExperiment <- function(){
 
 
 setMethod("isAutosome", "SnpArrayExperiment", function(object){
-  isAutosome(rowData(object))
+  isAutosome(rowRanges(object))
 })
 
 

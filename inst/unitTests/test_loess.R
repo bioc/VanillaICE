@@ -26,7 +26,7 @@
   l_files <- gsub(".txt", "_lrr.rds", basename(files))
   b_files <- gsub(".txt", "_baf.rds", basename(files))
   g_files <- gsub(".txt", "_gt.rds", basename(files))
-  views <- ArrayViews(rowData=fgr,
+  views <- ArrayViews(rowRanges=fgr,
                       sourcePaths=files,
                       sample_ids=ids,
                       parsedPath=tempdir(),

@@ -2,7 +2,7 @@
 % Please edit documentation in R/AllGenerics.R
 \name{calculateEmission}
 \alias{calculateEmission}
-\alias{calculateEmission,SummarizedExperiment-method}
+\alias{calculateEmission,RangedSummarizedExperiment-method}
 \alias{calculateEmission,list-method}
 \alias{calculateEmission,numeric-method}
 \title{Calculate the emission probabilities for the 6-state HMM}
