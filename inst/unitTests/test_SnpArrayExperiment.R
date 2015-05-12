@@ -25,9 +25,8 @@ getOligoset <- function(){
 }
 
 getSE <- function() {
-  path <- system.file("extdata", package="VanillaICE")
-  se <- readRDS(file.path(path, "snp_exp.rds"))
-  se
+  load(system.file("extdata", "snp_exp.rda", package="VanillaICE"))
+  snp_exp
 }
 
 test_SnpArrayExperiment <- function(){

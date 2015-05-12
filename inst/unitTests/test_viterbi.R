@@ -6,12 +6,11 @@ getOligoset <- function(){
 }
 
 getSE <- function() {
-  path <- system.file("extdata", package="VanillaICE")
-  se <- readRDS(file.path(path, "snp_exp.rds"))
+  load(system.file("extdata", "snp_exp.rda", package="VanillaICE"))
 ##  se <- as(getOligoset(), "SnpArrayExperiment")
 ##  copyNumber(se) <- copyNumber(se)/100
 ##  baf(se) <- baf(se)/1000
-  se
+  snp_exp
 }
 
 simulateData <- function(answer,
@@ -451,9 +450,7 @@ test_emission_update <- function(){
 
 test_multiple_chromosomes <- function(){
   library(oligoClasses)
-  path <- system.file("extdata", package="VanillaICE")
-  se <- readRDS(file.path(path, "snp_exp.rds"))
-  ##se <- getSE()
+  se <- getSE()
   se <- sweepMode(se, MARGIN=2)
   checkEquals(colModes(copyNumber(se)), 0, tolerance=0.005)
   fit1 <- hmm2(se)
@@ -481,8 +478,7 @@ test_multiple_chromosomes <- function(){
 
 test_null_assignment <- function(){
   library(oligoClasses)
-  path <- system.file("extdata", package="VanillaICE")
-  se <- readRDS(file.path(path, "snp_exp.rds"))
+  se <- getSE()
   se <- sweepMode(se, MARGIN=2)
   checkEquals(colModes(copyNumber(se)), 0, tolerance=0.005)
   h <- hmm2(se)[[1]]

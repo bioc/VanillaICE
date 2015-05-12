@@ -14,7 +14,7 @@ Depends:
     SummarizedExperiment (>= 0.1.1)
 Imports:
     Biobase,
-    oligoClasses (>= 1.24.0),
+    oligoClasses (>= 1.31.1),
     IRanges (>= 1.14.0),
     S4Vectors,
     foreach,

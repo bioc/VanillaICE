@@ -443,13 +443,12 @@ setGeneric("NA_index", function(x) standardGeneric("NA_index"))
 ## #' @examples
 ## #'  library(oligoClasses)
 ## #'  library(IRanges)
-## #'  path <- system.file("extdata", package="VanillaICE")
-## #'  se <- readRDS(file.path(path, "snp_exp.rds"))
+## #'  load(system.file("extdata", "snp_exp.rda", package="VanillaICE"))
 ## #'  states <- Rle(factor(c(3, 4, 3, 5, 3, 2, 3, 3, 2, 3, 2, 3)),
 ## #'                as.integer(c(996, 102, 902, 50, 2467, 102, 76, 1822,
 ## #'                             99, 900, 20, 160)))
-## #'  hgr <- HmmGRanges(states=states, feature_starts=start(se),
-## #'                    feature_chrom=chromosome(se), loglik=15.3)
+## #'  hgr <- HmmGRanges(states=states, feature_starts=start(snp_exp),
+## #'                    feature_chrom=chromosome(snp_exp), loglik=15.3)
 ## #'
 ## # @aliases HmmGRangeso
 ## # @rdname HmmGRanges-class
