@@ -44,23 +44,6 @@ processed using the \Rpackage{crlmm} package.
 data(cnSetExample, package="crlmm")
 @
 
-In the following unevaluated code chunk, we could enable
-parallelization of the hidden Markov models using the package
-\Rpackage{snow}.
-
-<<snow,eval=FALSE>>=
-##registerDoSEQ()
-library(snow)
-library(doSNOW)
-cl <- makeCluster(2, type="SOCK")
-registerDoSNOW(cl)
-ocSamples(2)
-@
-
-<<echo=FALSE,results=hide>>=
-registerDoSEQ()
-@
-
 The data \Robject{cnSetExample} is an object of class \Rclass{CNSet}.
 We coerce the \Rclass{CNSet} object to a \Rclass{SnpArrayExperiment}
 that contains information on copy number (log R ratios) and B allele
