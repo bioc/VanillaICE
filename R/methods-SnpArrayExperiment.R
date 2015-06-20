@@ -11,9 +11,11 @@
 setMethod(SnpArrayExperiment, "missing",
           function(cn, baf, rowRanges=GRanges(),
                    colData=DataFrame(), isSnp=logical(), ...){
-            se <- new("SnpArrayExperiment", assays=snpArrayAssays(...),
-                      rowRanges=SnpGRanges(), ...)
-            se
+            new("SnpArrayExperiment", SummarizedExperiment(
+                assays=snpArrayAssays(...)$data,
+                rowRanges=SnpGRanges(),
+                ...
+            ))
           })
 
 
@@ -30,9 +32,11 @@ setMethod(SnpArrayExperiment, "matrix",
               if(length(isSnp) != length(rowRanges)) stop(" isSnp must be the same length as rowRanges")
               rowRanges <- SnpGRanges(rowRanges, isSnp)
             }
-            se <- new("SnpArrayExperiment", assays=assays,
-                      rowRanges=rowRanges, colData=colData)
-            se
+            new("SnpArrayExperiment", SummarizedExperiment(
+                assays=assays$data,
+                rowRanges=rowRanges,
+                colData=colData
+            ))
           })
 
 
@@ -69,7 +73,11 @@ setAs("oligoSnpSet", "SnpArrayExperiment",
         cn_assays <- snpArrayAssays(cn=copyNumber(from),
                                     baf=baf(from),
                                     gt=calls(from))
-        new("SnpArrayExperiment", assays=cn_assays, rowRanges=rowranges, colData=coldata)
+        new("SnpArrayExperiment", SummarizedExperiment(
+            assays=cn_assays$data,
+            rowRanges=rowranges,
+            colData=coldata
+        ))
       })
 
 
