@@ -2563,7 +2563,7 @@ setMethod("baf", signature(object="SnpSet2"), function(object) assayDataElement(
 ##})
 ##
 ##forwardBackwardAssays <- function(x, ...){
-##  assays <- GenomicRanges:::.ShallowSimpleListAssays(
+##  assays <- .ShallowSimpleListAssays(
 ##    data = SimpleList(forward_backward=x, ...))
 ##  assays
 ##}

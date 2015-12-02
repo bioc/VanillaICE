@@ -153,6 +153,14 @@ assayNames <- function(x) names(assays(x))
 requiredAssays <- function() c("cn", "baf")
 isCnAssays <- function(x) all(requiredAssays() %in% assayNames(x))
 
+.ShallowSimpleListAssays <-
+    function(..., data = SimpleList())
+{
+    xx <- SummarizedExperiment:::.ShallowSimpleListAssays0(...)
+    xx$data <- data
+    xx
+}
+
 #' Create an assays object from log R ratios and B allele frequencies
 #'
 #'
@@ -169,7 +177,7 @@ isCnAssays <- function(x) all(requiredAssays() %in% assayNames(x))
 #' @export
 snpArrayAssays <- function(cn=new("matrix"),
                            baf=new("matrix"), ...){
-  assays <- GenomicRanges:::.ShallowSimpleListAssays(
+  assays <- .ShallowSimpleListAssays(
     data = SimpleList(cn=cn,
       baf=baf, ...))
   assays
