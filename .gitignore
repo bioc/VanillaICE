@@ -1,0 +1,4 @@
+*.so
+*.o
+VanillaICE-fig*
+VanillaICE.tex
