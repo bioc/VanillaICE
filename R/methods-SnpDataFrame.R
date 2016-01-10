@@ -47,7 +47,7 @@ setMethod(SnpGRanges, "GRanges",
                 object$isSnp <- logical(0L)
               } else object$isSnp <- isSnp
             }
-            mcols(object) <- SnpDataFrame(mcols(object))
+            object@elementMetadata <- SnpDataFrame(mcols(object))
             as(object, "SnpGRanges")
           })
 
