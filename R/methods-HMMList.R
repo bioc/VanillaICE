@@ -62,7 +62,7 @@ setMethod("segs", "HMMList", function(object) unlist(object))
 #' @rdname cnvFilter
 setMethod("hemizygous", "HMMList", function(object) {
   x <- GRangesList(lapply(object, hemizygous))
-  id <- rep(names(x), elementLengths(x))
+  id <- rep(names(x), elementNROWS(x))
   x <- unlist(x)
   x$id <- id
   x
@@ -72,7 +72,7 @@ setMethod("hemizygous", "HMMList", function(object) {
 #' @rdname cnvFilter
 setMethod("homozygous", "HMMList", function(object) {
   x <- GRangesList(lapply(object, homozygous))
-  id <- rep(names(x), elementLengths(x))
+  id <- rep(names(x), elementNROWS(x))
   x <- unlist(x)
   x$id <- id
   x
@@ -82,7 +82,7 @@ setMethod("homozygous", "HMMList", function(object) {
 #' @rdname cnvFilter
 setMethod("duplication", "HMMList", function(object) {
   x <- GRangesList(lapply(object, duplication))
-  id <- rep(names(x), elementLengths(x))
+  id <- rep(names(x), elementNROWS(x))
   x <- unlist(x)
   x$id <- id
   x

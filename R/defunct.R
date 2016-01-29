@@ -1756,7 +1756,7 @@ hmmBafLrrSetList2 <- function(object, sampleIds, TAUP=1e10, tauMAX,
 	rlist <- lrr(object)
 	blist <- baf(object)
 	pos <- unlist(position(object))
-	chr <- rep(chromosome(object), elementLengths(object))
+	chr <- rep(chromosome(object), elementNROWS(object))
 	grFun <- generatorGRanges(chr, pos, genomeBuild(object), TAUP=TAUP, tauMAX=tauMAX)
 	is.snp <- unlist(lapply(featureDataList(object), isSnp))
 	snp.index <- which(is.snp)

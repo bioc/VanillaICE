@@ -40,7 +40,7 @@ setMethod("HmmGRanges", "integer", function(states, feature_starts, feature_chro
   chr <- sapply(split(feature_chrom, segfactor), unique)
   if(!is.character(chr)) stop("one segment has multiple chromosomes, resulting in a list of chromosomes instead of a character vector.")
   gr <- GRanges(chr, IRanges(starts, ends),
-                numberFeatures=elementLengths(feature_start_list))
+                numberFeatures=elementNROWS(feature_start_list))
   hgr <- as(gr, "HmmGRanges")
   emissionParam(hgr) <- emission_param
   states <- sapply(split(states, segfactor), unique)

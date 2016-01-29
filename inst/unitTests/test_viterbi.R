@@ -508,7 +508,7 @@ test_cn_NAs <- function(){
   starts <- start(se)[seq_along(b)]
   starts[150] <- NA
   x <- NA_filter(list(b, r, starts))
-  checkTrue(all(elementLengths(x) == 295L))
+  checkTrue(all(elementNROWS(x) == 295L))
 
   ## test method on SnpArrayExperiment
   starts[150] <- starts[149]+1
