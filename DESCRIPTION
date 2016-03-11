@@ -1,5 +1,5 @@
 Package: VanillaICE
-Version: 1.33.4
+Version: 1.33.5
 Title: A Hidden Markov Model for high throughput genotyping arrays
 Author: Robert Scharpf <rscharpf@jhu.edu>, Kevin Scharpf, and Ingo Ruczinski
     <ingo@jhsph.edu>
@@ -62,6 +62,3 @@ License: LGPL-2
 LazyLoad: yes
 biocViews: CopyNumberVariation
 Roxygen: list(wrap=FALSE)
-## Local Variables: 
-## time-stamp-pattern: "8/Date: %3a %3b %2d %02H:%02M:%02S %Z %:y\n"
-## End: 
