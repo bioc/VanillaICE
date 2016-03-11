@@ -62,3 +62,4 @@ License: LGPL-2
 LazyLoad: yes
 biocViews: CopyNumberVariation
 Roxygen: list(wrap=FALSE)
+RoxygenNote: 5.0.1
