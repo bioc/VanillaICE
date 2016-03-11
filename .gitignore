@@ -2,3 +2,6 @@
 *.o
 VanillaICE-fig*
 VanillaICE.tex
+/src/VanillaICE.so
+/src/rinit.o
+/src/viterbi.o

@@ -588,7 +588,7 @@ setMethod("sort", "ArrayViews", function(x, decreasing=FALSE, ...){
 })
 
 
-setMethod("scaleBy", c("numeric", "numeric"), function(x, by) as.integer(x*by))
+setMethod("scaleBy", c("numeric", "numeric"), function(x, by) as.integer(round(x*by, 0)))
 setMethod("scaleRead", c("numeric", "numeric"), function(x, params) x/params)
 setMethod("scaleRead", c("matrix", "numeric"), function(x, params) x/params)
 
