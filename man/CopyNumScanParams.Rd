@@ -50,6 +50,8 @@ greatly simplifies this process.
 \section{Slots}{
 
 \describe{
+\item{\code{index_genome}}{an integer vector}
+
 \item{\code{cnvar}}{the column label for the log R ratios}
 
 \item{\code{bafvar}}{the column label for the B allele frequencies}

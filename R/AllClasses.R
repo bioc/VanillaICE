@@ -170,7 +170,7 @@ setClass("HMMList", contains="list")
 #' require some experimentation as the example illustrates.  The
 #' function \code{\link{fread}} in the \code{data.table} package
 #' greatly simplifies this process.
-#' @slot index_genome
+#' @slot index_genome an integer vector
 #' @slot cnvar the column label for the log R ratios
 #' @slot bafvar the column label for the B allele frequencies
 #' @slot gtvar the column label(s) for the genotypes

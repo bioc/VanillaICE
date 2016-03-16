@@ -5,7 +5,10 @@
 \title{Create an example SnpArrayExperiment from source files containing
 marker-level genomic data that are provided in this package}
 \usage{
-getExampleSnpExperiment()
+getExampleSnpExperiment(bsgenome)
+}
+\arguments{
+\item{bsgenome}{a \code{BSgenome} object}
 }
 \value{
 A \code{\link{SnpArrayExperiment}}

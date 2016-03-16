@@ -702,14 +702,16 @@ setGeneric("copyNumber")
 #' @param param trellis parameters for plotting HMM
 #' @rdname plotting
 #' @examples
-#' snp_exp <- getExampleSnpExperiment()
-#' seqlevels(snp_exp, force=TRUE) <- "chr22"
-#' fit <- hmm2(snp_exp)
-#' g <- reduce(hemizygous(fit), min.gapwidth=500e3)
-#' trellis_param <- HmmTrellisParam()
-#' fig <- xyplotList(g, snp_exp, trellis_param)
-#' vps <- viewports()
-#' xygrid(fig[[1]], vps, g)
+#' if(require("BSgenome.Hsapiens.UCSC.hg18")){
+#'   snp_exp <- getExampleSnpExperiment(BSgenome.Hsapiens.UCSC.hg18)
+#'   seqlevels(snp_exp, force=TRUE) <- "chr22"
+#'   fit <- hmm2(snp_exp)
+#'   g <- reduce(hemizygous(fit), min.gapwidth=500e3)
+#'   trellis_param <- HmmTrellisParam()
+#'   fig <- xyplotList(g, snp_exp, trellis_param)
+#'   vps <- viewports()
+#'   xygrid(fig[[1]], vps, g)
+#' }
 #' @rdname plotting
 #' @export
 setGeneric("xyplotList", function(granges, se, param=HmmTrellisParam()) standardGeneric("xyplotList"))
@@ -726,9 +728,11 @@ setGeneric("isAutosome", function(object) standardGeneric("isAutosome"))
 #' @param cutoff a length-two numeric vector providing the range of
 #' BAFs consistent with allelic  heterozygosity
 #' @examples
-#' snp_exp <- getExampleSnpExperiment()
-#' is_het <- isHeterozygous(snp_exp[, 1], c(0.4, 0.6))
-#' table(is_het)
+#' if(require("BSgenome.Hsapiens.UCSC.hg18")){
+#'   snp_exp <- getExampleSnpExperiment(BSgenome.Hsapiens.UCSC.hg18)
+#'   is_het <- isHeterozygous(snp_exp[, 1], c(0.4, 0.6))
+#'   table(is_het)
+#' }
 #' @rdname isHeterozygous
 #' @export
 setGeneric("isHeterozygous", function(object, cutoff) standardGeneric("isHeterozygous"))

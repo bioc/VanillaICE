@@ -241,21 +241,20 @@ setMethod("sweepMode", "SnpArrayExperiment",
 #'
 #' @return A \code{\link{SnpArrayExperiment}}
 #' @export
+#' @param bsgenome a \code{BSgenome} object
 #' @examples
 #' \dontrun{
 #'    snp_exp <- getExampleSnpExperiment()
 #' }
-getExampleSnpExperiment <- function(){
-  require("BSgenome.Hsapiens.UCSC.hg18")
-  BSgenome <- get("BSgenome.Hsapiens.UCSC.hg18")
+getExampleSnpExperiment <- function(bsgenome){
   extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
   features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))
   fgr <- GRanges(paste0("chr", features$Chr), IRanges(features$Position, width=1),
                  isSnp=features[["Intensity Only"]]==0)
   fgr <- SnpGRanges(fgr)
   names(fgr) <- features[["Name"]]
-  seqlevels(fgr) <- seqlevels(BSgenome)[seqlevels(BSgenome) %in% seqlevels(fgr)]
-  seqinfo(fgr) <- seqinfo(BSgenome)[seqlevels(fgr),]
+  seqlevels(fgr) <- seqlevels(bsgenome)[seqlevels(bsgenome) %in% seqlevels(fgr)]
+  seqinfo(fgr) <- seqinfo(bsgenome)[seqlevels(fgr),]
   fgr <- sort(fgr)
   file <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")[5]
   dat <- fread(file)

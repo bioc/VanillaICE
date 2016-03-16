@@ -31,8 +31,10 @@ BAFs consistent with allelic  heterozygosity}
 Assess whether genotype is heterozygous based on BAFs
 }
 \examples{
-snp_exp <- getExampleSnpExperiment()
-is_het <- isHeterozygous(snp_exp[, 1], c(0.4, 0.6))
-table(is_het)
+if(require("BSgenome.Hsapiens.UCSC.hg18")){
+  snp_exp <- getExampleSnpExperiment(BSgenome.Hsapiens.UCSC.hg18)
+  is_het <- isHeterozygous(snp_exp[, 1], c(0.4, 0.6))
+  table(is_het)
+}
 }
 
