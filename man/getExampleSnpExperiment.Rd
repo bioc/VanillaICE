@@ -5,7 +5,10 @@
 \title{Create an example SnpArrayExperiment from source files containing
 marker-level genomic data that are provided in this package}
 \usage{
-getExampleSnpExperiment()
+getExampleSnpExperiment(bsgenome)
+}
+\arguments{
+\item{bsgenome}{a \code{BSgenome} object}
 }
 \value{
 A \code{\link{SnpArrayExperiment}}
@@ -16,7 +19,10 @@ marker-level genomic data that are provided in this package
 }
 \examples{
 \dontrun{
-   snp_exp <- getExampleSnpExperiment()
+   if(require("BSgenome.Hsapiens.UCSC.hg18")){
+     genome <- BSgenome.Hsapiens.UCSC.hg18
+     snp_exp <- getExampleSnpExperiment(genome)
+   }
 }
 }
 

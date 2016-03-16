@@ -1,3 +1,5 @@
 /src/VanillaICE.so
 /src/rinit.o
 /src/viterbi.o
+vignettes/*-fig*.pdf
+changelog

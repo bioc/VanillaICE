@@ -243,27 +243,31 @@ setMethod("sweepMode", "SnpArrayExperiment",
             x
           })
 
+## Inclusion of this function means that BSgenome must be imported and not
+## listed in Suggests
 
 #' Create an example SnpArrayExperiment from source files containing
 #' marker-level genomic data that are provided in this package
 #'
 #' @return A \code{\link{SnpArrayExperiment}}
+#' @param bsgenome a \code{BSgenome} object
 #' @export
 #' @examples
 #' \dontrun{
-#'    snp_exp <- getExampleSnpExperiment()
+#'    if(require("BSgenome.Hsapiens.UCSC.hg18")){
+#'      genome <- BSgenome.Hsapiens.UCSC.hg18
+#'      snp_exp <- getExampleSnpExperiment(genome)
+#'    }
 #' }
-getExampleSnpExperiment <- function(){
-  require("BSgenome.Hsapiens.UCSC.hg18")
-  BSgenome <- get("BSgenome.Hsapiens.UCSC.hg18")
+getExampleSnpExperiment <- function(bsgenome){
   extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
   features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))
   fgr <- GRanges(paste0("chr", features$Chr), IRanges(features$Position, width=1),
                  isSnp=features[["Intensity Only"]]==0)
   fgr <- SnpGRanges(fgr)
   names(fgr) <- features[["Name"]]
-  seqlevels(fgr) <- seqlevels(BSgenome)[seqlevels(BSgenome) %in% seqlevels(fgr)]
-  seqinfo(fgr) <- seqinfo(BSgenome)[seqlevels(fgr),]
+  seqlevels(fgr) <- seqlevels(bsgenome)[seqlevels(bsgenome) %in% seqlevels(fgr)]
+  seqinfo(fgr) <- seqinfo(bsgenome)[seqlevels(fgr),]
   fgr <- sort(fgr)
   file <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")[5]
   dat <- fread(file)

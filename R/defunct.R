@@ -2372,7 +2372,7 @@ setAs("BeadStudioSet", "data.frame",
 #' @param genome character string indicating genome build
 #' @param annotationPkg name of annotation package
 #' @param chromosome which chromosomes to process
-#' @param ...
+#' @param ... ignored
 #' @rdname BeadStudioSet
 #' @seealso \code{link{CopyNumScanParams}} \code{\link{parseSourceFile}}
 #' @export

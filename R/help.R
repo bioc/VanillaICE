@@ -21,5 +21,7 @@
 #' @import lattice
 #' @importFrom matrixStats anyMissing rowMedians colMedians
 #' @importFrom tools file_path_sans_ext
+#' @importFrom stats  acf dnorm dunif pnorm rnorm runif setNames
+#' @importFrom utils packageDescription read.table
 #' @useDynLib VanillaICE
 NULL

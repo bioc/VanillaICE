@@ -13,6 +13,10 @@ BeadStudioSet(filenames, header_info, genome = c("hg19", "hg18"),
   annotationPkg, chromosome = 1:22, ...)
 }
 \arguments{
+\item{x}{a BeadStudioSte}
+
+\item{...}{ignored}
+
 \item{filenames}{full path to input files}
 
 \item{header_info}{header information}

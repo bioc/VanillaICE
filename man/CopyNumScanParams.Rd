@@ -50,13 +50,16 @@ greatly simplifies this process.
 \section{Slots}{
 
 \describe{
+\item{\code{index_genome}}{an integer vector}
+
 \item{\code{cnvar}}{the column label for the log R ratios}
 
 \item{\code{bafvar}}{the column label for the B allele frequencies}
 
 \item{\code{gtvar}}{the column label(s) for the genotypes}
 
-\item{\code{scale}}{length-one numeric vector indicating how the low-level data should be scaled prior to saving on disk}
+\item{\code{scale}}{length-one numeric vector indicating how the low-level data
+should be scaled prior to saving on disk}
 
 \item{\code{select}}{numeric vector indicating which columns to read}
 

@@ -170,11 +170,13 @@ setClass("HMMList", contains="list")
 #' require some experimentation as the example illustrates.  The
 #' function \code{\link{fread}} in the \code{data.table} package
 #' greatly simplifies this process.
-#' @slot index_genome
+#' 
+#' @slot index_genome an integer vector
 #' @slot cnvar the column label for the log R ratios
 #' @slot bafvar the column label for the B allele frequencies
 #' @slot gtvar the column label(s) for the genotypes
-#' @slot scale length-one numeric vector indicating how the low-level data should be scaled prior to saving on disk
+#' @slot scale length-one numeric vector indicating how the low-level data
+#'   should be scaled prior to saving on disk
 #' @slot select numeric vector indicating which columns to read
 #' @slot row.names length-one numeric vector indicating which column
 #' the SNP names are in
@@ -188,8 +190,6 @@ setClass("CopyNumScanParams", representation(index_genome="integer",
                                              scale="numeric",
                                              select="integer",
                                              row.names="integer"))
-
-##setClassUnion("characterOrNULL", c("character", "NULL"))
 
 #' ArrayViews class, constructor, and methods
 #'
