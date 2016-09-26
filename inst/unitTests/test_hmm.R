@@ -66,13 +66,8 @@ test_hmm_cnset <- function(){
   ##brList <- BafLrrSetList(cnSetExample)
   se <- as(cnSetExample, "SnpArrayExperiment")
   se <- sort(se)
-  ##trace(hmmBafLrrSetList2, browser)
-  ##res <- hmm(brList, p.hom=0, TAUP=1e10)
   param <- EmissionParam(temper=1/2, p_outlier=1/100)
   res <- hmm2(se[, 1], param)
-  ##g <- unlist(res)
-  ##res <- res[[1]]
-  ##rd <- res[state(res)!=3 & numberProbes(res) >= 5, ]
   g <- cnvFilter(res, FilterParam(state=c("1", "2", "5", "6"), numberFeatures = 5))
   g <- reduce(g, min.gapwidth=500e3)
   query <- GRanges("chr8", IRanges(3.7e6,3.8e6))
@@ -116,38 +111,38 @@ test_hmm_cnset <- function(){
 
 
 
-test_oligoSnpSetGT <- function(){
-  library(VanillaICE);library(RUnit)
-  library(oligoClasses)
-  library(Biobase)
-  data(oligoSetExample, package="oligoClasses")
-  oligoSet <- oligoSet[chromosome(oligoSet) == 1, ]
-  hmmResults <- hmm(oligoSet, p.hom=0, TAUP=1e10, is.log=FALSE)
-  if(FALSE){
-    library(IRanges)
-    library(Biobase)
-    rect2 <- function(object){
-      object <- object[order(width(object), decreasing=TRUE), ]
-      rect(xleft=start(object)/1e6,
-           xright=end(object)/1e6,
-           ybottom=rep(-1,length(object)),
-           ytop=rep(-0.8,length(object)),
-           col=c("grey0","grey30", "white", "lightblue", "blue", "blue")[state(object)],
-           border=c("grey0","grey30", "white", "lightblue", "blue")[state(object)])
-    }
-    franges <- makeFeatureGRanges(oligoSet)
-    olaps <- lapply(hmmResults, findOverlaps, subject=franges)
-    par(las=1)
-    plot(position(oligoSet)/1e6, copyNumber(oligoSet)/100, pch=21, cex=0.6,
-         col=c("lightblue", "red", "lightblue")[calls(oligoSet)],
-         bg=c("lightblue", "red", "lightblue")[calls(oligoSet)],
-         xlab="position (Mb)", ylab="log2 copy number")
-    rect2(hmmResults[[1]])
-  }
-  hmmResults <- hmmResults[[1]]
-  index <- subjectHits(findOverlaps(GRanges("chr1", IRanges(70.1e6, 73e6)), hmmResults))
-  checkTrue(state(hmmResults)[index] >= 5)
-}
+## test_oligoSnpSetGT <- function(){
+##   library(VanillaICE);library(RUnit)
+##   library(oligoClasses)
+##   library(Biobase)
+##   data(oligoSetExample, package="oligoClasses")
+##   oligoSet <- oligoSet[chromosome(oligoSet) == 1, ]
+##   hmmResults <- hmm(oligoSet, p.hom=0, TAUP=1e10, is.log=FALSE)
+##   if(FALSE){
+##     library(IRanges)
+##     library(Biobase)
+##     rect2 <- function(object){
+##       object <- object[order(width(object), decreasing=TRUE), ]
+##       rect(xleft=start(object)/1e6,
+##            xright=end(object)/1e6,
+##            ybottom=rep(-1,length(object)),
+##            ytop=rep(-0.8,length(object)),
+##            col=c("grey0","grey30", "white", "lightblue", "blue", "blue")[state(object)],
+##            border=c("grey0","grey30", "white", "lightblue", "blue")[state(object)])
+##     }
+##     franges <- makeFeatureGRanges(oligoSet)
+##     olaps <- lapply(hmmResults, findOverlaps, subject=franges)
+##     par(las=1)
+##     plot(position(oligoSet)/1e6, copyNumber(oligoSet)/100, pch=21, cex=0.6,
+##          col=c("lightblue", "red", "lightblue")[calls(oligoSet)],
+##          bg=c("lightblue", "red", "lightblue")[calls(oligoSet)],
+##          xlab="position (Mb)", ylab="log2 copy number")
+##     rect2(hmmResults[[1]])
+##   }
+##   hmmResults <- hmmResults[[1]]
+##   index <- subjectHits(findOverlaps(GRanges("chr1", IRanges(70.1e6, 73e6)), hmmResults))
+##   checkTrue(state(hmmResults)[index] >= 5)
+## }
 
 test_state4 <- function(){
   library(VanillaICE)

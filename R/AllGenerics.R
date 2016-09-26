@@ -362,12 +362,6 @@ setGeneric("SnpGRanges", function(object=GRanges(),
            standardGeneric("SnpGRanges"))
 
 
-#' @param x a BeadStudioSte
-#' @rdname BeadStudioSet 
-#' @export
-setGeneric("BeadStudioSetList", function(x, ...)
-           standardGeneric("BeadStudioSetList"))
-
 #' Remove SNPs with NAs in any of the low-level estimates
 #'
 #' @return An object of the same class

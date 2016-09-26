@@ -38,7 +38,6 @@ Collate:
     'AllClasses.R'
     'AllGenerics.R'
     'datasets.R'
-    'defunct.R'
     'functions.R'
     'help.R'
     'hmm-methods.R'
