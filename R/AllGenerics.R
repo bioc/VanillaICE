@@ -699,7 +699,7 @@ setGeneric("copyNumber")
 #' if(require("BSgenome.Hsapiens.UCSC.hg18")){
 #'   bsgenome <- BSgenome.Hsapiens.UCSC.hg18
 #'   snp_exp <- getExampleSnpExperiment(bsgenome)
-#'   seqlevels(snp_exp, force=TRUE) <- "chr22"
+#'   seqlevels(snp_exp, pruning.mode="coarse") <- "chr22"
 #'   fit <- hmm2(snp_exp)
 #'   g <- reduce(hemizygous(fit), min.gapwidth=500e3)
 #'   trellis_param <- HmmTrellisParam()

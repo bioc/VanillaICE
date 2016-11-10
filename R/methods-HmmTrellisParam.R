@@ -71,7 +71,7 @@ xygrid <- function(trellis_plot, viewports, granges){
   }
   grid.text(label, y=unit(0, "npc"), x=unit(0, "npc"),
             just=c("left", "bottom"), gp=gpar(cex=0.7))
-  seqlevels(granges, force=TRUE) <- chromosome(granges)
+  seqlevels(granges, pruning.mode="coarse") <- chromosome(granges)
   xlim <- .find_xlim_percent(granges, 0.05)
   iparams <- IdiogramParams(seqnames=chromosome(granges),
                             genome=genome(granges)[[1]],

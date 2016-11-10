@@ -120,18 +120,13 @@ setMethod("seqinfo", "ArrayViews", function(x){
   seqinfo(rowRanges(x))
 })
 
-setMethod("seqlengths", "ArrayViews", function(x){
-  seqinfo(rowRanges(x))
-})
-
-setMethod("seqlevels", "ArrayViews", function(x){
-  seqlevels(rowRanges(x))
-})
-
-setReplaceMethod("seqlevels", "ArrayViews", function(x, force=FALSE, value){
+setReplaceMethod("seqlevels", "ArrayViews",
+  function(x, force=FALSE,
+           pruning.mode=c("error", "coarse", "fine", "tidy"),
+           value){
   i <- setNames(x@index, names(rowRanges(x)))
   rd <- rowRanges(x)
-  seqlevels(rd, force=force) <- value
+  seqlevels(rd, force=force, pruning.mode=pruning.mode) <- value
   rowRanges(x) <- rd
   x@index <- i[names(rd)]
   x

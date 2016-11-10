@@ -1,5 +1,5 @@
 Package: VanillaICE
-Version: 1.37.0
+Version: 1.37.1
 Title: A Hidden Markov Model for high throughput genotyping arrays
 Author: Robert Scharpf <rscharpf@jhu.edu>, Kevin Scharpf, and Ingo Ruczinski
     <ingo@jhsph.edu>
@@ -10,8 +10,8 @@ Date: Sat Sep 27 11:46:03 EDT 2014
 Depends:
     R (>= 3.0.0),
     BiocGenerics (>= 0.13.6),
-    GenomicRanges (>= 1.19.47),
-    SummarizedExperiment (>= 0.2.0)
+    GenomicRanges (>= 1.27.6),
+    SummarizedExperiment (>= 1.5.3)
 Imports:
     Biobase,
     S4Vectors (>= 0.9.25),
@@ -23,7 +23,7 @@ Imports:
     grid,
     lattice,
     methods,
-    GenomeInfoDb,
+    GenomeInfoDb (>= 1.11.4),
     crlmm,
     tools,
     stats,
