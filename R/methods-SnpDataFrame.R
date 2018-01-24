@@ -1,19 +1,3 @@
-setMethod("initialize", "SnpDataFrame",
-          function(.Object){
-            .Object <- callNextMethod()
-            if(!"isSnp" %in% colnames(.Object))
-              .Object$isSnp <- vector("logical", nrow(.Object))
-            .Object
-          })
-
-setMethod("initialize", "SnpGRanges",
-          function(.Object, isSnp=vector("logical", length(.Object))){
-            .Object <- callNextMethod(.Object)
-            if(!"isSnp" %in% colnames(mcols(.Object)))
-              mcols(.Object)$isSnp <- isSnp
-            .Object
-          })
-
 setMethod(SnpDataFrame, "missing",
           function(x, row.names=NULL, check.names=TRUE, isSnp=logical(nrow(x))){
             new("SnpDataFrame")
