@@ -30,9 +30,10 @@ updateHmmParams <- function(object, emission_param=EmissionParam(), transition_p
                  transition_param,
                  ...){
   object <- NA_filter(object)
-  hmm_param <- updateHmmParams(object, emission_param=emission_param, transition_param=transition_param, ...)
+  hmm_param <- updateHmmParams(object, emission_param=emission_param,
+                               transition_param=transition_param, ...)
   fit <- viterbi(hmm_param)
-  hgr <- HmmGRanges(state(fit),
+  hgr <- HmmGRanges(states=state(fit),
                     feature_starts=start(object),
                     feature_chrom=chromosome(object),
                     loglik=loglikLast(loglik(hmm_param)),
@@ -184,10 +185,12 @@ setMethod(hmm2, "SnpArrayExperiment",
                    emission_param=EmissionParam(),
                    transition_param=TransitionParam(),
                    ...){
-            ##transition_prob <- calculateTransitionProbability(object, transition_param)
+            ##transition_prob <- calculateTransitionProbability(object,
+            ## transition_param)
             J <- ncol(object)
             j <- NULL
-            results <- foreach(j= seq_len(ncol(object)), .packages="VanillaICE") %dopar% {
+            results <- foreach(j= seq_len(ncol(object)),
+                               .packages="VanillaICE") %dopar% {
               hgr <- .hmm(object[, j],
                           emission_param=emission_param,
                           transition_param=transition_param,  ...)

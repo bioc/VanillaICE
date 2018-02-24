@@ -28,7 +28,9 @@ setReplaceMethod("emissionParam", c("HmmGRanges", "EmissionParam"), function(obj
 
 # @aliases HmmGRanges,integer-method
 # @rdname HmmGRanges-class
-setMethod("HmmGRanges", "integer", function(states, feature_starts, feature_chrom, loglik, emission_param=EmissionParam()){
+setMethod("HmmGRanges", "integer", function(states, feature_starts,
+                                            feature_chrom, loglik,
+                                            emission_param=EmissionParam()){
   ## we can't split by states because the same state could span multiple chromosomes
   segfactor <- paste(feature_chrom, states, sep=";")
   segfactor <- Rle(segfactor)
@@ -44,7 +46,7 @@ setMethod("HmmGRanges", "integer", function(states, feature_starts, feature_chro
   hgr <- as(gr, "HmmGRanges")
   emissionParam(hgr) <- emission_param
   states <- sapply(split(states, segfactor), unique)
-  hgr$state <- states
+  mcols(hgr)$state <- states
   metadata(hgr) <- list(loglik=loglik)
   names(hgr) <- NULL
   hgr

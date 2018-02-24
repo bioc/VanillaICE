@@ -4,3 +4,4 @@
 vignettes/*-fig*.pdf
 changelog
 /.Rhistory
+/vignettes/VanillaICE.tex
