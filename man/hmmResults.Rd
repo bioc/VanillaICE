@@ -9,4 +9,3 @@
 The results of a 6-state HMM fit to simulated copy number and genotype data.
 }
 \keyword{datasets}
-

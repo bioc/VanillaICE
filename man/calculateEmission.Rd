@@ -29,4 +29,3 @@ use by other BioC packages.
 \seealso{
 baumWelchUpdate
 }
-

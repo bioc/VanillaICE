@@ -67,4 +67,3 @@ g <- head(genotypes(views))
 \seealso{
 \code{\link{ArrayViews}} \code{\link{ArrayViews}} \code{\link{CopyNumScanParams}}
 }
-

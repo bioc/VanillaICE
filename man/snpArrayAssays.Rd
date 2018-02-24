@@ -23,4 +23,3 @@ r <- lrr(snp_exp)
 b <- baf(snp_exp)
 sl <- snpArrayAssays(cn=r, baf=b)
 }
-

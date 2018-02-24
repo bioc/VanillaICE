@@ -12,4 +12,3 @@ probability(object)
 \description{
 Accessor for probability filter
 }
-

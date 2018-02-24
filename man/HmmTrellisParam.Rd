@@ -18,4 +18,3 @@ the \code{GRanges} object}
 \description{
 Constructor for HmmTrellisParam class
 }
-

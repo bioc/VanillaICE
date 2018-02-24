@@ -31,6 +31,7 @@ Baum-Welch, and a \code{FilterParam} object.
 \describe{
 \item{\code{.Data}}{a list. Each element of the list should be a \code{HMM} object.}
 }}
+
 \examples{
 data(snp_exp)
 fit <- hmm2(snp_exp)
@@ -41,4 +42,3 @@ unlist(fit)
 \seealso{
 \code{\linkS4class{HMM}}
 }
-

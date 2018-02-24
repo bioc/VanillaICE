@@ -4,6 +4,7 @@
 \name{sweepMode}
 \alias{sweepMode}
 \alias{sweepMode,SnpArrayExperiment-method}
+\alias{sweepMode}
 \title{Sweep the modal log R ratio (by row or column) from a matrix of log
 R ratios}
 \usage{
@@ -42,4 +43,3 @@ x <- lrr(snp_exp)
 x_rowcentered <- sweep(x, 1, rowModes(x))
 all.equal(lrr(snp_exp_rowcentered), x_rowcentered)
 }
-

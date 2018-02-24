@@ -20,4 +20,3 @@ A single-argument generic function to construct a SnpArrayExperiment.
 view <- ArrayViews()
 SnpExperiment(view)
 }
-

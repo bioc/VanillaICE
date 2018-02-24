@@ -17,4 +17,3 @@ rescale(x, l, u)
 Rescale a numeric vector
 }
 \keyword{manip}
-

@@ -16,4 +16,3 @@ and is exported only for internal use by other BioC packages.
 \seealso{
 \code{\link{HmmParam}}
 }
-

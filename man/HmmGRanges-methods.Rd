@@ -13,4 +13,3 @@
 \description{
 Extract the copy number state for each genomic interval.
 }
-

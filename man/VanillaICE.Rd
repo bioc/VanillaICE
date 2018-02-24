@@ -8,4 +8,3 @@
 \description{
 A hidden markov model for detection of germline copy number variants from arrays
 }
-

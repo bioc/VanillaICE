@@ -35,4 +35,3 @@ IdiogramParam object
 \description{
 Parameters for plotting idiograms
 }
-

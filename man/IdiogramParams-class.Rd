@@ -27,6 +27,7 @@ Paramater class for plotting idiograms
 
 \item{\code{box}}{a list of parameters for plotting the box around the part of the idiogram that is plotted.}
 }}
+
 \examples{
 if(require(BSgenome.Hsapiens.UCSC.hg18) && require(grid)){
    si <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)
@@ -44,4 +45,3 @@ if(require(BSgenome.Hsapiens.UCSC.hg18) && require(grid)){
 }
 
 }
-

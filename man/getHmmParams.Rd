@@ -2,8 +2,8 @@
 % Please edit documentation in R/AllGenerics.R
 \name{getHmmParams}
 \alias{getHmmParams}
-\alias{getHmmParams,HMM-method}
 \alias{getHmmParams,HmmParam-method}
+\alias{getHmmParams,HMM-method}
 \title{Accessor for HMM model parameters}
 \usage{
 getHmmParams(object)
@@ -18,4 +18,3 @@ Accessor for HMM model parameters
 hmm_object <- HMM()
 getHmmParams(hmm_object)
 }
-

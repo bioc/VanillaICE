@@ -13,4 +13,3 @@
 \description{
 Retrieve genomic location of SNPs
 }
-

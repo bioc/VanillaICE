@@ -13,4 +13,3 @@
 \description{
 Show method for objects of class \code{Viterbi}
 }
-

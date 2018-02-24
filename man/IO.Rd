@@ -2,14 +2,16 @@
 % Please edit documentation in R/AllGenerics.R, R/methods-ArrayViews.R
 \docType{methods}
 \name{lrrFile}
+\alias{lrrFile}
+\alias{lrrFile<-}
 \alias{bafFile}
 \alias{bafFile,ArrayViews-method}
 \alias{gtFile}
 \alias{gtFile,ArrayViews-method}
-\alias{lrrFile}
 \alias{lrrFile,ArrayViews-method}
-\alias{lrrFile<-}
 \alias{lrrFile<-,ArrayViews-method}
+\alias{bafFile,ArrayViews-method}
+\alias{gtFile,ArrayViews-method}
 \title{Accessors for objects of class ArrayViews}
 \usage{
 lrrFile(object)
@@ -43,4 +45,3 @@ lrrFile(views)
 bafFile(views)
 gtFile(views)
 }
-

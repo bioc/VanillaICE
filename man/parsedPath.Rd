@@ -22,4 +22,3 @@ files.
 
 \code{\linkS4class{ArrayViews}}
 }
-

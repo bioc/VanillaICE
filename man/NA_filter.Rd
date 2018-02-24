@@ -22,4 +22,3 @@ An object of the same class
 \description{
 Remove SNPs with NAs in any of the low-level estimates
 }
-

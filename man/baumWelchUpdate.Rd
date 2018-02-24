@@ -16,4 +16,3 @@ This function is not meant to be called directly by the user.  It
 is exported in the package NAMESPACE for internal use by other BioC
 packages.
 }
-

@@ -2,10 +2,10 @@
 % Please edit documentation in R/AllClasses.R, R/methods-HMM.R
 \docType{class}
 \name{HMM-class}
-\alias{HMM}
 \alias{HMM-class}
-\alias{show,HMM-method}
+\alias{HMM}
 \alias{state,HMM-method}
+\alias{show,HMM-method}
 \title{Container for the segmented data and the 6-state HMM model parameters}
 \usage{
 HMM(granges = GRanges(), param = HmmParam(), posterior = matrix(),
@@ -43,6 +43,7 @@ The contructor \code{HMM} creates and object of class
 
 \item{\code{filters}}{a \code{FilterParam} object}
 }}
+
 \examples{
 data(snp_exp)
 hmm_list <- hmm2(snp_exp[,1])
@@ -53,4 +54,3 @@ HMM()
 \seealso{
 \code{\link{hmm2}}
 }
-

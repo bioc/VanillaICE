@@ -16,4 +16,3 @@ a \code{GRanges}-derived object
 \description{
 Accessor to obtain all segments from the HMM.
 }
-

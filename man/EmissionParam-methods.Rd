@@ -2,32 +2,32 @@
 % Please edit documentation in R/AllGenerics.R, R/methods-EmissionParam.R
 \docType{methods}
 \name{cn_means}
-\alias{EMupdates}
-\alias{EMupdates,EmissionParam-method}
-\alias{EMupdates,HmmParam-method}
-\alias{EmissionParam}
-\alias{EmissionParam,missing-method}
-\alias{EmissionParam,numeric-method}
-\alias{baf_means}
-\alias{baf_means,EmissionParam-method}
-\alias{baf_means,HmmParam-method}
-\alias{baf_means<-}
-\alias{baf_means<-,EmissionParam,numeric-method}
-\alias{baf_sds}
-\alias{baf_sds,EmissionParam-method}
-\alias{baf_sds,HmmParam-method}
-\alias{baf_sds<-}
-\alias{baf_sds<-,EmissionParam,numeric-method}
 \alias{cn_means}
 \alias{cn_means,EmissionParam-method}
 \alias{cn_means,HmmParam-method}
-\alias{cn_means<-}
 \alias{cn_means<-,EmissionParam,numeric-method}
 \alias{cn_sds}
 \alias{cn_sds,EmissionParam-method}
 \alias{cn_sds,HmmParam-method}
-\alias{cn_sds<-}
 \alias{cn_sds<-,EmissionParam,numeric-method}
+\alias{baf_means}
+\alias{baf_means,EmissionParam-method}
+\alias{baf_means,HmmParam-method}
+\alias{baf_sds}
+\alias{baf_sds,EmissionParam-method}
+\alias{baf_sds,HmmParam-method}
+\alias{baf_means<-}
+\alias{baf_means<-,EmissionParam,numeric-method}
+\alias{baf_sds<-}
+\alias{baf_sds<-,EmissionParam,numeric-method}
+\alias{cn_sds<-}
+\alias{cn_means<-}
+\alias{EmissionParam}
+\alias{EmissionParam,missing-method}
+\alias{EmissionParam,numeric-method}
+\alias{EMupdates}
+\alias{EMupdates,EmissionParam-method}
+\alias{EMupdates,HmmParam-method}
 \alias{show,EmissionParam-method}
 \title{A parameter class for computing Emission probabilities}
 \usage{
@@ -154,6 +154,7 @@ probabilities at a SNP are given simply by the \code{p} vector
 described above and copy-neutral regions of homozygosity will be
 called.#'
 }
+
 \examples{
 ep <- EmissionParam()
 cn_means(ep)
@@ -178,4 +179,3 @@ cn_sds(ep)
 baf_means(ep)
 baf_sds(ep)
 }
-

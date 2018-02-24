@@ -15,4 +15,3 @@ an object of the same class as the input
 \description{
 Removes markers on chromosomes X and Y.
 }
-

@@ -3,3 +3,4 @@
 /src/viterbi.o
 vignettes/*-fig*.pdf
 changelog
+/.Rhistory

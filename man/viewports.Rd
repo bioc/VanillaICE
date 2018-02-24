@@ -18,4 +18,3 @@ vps <- viewports()
 \seealso{
 \code{\link{xyplotList}} \code{\link{xygrid}}
 }
-

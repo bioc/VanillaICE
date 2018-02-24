@@ -26,4 +26,3 @@ g[length(g)] <- g[1]
  rowRanges(snp_exp) <- g
  snp_exp2 <- dropDuplicatedMapLocs(snp_exp)
 }
-

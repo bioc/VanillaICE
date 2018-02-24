@@ -25,4 +25,3 @@ marker-level genomic data that are provided in this package
    }
 }
 }
-

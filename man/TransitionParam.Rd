@@ -37,4 +37,3 @@ TransitionParam()
 ## higher values of taup make transitions between states less likely
 TransitionParam(taup=1e12)
 }
-

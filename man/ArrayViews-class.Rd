@@ -2,24 +2,24 @@
 % Please edit documentation in R/AllClasses.R, R/methods-ArrayViews.R
 \docType{class}
 \name{ArrayViews-class}
-\alias{"[",ArrayViews,ANY-method}
-\alias{$,ArrayViews-method}
-\alias{$<-,ArrayViews-method}
-\alias{'[',ArrayViews,ANY-method}
-\alias{ArrayViews}
-\alias{ArrayViews,numeric,numeric-method}
 \alias{ArrayViews-class}
-\alias{[,ArrayViews,ANY,ANY,ANY-method}
+\alias{'[',ArrayViews,ANY-method}
 \alias{baf_means,ArrayViews-method}
-\alias{colnames}
-\alias{colnames,ArrayViews-method}
+\alias{ArrayViews}
+\alias{[,ArrayViews,ANY,ANY,ANY-method}
+\alias{ArrayViews,numeric,numeric-method}
+\alias{"[",ArrayViews,ANY-method}
 \alias{colnames<-}
 \alias{colnames<-,ArrayViews,character-method}
-\alias{dim,ArrayViews-method}
+\alias{colnames,ArrayViews-method}
+\alias{colnames}
+\alias{$,ArrayViews-method}
+\alias{$<-,ArrayViews-method}
+\alias{show,ArrayViews-method}
+\alias{sapply,ArrayViews-method}
 \alias{ncol,ArrayViews-method}
 \alias{nrow,ArrayViews-method}
-\alias{sapply,ArrayViews-method}
-\alias{show,ArrayViews-method}
+\alias{dim,ArrayViews-method}
 \alias{start,ArrayViews-method}
 \title{ArrayViews class, constructor, and methods}
 \usage{
@@ -131,6 +131,7 @@ parsed files should be saved}
 
 \item{\code{gtFiles}}{character vector of filenames for genotypes}
 }}
+
 \examples{
 ArrayViews()
 ## From unit test
@@ -158,4 +159,3 @@ ArrayViews()
 \seealso{
 \code{\link{CopyNumScanParams}} \code{\link{parseSourceFile}}
 }
-

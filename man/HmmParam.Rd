@@ -3,11 +3,11 @@
 \docType{methods}
 \name{HmmParam}
 \alias{HmmParam}
-\alias{HmmParam,matrix-method}
 \alias{HmmParam,missing-method}
-\alias{ncol,HmmParam-method}
-\alias{nrow,HmmParam-method}
+\alias{HmmParam,matrix-method}
 \alias{show,HmmParam-method}
+\alias{nrow,HmmParam-method}
+\alias{ncol,HmmParam-method}
 \title{Constructor for HmmParam class}
 \usage{
 HmmParam(emission = matrix(0, 0, 0), emission_param = EmissionParam(),
@@ -54,4 +54,3 @@ the most likely state path via the Viterbi algorithm
 \examples{
 HmmParam()
 }
-

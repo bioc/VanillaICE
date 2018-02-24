@@ -8,4 +8,3 @@
 \description{
 Exported for internal use by other BioC packages
 }
-

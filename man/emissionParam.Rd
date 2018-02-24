@@ -2,12 +2,12 @@
 % Please edit documentation in R/AllGenerics.R
 \name{emissionParam}
 \alias{emissionParam}
-\alias{emissionParam,HMM-method}
 \alias{emissionParam,HmmGRanges-method}
 \alias{emissionParam,HmmParam-method}
-\alias{emissionParam<-}
 \alias{emissionParam<-,HmmGRanges,EmissionParam-method}
 \alias{emissionParam<-,HmmParam,EmissionParam-method}
+\alias{emissionParam,HMM-method}
+\alias{emissionParam<-}
 \title{Accessor for parameters used to compute emission probabilities}
 \usage{
 emissionParam(object)
@@ -34,4 +34,3 @@ ep <- EmissionParam()
 cn_means(ep) <- log2(c(.1/2, 1/2, 2/2, 2/2, 3/2, 4/2))
 emissionParam(hparam) <- ep
 }
-

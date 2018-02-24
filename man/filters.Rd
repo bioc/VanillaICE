@@ -2,8 +2,8 @@
 % Please edit documentation in R/AllGenerics.R
 \name{filters}
 \alias{filters}
-\alias{filters,HMM-method}
 \alias{filters,HmmParam-method}
+\alias{filters,HMM-method}
 \title{Accessor for HMM filter parameters}
 \usage{
 filters(object)
@@ -14,4 +14,3 @@ filters(object)
 \description{
 Accessor for HMM filter parameters
 }
-

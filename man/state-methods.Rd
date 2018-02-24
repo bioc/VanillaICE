@@ -2,8 +2,8 @@
 % Please edit documentation in R/methods-Viterbi.R
 \docType{methods}
 \name{state-methods}
-\alias{state,Viterbi-method}
 \alias{state-methods}
+\alias{state,Viterbi-method}
 \title{Accessor for the Viterbi state path}
 \usage{
 \S4method{state}{Viterbi}(object)
@@ -16,4 +16,3 @@ The states are represented as integers: 1=homozygous deletion,
 2=hemizygous deletion, 3=diploid normal heterozygosity, 4=diploid
 region of homozygosity, 5=single copy gain, 6=two or more copy gain.
 }
-

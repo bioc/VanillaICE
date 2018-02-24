@@ -18,4 +18,3 @@ objects.
 \seealso{
 \code{\linkS4class{HMMList}} \code{\linkS4class{HMM}} \code{\link{hmm2}}
 }
-

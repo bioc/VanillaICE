@@ -26,7 +26,7 @@ Exported for internal use by other BioC packages
 
 \item{\code{tolerance}}{a numeric vector}
 }}
+
 \seealso{
 \code{\link{LogLik}}
 }
-

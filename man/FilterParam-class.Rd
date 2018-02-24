@@ -2,11 +2,11 @@
 % Please edit documentation in R/AllClasses.R, R/methods-FilterParam.R
 \docType{class}
 \name{FilterParam-class}
-\alias{FilterParam}
 \alias{FilterParam-class}
+\alias{FilterParam}
 \alias{probability,FilterParam-method}
-\alias{show,FilterParam-method}
 \alias{state,FilterParam-method}
+\alias{show,FilterParam-method}
 \title{Container for the common criteria used to  filtering genomic ranges}
 \usage{
 FilterParam(probability = 0.99, numberFeatures = 10,
@@ -60,6 +60,7 @@ genomic intervals}
 
 \item{\code{state}}{character string indicating which hidden Markov model states to select}
 }}
+
 \examples{
 fp <- FilterParam()
 width(fp)
@@ -75,4 +76,3 @@ FilterParam(probability=0.95, numberFeatures=10, state=c("1", "2"))
 \seealso{
 \code{\link{cnvFilter}} \code{\link{cnvSegs}} \code{\link{hmm2}}
 }
-

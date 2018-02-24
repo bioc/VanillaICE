@@ -4,8 +4,8 @@
 \alias{emission}
 \alias{emission,HmmParam-method}
 \alias{emission<-}
-\alias{emission<-,HMM-method}
 \alias{emission<-,HmmParam-method}
+\alias{emission<-,HMM-method}
 \title{Methods to set and get emission probabilities}
 \usage{
 emission(object)
@@ -24,4 +24,3 @@ matrix
 Get or set a matrix of emission probabilities. This function is
 exported primarily for internal use by other BioC packages.
 }
-

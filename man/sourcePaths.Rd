@@ -18,4 +18,3 @@ required.
 \examples{
 sourcePaths(ArrayViews())
 }
-

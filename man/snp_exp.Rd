@@ -11,4 +11,3 @@ estimation, including log R ratios, B allele frequencies, and
 genotypes
 }
 \keyword{datasets}
-

@@ -21,4 +21,3 @@ are performed.
 \seealso{
 \linkS4class{LogLik}
 }
-

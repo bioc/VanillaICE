@@ -25,4 +25,3 @@ range(y)
 \seealso{
 \code{\link{jitter}}
 }
-

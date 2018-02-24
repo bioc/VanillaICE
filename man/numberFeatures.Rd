@@ -15,4 +15,3 @@ numberFeatures(object)
 \description{
 The number of SNP/nonpolymorphic probes contained in a genomic interval
 }
-

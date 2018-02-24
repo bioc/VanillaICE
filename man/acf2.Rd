@@ -20,4 +20,3 @@ the specified lag.  Missing values are removed.
 \seealso{
 \code{\link{acf}}
 }
-

@@ -2,8 +2,8 @@
 % Please edit documentation in R/AllClasses.R, R/methods-CopyNumScanParams.R
 \docType{class}
 \name{CopyNumScanParams-class}
-\alias{CopyNumScanParams}
 \alias{CopyNumScanParams-class}
+\alias{CopyNumScanParams}
 \alias{show,CopyNumScanParams-method}
 \title{Parameters for parsing source files containing SNP-array processed
 data, such as GenomeStudio files for the Illumina platform}
@@ -66,10 +66,10 @@ should be scaled prior to saving on disk}
 \item{\code{row.names}}{length-one numeric vector indicating which column
 the SNP names are in}
 }}
+
 \examples{
 CopyNumScanParams() ## empty container
 }
 \seealso{
 \code{\linkS4class{ArrayViews}} \code{\link{parseSourceFile}}
 }
-
