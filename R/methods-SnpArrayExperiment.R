@@ -270,7 +270,7 @@ getExampleSnpExperiment <- function(bsgenome){
   seqinfo(fgr) <- seqinfo(bsgenome)[seqlevels(fgr),]
   fgr <- sort(fgr)
   file <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")[5]
-  dat <- fread(file)
+  dat <- fread(file, skip="[Data]")
   select <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB", "Log R Ratio", "B Allele Freq"), names(dat))
   index_genome <- match(names(fgr), dat[["SNP Name"]])
   scan_params <- CopyNumScanParams(index_genome=index_genome, select=select)
