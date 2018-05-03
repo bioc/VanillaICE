@@ -224,7 +224,7 @@ fashion. We use the \Rfunction{fread} to read in the first file.
 
 <<fread>>=
 ## read the first file
-dat <- fread(files[1])
+dat <- fread(files[1], skip="[Data]")
 head(dat,n=3)
 @
 
@@ -253,7 +253,8 @@ in the source file refers to log R ratios ('cnvar'), B allele
 frequences ('bafvar'), and genotypes ('gtvar').
 
 <<scan_params>>=
-scan_params <- CopyNumScanParams(index_genome=index_genome, select=select_columns,
+scan_params <- CopyNumScanParams(index_genome=index_genome,
+                                 select=select_columns,
                                  cnvar="Log R Ratio",
                                  bafvar="B Allele Freq",
                                  gtvar=c("Allele1 - AB", "Allele2 - AB"))
