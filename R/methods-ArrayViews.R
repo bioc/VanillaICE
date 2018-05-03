@@ -254,7 +254,7 @@ setMethod("show", "ArrayViews", function(object){
     system(paste("gunzip", to))
     file <- gsub(".gz", "", to)
   }
-  dat <- fread(file[1], select=selectCols(param), showProgress=FALSE)
+  dat <- fread(file[1], select=selectCols(param), showProgress=FALSE, skip="[Data]")
   dat <- dat[indexGenome(param), ]
   ##nms <- dat[["SNP Name"]]
   nms <- dat[[.snp_id_column(param)]]
@@ -305,7 +305,7 @@ setMethod("show", "ArrayViews", function(object){
 #'   show(views)
 #'
 #' ## read the first file
-#' dat <- fread(files[1])
+#' dat <- fread(files[1], skip="[Data]")
 #' ## information to store on the markers
 #' select <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB",
 #'                   "Log R Ratio", "B Allele Freq"), names(dat))
