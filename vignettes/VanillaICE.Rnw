@@ -224,7 +224,7 @@ fashion. We use the \Rfunction{fread} to read in the first file.
 
 <<fread>>=
 ## read the first file
-dat <- fread(files[1])
+dat <- fread(files[1], skip="[Data]")
 head(dat,n=3)
 @
 
