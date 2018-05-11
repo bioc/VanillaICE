@@ -25,7 +25,7 @@ test_ArrayViews <- function(){
   dat <- fread(files[1], nrows=0)
   keep <- c("SNP Name", "Allele1 - AB", "Allele2 - AB", "Log R Ratio", "B Allele Freq")
   select <- which(names(dat)%in%keep)
-  dat <- fread(files[1], select=select)
+  dat <- fread(files[1], select=select, skip="[Data]")
   index_genome <- match(names(fgr), dat[["SNP Name"]])
 
   scan_params <- CopyNumScanParams(index_genome=index_genome,
@@ -98,7 +98,7 @@ test_columnSubset <- function(){
   dat <- fread(files[1], nrows=0)
   keep <- c("SNP Name", "Allele1 - AB", "Allele2 - AB", "Log R Ratio", "B Allele Freq")
   select <- which(names(dat)%in%keep)
-  dat <- fread(files[1], select=select)
+  dat <- fread(files[1], select=select, skip="[Data]")
   index_genome <- match(names(fgr), dat[["SNP Name"]])
   scan_params <- CopyNumScanParams(index_genome=index_genome,
                                    select=as.integer(select))
