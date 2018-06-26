@@ -76,5 +76,39 @@ test_SnpArrayExperiment <- function(){
   b <- as.matrix(datlist[[2]])
   g <- as.matrix(datlist[[3]])
   colnames(r) <- colnames(b) <- colnames(g) <- "a"
-  validObject(SnpArrayExperiment(cn=r, baf=b, rowRanges=rowRanges(se)))
+  validObject(SnpArrayExperiment(cn=r, baf=b,
+                                 rowRanges=rowRanges(se)))
+}
+
+
+test_SnpArrayExperiment2 <- function(){
+  library(BSgenome.Hsapiens.UCSC.hg18)
+  sl <- seqlevels(BSgenome.Hsapiens.UCSC.hg18)
+  seqlevels(fgr) <- sl[sl %in% seqlevels(fgr)]
+  seqinfo(fgr) <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(fgr),]
+  fgr <- sort(fgr)
+  files <- list.files(extdir, full.names=TRUE,
+                      recursive=TRUE,
+                      pattern="FinalReport")
+  parsedDir <- tempdir()
+  views <- ArrayViews(rowRanges=fgr,
+                      sourcePaths=files,
+                      parsedPath=parsedDir)
+  dat <- fread(files[1], skip="[Data]")
+  select_columns <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB",
+                            "Log R Ratio", "B Allele Freq"), names(dat))
+  index_genome <- match(names(fgr), dat[["SNP Name"]])
+  scan_params <- CopyNumScanParams(index_genome=index_genome,
+                                 select=select_columns,
+                                 cnvar="Log R Ratio",
+                                 bafvar="B Allele Freq",
+                                 gtvar=c("Allele1 - AB", "Allele2 - AB"))
+  parseSourceFile(views, scan_params)
+  views2 <- views[, 4:5]
+  checkTrue(validObject(views2))
+  rr <- rowRanges(views2)
+  obj <- SnpGRanges(rr,
+                    isSnp=rep(TRUE, nrow(view2)))
+  checkTrue(validObject(obj))
+  checkTrue(validObject(SnpExperiment(views2)))
 }

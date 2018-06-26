@@ -1,5 +1,6 @@
 setMethod(SnpDataFrame, "missing",
-          function(x, row.names=NULL, check.names=TRUE, isSnp=logical(nrow(x))){
+          function(x, row.names=NULL, check.names=TRUE,
+                   isSnp=logical(nrow(x))){
             new("SnpDataFrame")
           })
 
@@ -32,7 +33,12 @@ setMethod(SnpGRanges, "GRanges",
               } else object$isSnp <- isSnp
             }
             object@elementMetadata <- SnpDataFrame(mcols(object))
-            as(object, "SnpGRanges")
+            object2 <- as(object, "SnpGRanges")
+            mc <- mcols(object2)
+            rownames(mc) <- NULL
+            mcols(object2) <- mc
+            ##@elementMetadata <- mc
+            object2
           })
 
 #' @export
@@ -59,4 +65,5 @@ setValidity("SnpGRanges", function(object){
   msg <- TRUE
   if(!validObject(mcols(object)))
     return("Missing a column 'isSnp'")
+  msg
 })

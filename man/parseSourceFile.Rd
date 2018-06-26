@@ -38,7 +38,7 @@ as integers (1 file per subject per data type).
   show(views)
 
 ## read the first file
-dat <- fread(files[1])
+dat <- fread(files[1], skip="[Data]")
 ## information to store on the markers
 select <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB",
                   "Log R Ratio", "B Allele Freq"), names(dat))

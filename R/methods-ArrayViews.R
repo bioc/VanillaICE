@@ -438,7 +438,11 @@ setMethod("SnpExperiment", "ArrayViews", function(object){
   r <- as.matrix(lrr(view))
   b <- as.matrix(baf(view))
   g <- as.matrix(genotypes(view))
-  gr <- SnpGRanges(rowRanges(view), isSnp=rep(TRUE, nrow(view)))
+  if(is(rowRanges(view), "SnpGRanges")){
+    gr <- rowRanges(view)
+  } else {
+    gr <- SnpGRanges(rowRanges(view), isSnp=rep(TRUE, nrow(view)))
+  }
   SnpArrayExperiment(cn=r, baf=b, rowRanges=gr, colData=colData(view))
 })
 
