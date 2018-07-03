@@ -84,6 +84,14 @@ test_SnpArrayExperiment <- function(){
 test_SnpArrayExperiment2 <- function(){
   library(BSgenome.Hsapiens.UCSC.hg18)
   sl <- seqlevels(BSgenome.Hsapiens.UCSC.hg18)
+  require(data.table)
+  extdir <- system.file("extdata", package="VanillaICE", mustWork=TRUE)
+  features <- suppressWarnings(fread(file.path(extdir, "SNP_info.csv")))
+  fgr <- GRanges(paste0("chr", features$Chr),
+                 IRanges(features$Position, width=1),
+                 isSnp=features[["Intensity Only"]]==0)
+  fgr <- SnpGRanges(fgr)
+  names(fgr) <- features[["Name"]]
   seqlevels(fgr) <- sl[sl %in% seqlevels(fgr)]
   seqinfo(fgr) <- seqinfo(BSgenome.Hsapiens.UCSC.hg18)[seqlevels(fgr),]
   fgr <- sort(fgr)
