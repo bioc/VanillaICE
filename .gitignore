@@ -5,3 +5,9 @@ vignettes/*-fig*.pdf
 changelog
 /.Rhistory
 /vignettes/VanillaICE.tex
+/vignettes/.Rhistory
+/vignettes/VanillaICE.aux
+/vignettes/VanillaICE.bbl
+/vignettes/VanillaICE.blg
+/vignettes/VanillaICE.log
+/vignettes/VanillaICE.pdf
