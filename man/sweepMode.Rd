@@ -4,7 +4,6 @@
 \name{sweepMode}
 \alias{sweepMode}
 \alias{sweepMode,SnpArrayExperiment-method}
-\alias{sweepMode}
 \title{Sweep the modal log R ratio (by row or column) from a matrix of log
 R ratios}
 \usage{

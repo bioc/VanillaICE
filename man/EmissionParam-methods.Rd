@@ -48,9 +48,9 @@ cn_sds(object) <- value
 cn_means(object) <- value
 
 EmissionParam(cn_means = CN_MEANS(), cn_sds = CN_SDS(),
-  baf_means = BAF_MEANS(), baf_sds = BAF_SDS(), initial = rep(1/6, 6),
-  EMupdates = 5L, CN_range = c(-5, 3), temper = 1, p_outlier = 1/100,
-  modelHomozygousRegions = FALSE)
+  baf_means = BAF_MEANS(), baf_sds = BAF_SDS(), initial = rep(1/6,
+  6), EMupdates = 5L, CN_range = c(-5, 3), temper = 1,
+  p_outlier = 1/100, modelHomozygousRegions = FALSE)
 
 EMupdates(object)
 
@@ -93,8 +93,6 @@ Parameters for computing emission probabilities for a 6-state HMM,
 including starting values for the mean and standard deviations for
 log R ratios (assumed to be Gaussian) and B allele frequencies
 (truncated Gaussian), and initial state probabilities.
-
-Constructor for EmissionParam class
 
 This function is exported primarily for internal use by other BioC
 packages.
@@ -179,3 +177,4 @@ cn_sds(ep)
 baf_means(ep)
 baf_sds(ep)
 }
+\concept{EmissionParam-methods}

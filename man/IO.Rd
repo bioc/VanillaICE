@@ -10,8 +10,6 @@
 \alias{gtFile,ArrayViews-method}
 \alias{lrrFile,ArrayViews-method}
 \alias{lrrFile<-,ArrayViews-method}
-\alias{bafFile,ArrayViews-method}
-\alias{gtFile,ArrayViews-method}
 \title{Accessors for objects of class ArrayViews}
 \usage{
 lrrFile(object)

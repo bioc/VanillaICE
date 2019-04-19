@@ -27,8 +27,6 @@ HMM(granges = GRanges(), param = HmmParam(), posterior = matrix(),
 \item{object}{a \code{HMM} object}
 }
 \description{
-Container for the segmented data and the 6-state HMM model parameters
-
 The contructor \code{HMM} creates and object of class
 \code{HMM}. Not typically called directly by the user.
 }

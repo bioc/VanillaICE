@@ -10,14 +10,15 @@
 \title{A RangedSummarizedExperiment-derived class of marker-level SNP array data
 for copy number inference}
 \usage{
-SnpArrayExperiment(cn, baf, rowRanges = GRanges(), colData = DataFrame(),
-  isSnp = logical(), ...)
+SnpArrayExperiment(cn, baf, rowRanges = GRanges(),
+  colData = DataFrame(), isSnp = logical(), ...)
 
 \S4method{SnpArrayExperiment}{missing}(cn, baf, rowRanges = GRanges(),
   colData = DataFrame(), isSnp = logical(), ...)
 
 \S4method{SnpArrayExperiment}{matrix}(cn, baf, rowRanges = GRanges(),
-  colData = DataFrame(row.names = colnames(cn)), isSnp = logical(), ...)
+  colData = DataFrame(row.names = colnames(cn)), isSnp = logical(),
+  ...)
 }
 \arguments{
 \item{cn}{matrix of copy number estimates (e.g., log R ratios)}
@@ -33,9 +34,6 @@ SnpArrayExperiment(cn, baf, rowRanges = GRanges(), colData = DataFrame(),
 \item{...}{additional arguments passed to \code{SummarizedExperiment()} constructor function}
 }
 \description{
-A RangedSummarizedExperiment-derived class of marker-level SNP array data
-for copy number inference
-
 Constructor for SnpArrayExperiment
 }
 \examples{

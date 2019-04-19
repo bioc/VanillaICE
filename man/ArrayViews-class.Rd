@@ -25,8 +25,8 @@
 \usage{
 ArrayViews(class = "ArrayViews", colData, rowRanges = GRanges(),
   sourcePaths = character(), scale = 1000, sample_ids,
-  parsedPath = getwd(), lrrFiles = character(), bafFiles = character(),
-  gtFiles = character())
+  parsedPath = getwd(), lrrFiles = character(),
+  bafFiles = character(), gtFiles = character())
 
 \S4method{[}{ArrayViews,ANY,ANY,ANY}(x, i, j, ..., drop = FALSE)
 

@@ -13,15 +13,16 @@ estimated from SNP arrays}
 hmm2(object, emission_param = EmissionParam(),
   transition_param = TransitionParam(), ...)
 
-\S4method{hmm2}{SnpArrayExperiment}(object, emission_param = EmissionParam(),
+\S4method{hmm2}{SnpArrayExperiment}(object,
+  emission_param = EmissionParam(),
   transition_param = TransitionParam(), ...)
 
 \S4method{hmm2}{oligoSnpSet}(object, emission_param = EmissionParam(),
   transition_param = TransitionParam(), ...)
 
 \S4method{hmm2}{ArrayViews}(object, emission_param = EmissionParam(),
-  transition_param = TransitionParam(), tolerance = 2, verbose = FALSE,
-  ...)
+  transition_param = TransitionParam(), tolerance = 2,
+  verbose = FALSE, ...)
 }
 \arguments{
 \item{object}{A \code{\link{SnpArrayExperiment}}}

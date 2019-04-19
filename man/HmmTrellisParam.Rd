@@ -4,8 +4,8 @@
 \alias{HmmTrellisParam}
 \title{Constructor for HmmTrellisParam class}
 \usage{
-HmmTrellisParam(ylimits = list(c(0, 1), c(-3, 1)), expandfun = function(g) {
-      width(g) * 50 })
+HmmTrellisParam(ylimits = list(c(0, 1), c(-3, 1)),
+  expandfun = function(g) {     width(g) * 50 })
 }
 \arguments{
 \item{ylimits}{length-two list of the y-axis limits for B allele

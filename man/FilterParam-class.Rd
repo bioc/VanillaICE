@@ -10,8 +10,8 @@
 \title{Container for the common criteria used to  filtering genomic ranges}
 \usage{
 FilterParam(probability = 0.99, numberFeatures = 10,
-  seqnames = paste0("chr", c(1:22, "X", "Y")), state = as.character(1:6),
-  width = 1L)
+  seqnames = paste0("chr", c(1:22, "X", "Y")),
+  state = as.character(1:6), width = 1L)
 
 \S4method{probability}{FilterParam}(object)
 

@@ -22,8 +22,6 @@ numeric vector
 }
 \description{
 Compute the column-wide or row-wise mode of numeric matrices
-
-Compute the median absolute deviation (MAD) for the rows of a matrix
 }
 \examples{
 X <- matrix(rnorm(100), 10, 10)
