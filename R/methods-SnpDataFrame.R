@@ -1,14 +1,19 @@
 setMethod(SnpDataFrame, "missing",
           function(x, row.names=NULL, check.names=TRUE,
                    isSnp=logical(nrow(x))){
-            new("SnpDataFrame")
+            tmp=new("SnpDataFrame")
+            tmp$isSnp <- logical()
+            tmp
           })
 
 #' @aliases SnpGRanges,missing-method
 #' @rdname SnpGRanges
 setMethod(SnpGRanges, "missing",
           function(object, isSnp){
-            new("SnpGRanges")
+            cd <- SnpDataFrame()
+            g <- new("SnpGRanges")
+            mcols(g) <- cd
+            g
           })
 
 setMethod(SnpDataFrame, "DataFrame",

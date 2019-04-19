@@ -38,7 +38,6 @@ Constructor for SnpArrayExperiment
 }
 \examples{
 ## empty container
-SnpArrayExperiment()
 
 data(snp_exp) # example
 

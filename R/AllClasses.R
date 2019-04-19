@@ -80,7 +80,8 @@ setClass("SnpGRanges", contains="GRanges",
 #'
 #' @rdname SnpArrayExperiment-class
 #' @export
-setClass("SnpArrayExperiment", contains = "RangedSummarizedExperiment",
+setClass("SnpArrayExperiment",
+         contains = "RangedSummarizedExperiment",
          representation(rowRanges="SnpGRanges"))
 
 # # @aliases HmmGRanges-class

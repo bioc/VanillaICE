@@ -27,7 +27,7 @@ NULL
 #'   fgr <- SnpGRanges(fgr)
 #'   names(fgr) <- features[["Name"]]
 #'   bsgenome <- BSgenome.Hsapiens.UCSC.hg18
-#'   seqlevels(fgr) <- seqlevels(bsgenome)[seqlevels(bsgenome) %in% seqlevels(fgr)]
+#'   seqlevels(fgr, pruning.mode="coarse") <- seqlevels(bsgenome)[seqlevels(bsgenome) %in% seqlevels(fgr)]
 #'   seqinfo(fgr) <- seqinfo(bsgenome)[seqlevels(fgr),]
 #'   fgr <- sort(fgr)
 #'   files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")

@@ -1,6 +1,5 @@
 #' @examples
 #' ## empty container
-#' SnpArrayExperiment()
 #'
 #' data(snp_exp) # example
 #'
@@ -10,12 +9,14 @@
 #' @rdname SnpArrayExperiment-class
 setMethod(SnpArrayExperiment, "missing",
           function(cn, baf, rowRanges=GRanges(),
-                   colData=DataFrame(), isSnp=logical(), ...){
-            new("SnpArrayExperiment", SummarizedExperiment(
-                assays=snpArrayAssays(...)$data,
-                rowRanges=SnpGRanges(),
-                ...
-            ))
+                   colData=DataFrame(),
+                   isSnp=logical(), ...){
+            new("SnpArrayExperiment",
+                SummarizedExperiment(
+                  assays=snpArrayAssays(...)$data,
+                  rowRanges=SnpGRanges(),
+                  ...
+                ))
           })
 
 
@@ -266,7 +267,7 @@ getExampleSnpExperiment <- function(bsgenome){
                  isSnp=features[["Intensity Only"]]==0)
   fgr <- SnpGRanges(fgr)
   names(fgr) <- features[["Name"]]
-  seqlevels(fgr) <- seqlevels(bsgenome)[seqlevels(bsgenome) %in% seqlevels(fgr)]
+  seqlevels(fgr, pruning.mode="coarse") <- seqlevels(bsgenome)[seqlevels(bsgenome) %in% seqlevels(fgr)]
   seqinfo(fgr) <- seqinfo(bsgenome)[seqlevels(fgr),]
   fgr <- sort(fgr)
   file <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")[5]
