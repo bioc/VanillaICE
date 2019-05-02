@@ -1,5 +1,5 @@
 Package: VanillaICE
-Version: 1.45.2
+Version: 1.46.0
 Title: A Hidden Markov Model for high throughput genotyping arrays
 Author: Robert Scharpf <rscharpf@jhu.edu>, Kevin Scharpf, and Ingo Ruczinski
     <ingo@jhsph.edu>
