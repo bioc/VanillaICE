@@ -13,7 +13,7 @@ setMethod(SnpArrayExperiment, "missing",
                    isSnp=logical(), ...){
             new("SnpArrayExperiment",
                 SummarizedExperiment(
-                  assays=snpArrayAssays(...)$data,
+                  assays=snpArrayAssays(...),
                   rowRanges=SnpGRanges(),
                   ...
                 ))
@@ -34,7 +34,7 @@ setMethod(SnpArrayExperiment, "matrix",
               rowRanges <- SnpGRanges(rowRanges, isSnp)
             }
             new("SnpArrayExperiment", SummarizedExperiment(
-                assays=assays$data,
+                assays=assays,
                 rowRanges=rowRanges,
                 colData=colData
             ))
@@ -75,7 +75,7 @@ setAs("oligoSnpSet", "SnpArrayExperiment",
                                     baf=baf(from),
                                     gt=calls(from))
         new("SnpArrayExperiment", SummarizedExperiment(
-            assays=cn_assays$data,
+            assays=cn_assays,
             rowRanges=rowranges,
             colData=coldata
         ))
@@ -154,14 +154,6 @@ assayNames <- function(x) names(assays(x))
 requiredAssays <- function() c("cn", "baf")
 isCnAssays <- function(x) all(requiredAssays() %in% assayNames(x))
 
-.ShallowSimpleListAssays <-
-    function(..., data = SimpleList())
-{
-    xx <- SummarizedExperiment:::.ShallowSimpleListAssays0(...)
-    xx$data <- data
-    xx
-}
-
 #' Create an assays object from log R ratios and B allele frequencies
 #'
 #'
@@ -178,10 +170,7 @@ isCnAssays <- function(x) all(requiredAssays() %in% assayNames(x))
 #' @export
 snpArrayAssays <- function(cn=new("matrix"),
                            baf=new("matrix"), ...){
-  assays <- .ShallowSimpleListAssays(
-    data = SimpleList(cn=cn,
-      baf=baf, ...))
-  assays
+  SimpleList(cn=cn, baf=baf, ...)
 }
 
 
