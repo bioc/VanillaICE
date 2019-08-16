@@ -64,7 +64,7 @@ setClass("HmmParam",
            verbose="logical"))
 
 
-setClass("SnpDataFrame", contains="DataFrame")
+setClass("SnpDataFrame", contains="DFrame")
 
 #' An extension to GRanges for representing SNPs
 #'
