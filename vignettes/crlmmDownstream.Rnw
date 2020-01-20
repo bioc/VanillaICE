@@ -31,7 +31,6 @@
 library(oligoClasses)
 library(VanillaICE)
 library(crlmm)
-library(SNPchip)
 library(IRanges)
 library(foreach)
 @
