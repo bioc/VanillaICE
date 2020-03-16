@@ -208,7 +208,8 @@ and the genomic marker annnotation created in the preceding section
 ## A directory to keep parsed files
 ##
 parsedDir <- tempdir()
-views <- ArrayViews(rowRanges=fgr, sourcePaths=files, parsedPath=parsedDir)
+views <- ArrayViews(rowRanges=fgr, sourcePaths=files,
+                    parsedPath=parsedDir)
 lrrFile(views) <- file.path(parsedDir, basename(fileName(views, "lrr")))
 views@bafFiles <- file.path(parsedDir, basename(fileName(views, "baf")))
 views@gtFiles <- file.path(parsedDir, basename(fileName(views, "gt")))

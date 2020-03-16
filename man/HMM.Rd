@@ -8,8 +8,12 @@
 \alias{show,HMM-method}
 \title{Container for the segmented data and the 6-state HMM model parameters}
 \usage{
-HMM(granges = GRanges(), param = HmmParam(), posterior = matrix(),
-  filters = FilterParam())
+HMM(
+  granges = GRanges(),
+  param = HmmParam(),
+  posterior = matrix(),
+  filters = FilterParam()
+)
 
 \S4method{state}{HMM}(object)
 

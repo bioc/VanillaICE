@@ -23,10 +23,18 @@
 \alias{start,ArrayViews-method}
 \title{ArrayViews class, constructor, and methods}
 \usage{
-ArrayViews(class = "ArrayViews", colData, rowRanges = GRanges(),
-  sourcePaths = character(), scale = 1000, sample_ids,
-  parsedPath = getwd(), lrrFiles = character(),
-  bafFiles = character(), gtFiles = character())
+ArrayViews(
+  class = "ArrayViews",
+  colData,
+  rowRanges = GRanges(),
+  sourcePaths = character(),
+  scale = 1000,
+  sample_ids,
+  parsedPath = getwd(),
+  lrrFiles = character(),
+  bafFiles = character(),
+  gtFiles = character()
+)
 
 \S4method{[}{ArrayViews,ANY,ANY,ANY}(x, i, j, ..., drop = FALSE)
 
@@ -40,8 +48,7 @@ colnames(x) <- value
 
 \S4method{show}{ArrayViews}(object)
 
-\S4method{sapply}{ArrayViews}(X, FUN, ..., simplify = TRUE,
-  USE.NAMES = TRUE)
+\S4method{sapply}{ArrayViews}(X, FUN, ..., simplify = TRUE, USE.NAMES = TRUE)
 
 \S4method{ncol}{ArrayViews}(x)
 

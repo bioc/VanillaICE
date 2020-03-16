@@ -8,9 +8,15 @@
 \title{Parameters for parsing source files containing SNP-array processed
 data, such as GenomeStudio files for the Illumina platform}
 \usage{
-CopyNumScanParams(cnvar = "Log R Ratio", bafvar = "B Allele Freq",
-  gtvar = c("Allele1 - AB", "Allele2 - AB"), index_genome = integer(),
-  select = integer(), scale = 1000, row.names = 1L)
+CopyNumScanParams(
+  cnvar = "Log R Ratio",
+  bafvar = "B Allele Freq",
+  gtvar = c("Allele1 - AB", "Allele2 - AB"),
+  index_genome = integer(),
+  select = integer(),
+  scale = 1000,
+  row.names = 1L
+)
 
 \S4method{show}{CopyNumScanParams}(object)
 }

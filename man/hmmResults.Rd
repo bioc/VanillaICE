@@ -4,7 +4,9 @@
 \name{hmmResults}
 \alias{hmmResults}
 \title{Example output from the hidden markov model}
-\format{a \code{GRanges} object}
+\format{
+a \code{GRanges} object
+}
 \description{
 The results of a 6-state HMM fit to simulated copy number and genotype data.
 }

@@ -240,49 +240,53 @@ setMethod("show", "ArrayViews", function(object){
 }
 
 .parseSourceFile <- function(object, param){
-  if(ncol(object) > 1) warning("Only parsing the first file in the views object")
-  object <- object[,1]
-  outfiles <- lowlevelFiles(object)
-  if(all(file.exists(outfiles))) return(NULL)
-  file <- sourcePaths(object)
-  nms <- .rownames(object)
-  is_gz <- length(grep(".gz$", file)) > 0
-  if(is_gz){
-    ## unzip in a temporary directory using a system call (platform dependent)
-    to <- paste0(tempfile(), ".gz")
-    file.copy(file, to)
-    system(paste("gunzip", to))
-    file <- gsub(".gz", "", to)
-  }
-  dat <- fread(file[1], select=selectCols(param), showProgress=FALSE, skip="[Data]")
-  dat <- dat[indexGenome(param), ]
-  ##nms <- dat[["SNP Name"]]
-  nms <- dat[[.snp_id_column(param)]]
-  if(!identical(nms, rownames(object))){
-    rownames(dat) <- nms
-    dat <- .resolveIndex(dat, object)
-  }
-  stopifnot(identical(nms, .rownames(object)))
-  gtindex <- match(gtvar(param), colnames(dat))
-  if(length(gtvar(param))==2){
-    gt <- sapply(gtindex, function(i, x) x[[i]], x=dat)
-    gt <- paste0(gt[,1], gt[,2])
-    if(!all(gt %in% c("AA", "AB", "BB"))){
-      msg <- which(!gt %in% c("AA", "AB", "BB"))
-      gt[msg] <- NA
+    if(ncol(object) > 1){
+        warning("Only parsing the first file in the views object")
     }
-  } else gt <- dat[[gtindex]]
-  if(is.character(gt)){
-    gt <- as.integer(factor(gt, levels=c("AA", "AB", "BB")))
-  } else gt <- as.integer(gt)
-  j <- match(cnvar(param), colnames(dat))
-  k <- match(bafvar(param), colnames(dat))
-  r <- scaleBy(dat[[j]], scale(param))
-  b <- scaleBy(dat[[k]], scale(param))
-  saveRDS(r, file=outfiles[1])
-  saveRDS(b, file=outfiles[2])
-  saveRDS(gt, file=outfiles[3])
-  NULL
+    object <- object[, 1]
+    outfiles <- lowlevelFiles(object)
+    if(all(file.exists(outfiles))) return(NULL)
+    file <- sourcePaths(object)
+    nms <- .rownames(object)
+    is_gz <- length(grep(".gz$", file)) > 0
+    if(is_gz){
+        ## unzip in a temporary directory using a system call
+        ## (platform dependent)
+        to <- paste0(tempfile(), ".gz")
+        file.copy(file, to)
+        system(paste("gunzip", to))
+        file <- gsub(".gz", "", to)
+    }
+    dat <- fread(file[1], select=selectCols(param),
+                 showProgress=FALSE, skip="[Data]")
+    dat <- dat[indexGenome(param), ]
+    ##nms <- dat[["SNP Name"]]
+    nms <- dat[[.snp_id_column(param)]]
+    if(!identical(nms, rownames(object))){
+        rownames(dat) <- nms
+        dat <- .resolveIndex(dat, object)
+    }
+    stopifnot(identical(nms, .rownames(object)))
+    gtindex <- match(gtvar(param), colnames(dat))
+    if(length(gtvar(param))==2){
+        gt <- sapply(gtindex, function(i, x) x[[i]], x=dat)
+        gt <- paste0(gt[,1], gt[,2])
+        if(!all(gt %in% c("AA", "AB", "BB"))){
+            msg <- which(!gt %in% c("AA", "AB", "BB"))
+            gt[msg] <- NA
+        }
+    } else gt <- dat[[gtindex]]
+    if(is.character(gt)){
+        gt <- as.integer(factor(gt, levels=c("AA", "AB", "BB")))
+    } else gt <- as.integer(gt)
+    j <- match(cnvar(param), colnames(dat))
+    k <- match(bafvar(param), colnames(dat))
+    r <- scaleBy(dat[[j]], scale(param))
+    b <- scaleBy(dat[[k]], scale(param))
+    saveRDS(r, file=outfiles[1])
+    saveRDS(b, file=outfiles[2])
+    saveRDS(gt, file=outfiles[3])
+    NULL
 }
 
 #' @aliases parseSourceFile,ArrayViews,CopyNumScanParams-method

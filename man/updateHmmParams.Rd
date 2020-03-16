@@ -4,8 +4,11 @@
 \alias{updateHmmParams}
 \title{Run the Baum-Welch algorithm to update HMM parameters}
 \usage{
-updateHmmParams(object, emission_param = EmissionParam(),
-  transition_param = TransitionParam())
+updateHmmParams(
+  object,
+  emission_param = EmissionParam(),
+  transition_param = TransitionParam()
+)
 }
 \arguments{
 \item{object}{a \code{\link{SnpArrayExperiment}} object}

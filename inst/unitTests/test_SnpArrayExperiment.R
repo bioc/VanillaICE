@@ -58,7 +58,8 @@ test_SnpArrayExperiment <- function(){
   rowranges <- GRanges(Rle("chr1", 5), IRanges(1:5, width=1))
   checkException(validObject(SnpArrayExperiment(x, y)))
   checkException(validObject(SnpArrayExperiment(x, y, rowRanges=rowranges)))
-  checkTrue(validObject(SnpArrayExperiment(x, y, rowRanges=rowranges, isSnp=rep(FALSE,5))))
+  checkTrue(validObject(SnpArrayExperiment(x, y, rowRanges=rowranges,
+                                           isSnp=rep(FALSE,5))))
   rowranges$isSnp <- rep(FALSE,5)
   checkTrue(validObject(SnpArrayExperiment(x, y, rowRanges=rowranges)))
   se <- SnpArrayExperiment(x, y, rowranges)
@@ -99,24 +100,24 @@ test_SnpArrayExperiment2 <- function(){
                       recursive=TRUE,
                       pattern="FinalReport")
   parsedDir <- tempdir()
-  views <- ArrayViews(rowRanges=fgr,
-                      sourcePaths=files,
-                      parsedPath=parsedDir)
-  dat <- fread(files[1], skip="[Data]")
-  select_columns <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB",
-                            "Log R Ratio", "B Allele Freq"), names(dat))
-  index_genome <- match(names(fgr), dat[["SNP Name"]])
-  scan_params <- CopyNumScanParams(index_genome=index_genome,
-                                 select=select_columns,
-                                 cnvar="Log R Ratio",
-                                 bafvar="B Allele Freq",
-                                 gtvar=c("Allele1 - AB", "Allele2 - AB"))
-  parseSourceFile(views, scan_params)
-  views2 <- views[, 4:5]
-  checkTrue(validObject(views2))
-  rr <- rowRanges(views2)
-  obj <- SnpGRanges(rr,
-                    isSnp=rep(TRUE, nrow(view2)))
-  checkTrue(validObject(obj))
-  checkTrue(validObject(SnpExperiment(views2)))
+##  views <- ArrayViews(rowRanges=fgr,
+##                      sourcePaths=files,
+##                      parsedPath=parsedDir)
+##  dat <- fread(files[1], skip="[Data]")
+##  select_columns <- match(c("SNP Name", "Allele1 - AB", "Allele2 - AB",
+##                            "Log R Ratio", "B Allele Freq"), names(dat))
+##  index_genome <- match(names(fgr), dat[["SNP Name"]])
+##  scan_params <- CopyNumScanParams(index_genome=index_genome,
+##                                 select=select_columns,
+##                                 cnvar="Log R Ratio",
+##                                 bafvar="B Allele Freq",
+##                                 gtvar=c("Allele1 - AB", "Allele2 - AB"))
+##  parseSourceFile(views, scan_params)
+##  views2 <- views[, 4:5]
+##  checkTrue(validObject(views2))
+##  rr <- rowRanges(views2)
+##  obj <- SnpGRanges(rr,
+##                    isSnp=rep(TRUE, nrow(view2)))
+##  checkTrue(validObject(obj))
+##  checkTrue(validObject(SnpExperiment(views2)))
 }

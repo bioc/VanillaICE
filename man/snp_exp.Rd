@@ -4,7 +4,9 @@
 \name{snp_exp}
 \alias{snp_exp}
 \title{An example SnpArrayExperiment}
-\format{a \code{SnpArrayExperiment} object}
+\format{
+a \code{SnpArrayExperiment} object
+}
 \description{
 A container for low-level summaries used for downstream copy number
 estimation, including log R ratios, B allele frequencies, and
