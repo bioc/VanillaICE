@@ -1,9 +1,9 @@
 #' @examples
 #' ## empty container
+#' library(VanillaICE)
+#' data(snp_exp, package="VanillaICE") # example
 #'
-#' data(snp_exp) # example
-#'
-#' SnpArrayExperiment(cn=lrr(snp_exp), baf=baf(snp_exp),
+#' se <- SnpArrayExperiment(cn=lrr(snp_exp), baf=baf(snp_exp),
 #'                    rowRanges=rowRanges(snp_exp))
 #' @aliases SnpArrayExperiment,missing-method
 #' @rdname SnpArrayExperiment-class
@@ -13,7 +13,7 @@ setMethod(SnpArrayExperiment, "missing",
                    isSnp=logical(), ...){
             new("SnpArrayExperiment",
                 SummarizedExperiment(
-                  assays=snpArrayAssays(...),
+                    assays=snpArrayAssays(...),
                   rowRanges=SnpGRanges(),
                   ...
                 ))
@@ -84,9 +84,9 @@ setAs("oligoSnpSet", "SnpArrayExperiment",
 
 
 setValidity("SnpArrayExperiment", function(object){
-  msg <- validObject(rowRanges(object))
-  msg <- msg && (requiredAssays() %in% names(assays(object)))
-  msg
+    msg <- validObject(rowRanges(object))
+    msg <- msg && (all(requiredAssays() %in% names(assays(object))))
+    msg
 })
 
 #' @export
@@ -163,7 +163,7 @@ isCnAssays <- function(x) all(requiredAssays() %in% assayNames(x))
 #' @param baf matrix of B allele frequencies
 #' @param ... additional matrices of the same dimension, such as SNP genotypes.
 #' @examples
-#' data(snp_exp)
+#' data(snp_exp, package="VanillaICE")
 #' r <- lrr(snp_exp)
 #' b <- baf(snp_exp)
 #' sl <- snpArrayAssays(cn=r, baf=b)

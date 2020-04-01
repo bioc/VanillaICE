@@ -18,7 +18,7 @@ This function is exported primarily for internal use by other BioC
 packages.
 }
 \examples{
-data(snp_exp)
+data(snp_exp, package="VanillaICE")
 r <- lrr(snp_exp)
 b <- baf(snp_exp)
 sl <- snpArrayAssays(cn=r, baf=b)

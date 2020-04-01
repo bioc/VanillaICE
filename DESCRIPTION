@@ -1,11 +1,10 @@
 Package: VanillaICE
-Version: 1.49.2
+Version: 1.49.3
 Title: A Hidden Markov Model for high throughput genotyping arrays
 Author: Robert Scharpf <rscharpf@jhu.edu>, Kevin Scharpf, and Ingo Ruczinski
     <ingo@jhsph.edu>
 Maintainer: Robert Scharpf <rscharpf@jhsph.edu>
-Description: Hidden Markov Models for characterizing chromosomal alterations in
-    high throughput SNP arrays.
+Description: Hidden Markov Models for characterizing chromosomal alteration in high throughput SNP arrays.
 Date: Sat Sep 27 11:46:03 EDT 2014
 Depends:
     R (>= 3.5.0),
@@ -63,3 +62,4 @@ LazyLoad: yes
 biocViews: CopyNumberVariation
 Roxygen: list(wrap=FALSE)
 RoxygenNote: 7.1.0
+Encoding: UTF-8

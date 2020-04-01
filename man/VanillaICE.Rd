@@ -5,5 +5,5 @@
 \alias{VanillaICE}
 \title{A hidden markov model for detection of germline copy number
   variants from arrays}
-\description{Software for identifying germline copy number variants from
-SNP arrays}
+\description{A hidden markov model for detection of germline copy number
+  variants from arrays}

@@ -55,9 +55,9 @@ Constructor for SnpArrayExperiment
 }
 \examples{
 ## empty container
+library(VanillaICE)
+data(snp_exp, package="VanillaICE") # example
 
-data(snp_exp) # example
-
-SnpArrayExperiment(cn=lrr(snp_exp), baf=baf(snp_exp),
+se <- SnpArrayExperiment(cn=lrr(snp_exp), baf=baf(snp_exp),
                    rowRanges=rowRanges(snp_exp))
 }
