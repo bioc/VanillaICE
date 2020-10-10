@@ -13,6 +13,7 @@
 #' @import S4Vectors
 #' @import GenomeInfoDb
 #' @import BiocGenerics
+#' @import MatrixGenerics
 #' @importMethodsFrom Biobase pData fData phenoData featureData featureNames sampleNames assayData snpCallProbability
 #' @importFrom Biobase rowMax assayDataElement assayDataElementNames assayDataNew
 #' @importFrom data.table fread

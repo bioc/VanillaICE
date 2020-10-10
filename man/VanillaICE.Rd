@@ -3,7 +3,4 @@
 \docType{package}
 \name{VanillaICE}
 \alias{VanillaICE}
-\title{A hidden markov model for detection of germline copy number
-  variants from arrays}
-\description{A hidden markov model for detection of germline copy number
-  variants from arrays}
+\title{A hidden markov model for detection of germline copy number variants from arrays}
