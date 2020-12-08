@@ -17,3 +17,5 @@ changelog
 /inst/unitTests/report.txt
 /inst/unitTests/reportSummary.txt
 /src/symbols.rds
+/vignettes/VanillaICE.html
+vignettes/figure

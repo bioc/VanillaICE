@@ -64,7 +64,7 @@ vignette for details.  For large datasets, one could randomly select
 20 or 25 samples to compute the window, and then use a pre-selected
 window for wave correction on the remaining samples.
 
-<<windowselection>>=
+<<windowselection, eval=FALSE>>=
 library(ArrayTV)
 i <- seq_len(ncol(se))
 increms <- c(10,1000,100e3)
@@ -80,26 +80,12 @@ res <- gcCorrect(lrr(se),
 se2 <- se
 assays(se2)[["cn"]] <- res$correctedVals
 @
-%
-%Pre-compute the gc composition for a window of size 6500bp:
-%
-%<<gccontent,eval=FALSE>>=
-%##gc.matrix <- computeGC(oligoList, c(10, 10e3), c(10,10e3))
-%##gc.matrix <- computeGC(oligoList, c(10, 10e3), c(10,10e3))
-%@
-%
-%We use the gc content for the two windows in \texttt{gc.matrix} to
-%correct the log R ratios for all samples in the dataset.  If the assay
-%data elements in the \texttt{oligoList} object were \texttt{ff}
-%objects, NULL is returned and the log R ratios are updated on disk.
-%If the assay data elements are matrices, a \Rclass{BafLrrSetList}
-%object is returned with the correct log R ratios.
-%
-%<<gccorrect, eval=FALSE>>=
-%oligoList2 <- gcCorrect(oligoList, increms=c(10,10e3), maxwins=c(10,10e3),
-%			providedGC=gc.matrix)
-%@
-%
+
+<<loesscorrection>>=
+## TODO: correct for GC bias by loess
+se2 <- se
+@
+
 \section*{HMM}
 
 To identify CNVs, we fit a 6-state hidden markov model from estimates
