@@ -1,49 +1,50 @@
 ## from xmapcore package
 if( require( "RUnit", quietly=TRUE ) ) {
-	pkg <- "VanillaICE"
+    pkg <- "VanillaICE"
 
-	if( Sys.getenv( "RCMDCHECK" ) == "FALSE" ) {
-		path <- file.path( getwd(), "..", "inst", "unitTests" )
-	} else {
-		path <- system.file( package=pkg, "unitTests" )
-	}
+    if( Sys.getenv( "RCMDCHECK" ) == "FALSE" ) {
+        path <- file.path( getwd(), "..", "inst", "unitTests" )
+    } else {
+        path <- system.file( package=pkg, "unitTests" )
+    }
 
-	cat( "\nRunning unit tests\n" )
-	print( list( pkg=pkg, getwd=getwd(), pathToUnitTests=path ) )
-	library( package=pkg, character.only=TRUE )
+    cat( "\nRunning unit tests\n" )
+    print( list( pkg=pkg, getwd=getwd(), pathToUnitTests=path ) )
+    library( package=pkg, character.only=TRUE )
 
-	##xmap.clear.cache()
+    ##xmap.clear.cache()
 
-	##Fail on warnings
-	options( warn=2 )
+    ##Fail on warnings
+    options( warn=2 )
 
-	## Get the pattern (if there is one?)
-	patt <- Sys.getenv( "RUNITFILEPATTERN" )
-	if( is.null( patt ) || nchar( patt ) == 0 ) {
-		testSuite <- defineTestSuite(name=paste( pkg, "unit testing" ),
-					     dirs=path,
-					     testFileRegexp=paste( "^test.+", patt, "\\.[rR]$", sep="" ))
-	} else {
-		##testSuite <- defineTestSuite( name=paste( pkg, "unit testing" ), testFileRegexp=paste( "^runit\\.", patt, "\\.[rR]$", sep="" ), dirs=path )
-		testSuite <- defineTestSuite(name=paste( pkg, "unit testing" ),
-					     testFileRegexp=paste( "^test.+", patt, "\\.[rR]$", sep="" ),
-					     dirs=path )
-	}
-	tests <- runTestSuite( testSuite )
+    ## Get the pattern (if there is one?)
+    patt <- Sys.getenv( "RUNITFILEPATTERN" )
+    if( is.null( patt ) || nchar( patt ) == 0 ) {
+        testSuite <- defineTestSuite(name=paste( pkg, "unit testing" ),
+                                     dirs=path,
+                                     testFileRegexp=paste( "^test.+", patt, "\\.[rR]$", sep="" ),
+                                     rngKind="Mersenne-Twister")
+    } else {
+        testSuite <- defineTestSuite(name=paste( pkg, "unit testing" ),
+                                     testFileRegexp=paste( "^test.+", patt, "\\.[rR]$", sep="" ),
+                                     dirs=path ,
+                                     rngKind="Mersenne-Twister")
+    }
+    tests <- runTestSuite( testSuite )
 
-	pathReport <- file.path( path, "report" )
+    pathReport <- file.path( path, "report" )
 
-	cat( "------------------- UNIT TEST SUMMARY ---------------------\n\n" )
-	printTextProtocol( tests, showDetails=FALSE )
-	printTextProtocol( tests, showDetails=FALSE, fileName=paste( pathReport, "Summary.txt", sep="" ) )
-	printTextProtocol( tests, showDetails=TRUE,  fileName=paste( pathReport, ".txt", sep="" ) )
+    cat( "------------------- UNIT TEST SUMMARY ---------------------\n\n" )
+    printTextProtocol( tests, showDetails=FALSE )
+    printTextProtocol( tests, showDetails=FALSE, fileName=paste( pathReport, "Summary.txt", sep="" ) )
+    printTextProtocol( tests, showDetails=TRUE,  fileName=paste( pathReport, ".txt", sep="" ) )
 
-	printHTMLProtocol( tests, fileName=paste( pathReport, ".html", sep="" ) )
+    printHTMLProtocol( tests, fileName=paste( pathReport, ".html", sep="" ) )
 
-	tmp <- getErrors( tests )
-	if( tmp$nFail > 0 | tmp$nErr > 0 ){
-		stop( paste( "\n\nunit testing failed (#test failures: ", tmp$nFail, ", #R errors: ",  tmp$nErr, ")\n\n", sep=""))
-	}
+    tmp <- getErrors( tests )
+    if( tmp$nFail > 0 | tmp$nErr > 0 ){
+        stop( paste( "\n\nunit testing failed (#test failures: ", tmp$nFail, ", #R errors: ",  tmp$nErr, ")\n\n", sep=""))
+    }
 } else {
-	warning( "cannot run unit tests -- package RUnit is not available" )
+    warning( "cannot run unit tests -- package RUnit is not available" )
 }
