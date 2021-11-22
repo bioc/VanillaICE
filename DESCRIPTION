@@ -1,7 +1,8 @@
 Package: VanillaICE
-Version: 1.56.0
+Version: 1.56.1
 Title: A Hidden Markov Model for high throughput genotyping arrays
-Authors@R: person("Robert", "Scharpf", email="rscharpf@jhu.edu", role=c("aut", "cre"))
+Author: person("Robert", "Scharpf", email="rscharpf@jhu.edu", role=c("aut", "cre"))
+Maintainer: R.B. Scharpf <rscharpf@jhu.edu>
 Description: Hidden Markov Models for characterizing chromosomal alteration in high throughput SNP arrays.
 Date: Sat Sep 27 11:46:03 EDT 2014
 Depends:
