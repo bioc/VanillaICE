@@ -93,7 +93,7 @@ test_updating <- function(){
   checkTrue(mean(Rle(state(fit)) != Rle(3, 300)) < 0.005)
   expected_means <- setNames(VanillaICE:::BAF_PRIOR_MEANS(), names(baf_means(e_param)))
   expected_means[c("A", "AB", "B")] <- c(0, 0.53, 1)
-  checkEquals(baf_means(emissionParam(hmm_param)), expected_means, tolerance=0.04)
+  checkEquals(baf_means(emissionParam(hmm_param)), expected_means, tolerance=0.1)
   expected_means <- VanillaICE:::expandCnTwo(VanillaICE:::CN_PRIOR_MEANS())
   expected_means[3:4] <- 0.1
   checkEquals(cn_means(emissionParam(hmm_param)), expected_means, tolerance=0.03)
