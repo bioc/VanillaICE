@@ -96,7 +96,7 @@ test_updating <- function(){
   checkEquals(baf_means(emissionParam(hmm_param)), expected_means, tolerance=0.1)
   expected_means <- VanillaICE:::expandCnTwo(VanillaICE:::CN_PRIOR_MEANS())
   expected_means[3:4] <- 0.1
-  checkEquals(cn_means(emissionParam(hmm_param)), expected_means, tolerance=0.03)
+  checkEquals(cn_means(emissionParam(hmm_param)), expected_means, tolerance=0.1)
 }
 
 test_Viterbi <- function(){
