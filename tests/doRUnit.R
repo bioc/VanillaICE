@@ -20,14 +20,16 @@ if( require( "RUnit", quietly=TRUE ) ) {
 	## Get the pattern (if there is one?)
 	patt <- Sys.getenv( "RUNITFILEPATTERN" )
 	if( is.null( patt ) || nchar( patt ) == 0 ) {
-		testSuite <- defineTestSuite(name=paste( pkg, "unit testing" ),
-					     dirs=path,
-					     testFileRegexp=paste( "^test.+", patt, "\\.[rR]$", sep="" ))
+            testSuite <- defineTestSuite(name=paste( pkg, "unit testing" ),
+                                         rngKind="Mersenne-Twister",
+                                         dirs=path,
+                                         testFileRegexp=paste( "^test.+", patt, "\\.[rR]$", sep="" ))
 	} else {
 		##testSuite <- defineTestSuite( name=paste( pkg, "unit testing" ), testFileRegexp=paste( "^runit\\.", patt, "\\.[rR]$", sep="" ), dirs=path )
-		testSuite <- defineTestSuite(name=paste( pkg, "unit testing" ),
-					     testFileRegexp=paste( "^test.+", patt, "\\.[rR]$", sep="" ),
-					     dirs=path )
+            testSuite <- defineTestSuite(name=paste( pkg, "unit testing" ),
+                                         rngKind="Mersenne-Twister",
+                                         testFileRegexp=paste( "^test.+", patt, "\\.[rR]$", sep="" ),
+                                         dirs=path )
 	}
 	tests <- runTestSuite( testSuite )
 
