@@ -22,7 +22,7 @@ test_ArrayViews <- function(){
   ids <- gsub(".rds", "", gsub("FinalReport", "", basename(files)))
   ## select a permanent location to store the parsed data
 
-  dat <- fread(files[1], nrows=0)
+  dat <- fread(file=files[1], nrows=0, skip=9)
   keep <- c("SNP Name", "Allele1 - AB", "Allele2 - AB", "Log R Ratio", "B Allele Freq")
   select <- which(names(dat)%in%keep)
   dat <- fread(files[1], select=select, skip="[Data]")
@@ -95,7 +95,7 @@ test_columnSubset <- function(){
 
   files <- list.files(extdir, full.names=TRUE, recursive=TRUE, pattern="FinalReport")
 
-  dat <- fread(files[1], nrows=0)
+  dat <- fread(files[1], nrows=0, skip=9)
   keep <- c("SNP Name", "Allele1 - AB", "Allele2 - AB", "Log R Ratio", "B Allele Freq")
   select <- which(names(dat)%in%keep)
   dat <- fread(files[1], select=select, skip="[Data]")
